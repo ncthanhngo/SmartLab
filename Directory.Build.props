@@ -1,0 +1,20 @@
+<Project>
+
+  <PropertyGroup>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <Product>USB Doctor</Product>
+    <Company>EVSE Lab</Company>
+    <Version>0.1.0</Version>
+  </PropertyGroup>
+
+  <!--
+    Unsafe blocks are needed for the fixed-buffer WIN32_FIND_DATAW marshalling
+    in UsbDoctor.Win32. Scoped there rather than enabled solution-wide.
+  -->
+
+</Project>

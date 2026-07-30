@@ -1,0 +1,10 @@
+bin/
+obj/
+.vs/
+*.user
+*.suo
+artifacts/
+TestResults/
+.claude/settings.local.json
+*.vhd
+*.vhdx
