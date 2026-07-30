@@ -63,9 +63,20 @@ public sealed partial class MainViewModel : ObservableObject
 
         for (var letter = 'A'; letter <= 'Z'; letter++)
         {
-            var volume = _reader.GetVolume(letter);
-            if (volume is { DriveType: VolumeDriveType.Removable })
-                Drives.Add(volume);
+            // One unreadable drive letter must not stop the enumeration. A card
+            // reader with no card, or a device mid-removal, throws here - and since
+            // this runs from the constructor, an escaping exception would take the
+            // whole window down before it ever appears.
+            try
+            {
+                var volume = _reader.GetVolume(letter);
+                if (volume is { DriveType: VolumeDriveType.Removable })
+                    Drives.Add(volume);
+            }
+            catch
+            {
+                // Skip this letter and keep looking.
+            }
         }
 
         SelectedDrive = Drives.FirstOrDefault();
@@ -100,7 +111,13 @@ public sealed partial class MainViewModel : ObservableObject
             var progress = new Progress<ScanProgress>(p =>
                 Status = $"Scanning... {p.DirectoriesVisited} dirs, {p.EntriesSeen} entries");
 
-            _plan = await scanner.ScanAsync(drive.DriveLetter, options, progress).ConfigureAwait(true);
+            // Task.Run matters here. Win32VolumeReader.EnumerateAsync begins with
+            // Task.Yield(), which under WPF resumes on the Dispatcher - so without
+            // this the entire walk, including hashing files for signature matches,
+            // would run on the UI thread and freeze the window. On a large volume
+            // that reads as a crash rather than as work in progress.
+            _plan = await Task.Run(
+                () => scanner.ScanAsync(drive.DriveLetter, options, progress)).ConfigureAwait(true);
 
             foreach (var threat in _plan.Threats)
                 Findings.Add($"[THREAT/{threat.Severity}] {threat.Path.ForDisplay()} - {threat.Reason}");
@@ -174,8 +191,10 @@ public sealed partial class MainViewModel : ObservableObject
             var progress = new Progress<ExecutionProgress>(p =>
                 Status = $"{p.Completed}/{p.Total}: {p.Description}");
 
-            var report = await executor.ApplyAsync(plan.Approve(selected), options, progress)
-                .ConfigureAwait(true);
+            // Off the UI thread for the same reason as the scan: a rescue copy can
+            // move gigabytes and must not block the window.
+            var report = await Task.Run(
+                () => executor.ApplyAsync(plan.Approve(selected), options, progress)).ConfigureAwait(true);
 
             Findings.Add(DryRun ? "--- DRY RUN, nothing was written ---" : "--- RESULTS ---");
 
