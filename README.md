@@ -3,6 +3,13 @@
 A read-only diagnostic and recovery-planning tool for damaged or compromised USB
 volumes on Windows.
 
+Author: **nc.thanhngo@gmail.com** — EVSE Lab.
+
+The EVSELab mark is drawn as vector geometry in `Themes/Logo.xaml`, not shipped as
+an image. One definition serves the title bar, the About view and the tray icon,
+which is rendered from the same geometry at runtime so it cannot drift; and the
+single-file executable carries no binary asset.
+
 USB Doctor scans a volume, reports what it found, and proposes a plan. Producing
 a plan never touches the disk — nothing executes until an operator reviews the
 findings and explicitly approves a subset of the proposed actions.
