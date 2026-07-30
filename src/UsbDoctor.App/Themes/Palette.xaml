@@ -42,6 +42,13 @@
     <Color x:Key="AccentAboutColor">#4DD4C4</Color>
 
     <SolidColorBrush x:Key="AccentAboutBrush" Color="#4DD4C4" />
+    <SolidColorBrush x:Key="AccentDeletedBrush" Color="#5AA9FF" />
+    <SolidColorBrush x:Key="AccentCleanupBrush" Color="#F5B93B" />
+    <SolidColorBrush x:Key="AccentUninstallBrush" Color="#FF6B8A" />
+
+    <!-- The unfilled part of a gauge ring. Bright enough to show the ring's shape
+         on a dark card, dim enough that an empty gauge does not read as a value. -->
+    <SolidColorBrush x:Key="GaugeTrackBrush" Color="#232D3E" />
 
     <!-- Sits on a saturated accent plate, so it has to be dark rather than light. -->
     <SolidColorBrush x:Key="OnAccentBrush" Color="#0B1018" />

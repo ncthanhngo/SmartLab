@@ -3,6 +3,11 @@
   <PropertyGroup>
     <TargetFramework>net8.0-windows</TargetFramework>
     <IsPackable>false</IsPackable>
+    <!-- Deliberately NOT UseWPF, even though this project references the WPF app to
+         reach the gauge geometry. Turning it on swaps in the WindowsDesktop SDK's
+         implicit-usings set, which drops System.IO and breaks every test that
+         touches a Stream. The project reference alone flows the WPF framework
+         reference, which is all the geometry test needs. -->
     <!-- xunit analyzers surface style suggestions that should not fail the build. -->
     <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
   </PropertyGroup>
@@ -14,6 +19,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\src\UsbDoctor.App\UsbDoctor.App.csproj" />
     <ProjectReference Include="..\..\src\UsbDoctor.Cli\UsbDoctor.Cli.csproj" />
     <ProjectReference Include="..\..\src\UsbDoctor.Core\UsbDoctor.Core.csproj" />
     <ProjectReference Include="..\..\src\UsbDoctor.Engine\UsbDoctor.Engine.csproj" />

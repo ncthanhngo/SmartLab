@@ -183,9 +183,22 @@ public sealed partial class CleanupViewModel : ObservableObject
         }
     }
 
+    /// <summary>
+    /// Share of everything measured that is currently ticked.
+    /// </summary>
+    /// <remarks>
+    /// A real proportion, not a decorative one: the ring fills as categories are
+    /// ticked and empties as they are unticked, so it answers "how much of what was
+    /// found am I actually about to remove".
+    /// </remarks>
+    [ObservableProperty] private double _gaugePercent;
+
     private void UpdateTotal()
     {
         var bytes = Categories.Where(c => c.IsSelected && c.Measured).Sum(c => c.Bytes);
+        var measured = Categories.Where(c => c.Measured).Sum(c => c.Bytes);
+
+        GaugePercent = measured > 0 ? (double)bytes / measured : 0;
 
         TotalText = bytes switch
         {

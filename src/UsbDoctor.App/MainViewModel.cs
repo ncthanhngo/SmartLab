@@ -150,6 +150,17 @@ public sealed partial class MainViewModel : ObservableObject
     [ObservableProperty] private int _scanEntries;
     [ObservableProperty] private bool _isScanning;
 
+    /// <summary>
+    /// The repair ring is a status ring, not a progress ring.
+    /// </summary>
+    /// <remarks>
+    /// Deliberately always full. There is no honest denominator for scan progress -
+    /// the entry count is only known once the walk finishes - and a ring that fills
+    /// part way states a proportion that does not exist. The verdict is carried by
+    /// the ring's colour and the number inside it instead.
+    /// </remarks>
+    public static double RepairGaugePercent => 1.0;
+
     public ObservableCollection<VolumeInfo> Drives { get; } = [];
     public ObservableCollection<ActionItemViewModel> Actions { get; } = [];
     public ObservableCollection<string> Findings { get; } = [];
