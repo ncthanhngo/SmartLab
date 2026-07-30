@@ -1,4 +1,4 @@
-namespace UsbDoctor.Uninstall;
+namespace UsbDoctor.Maintenance;
 
 public enum TraceKind
 {
@@ -9,7 +9,22 @@ public enum TraceKind
     RegistryKey,
 
     File,
+
+    /// <summary>A directory and everything in it.</summary>
     Directory,
+
+    /// <summary>
+    /// Everything inside a directory, but not the directory itself.
+    /// </summary>
+    /// <remarks>
+    /// What a junk cleaner needs. Removing <c>%TEMP%</c> outright rather than
+    /// emptying it breaks every program that expects it to exist, and Windows does
+    /// not always recreate it promptly.
+    /// </remarks>
+    DirectoryContents,
+
+    /// <summary>The Recycle Bin, emptied through the shell rather than by file deletion.</summary>
+    RecycleBin,
 }
 
 /// <summary>

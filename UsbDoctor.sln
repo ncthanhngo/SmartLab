@@ -1,4 +1,4 @@
-﻿Microsoft Visual Studio Solution File, Format Version 12.00
+Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
@@ -20,7 +20,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UsbDoctor.App", "src\UsbDoc
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UsbDoctor.Fat", "src\UsbDoctor.Fat\UsbDoctor.Fat.csproj", "{E8404823-6A97-4BA4-BBAE-F846B7736E0E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UsbDoctor.Uninstall", "src\UsbDoctor.Uninstall\UsbDoctor.Uninstall.csproj", "{E3F87809-15D8-46FE-B0DD-B086B4F586E2}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UsbDoctor.Maintenance", "src\UsbDoctor.Maintenance\UsbDoctor.Maintenance.csproj", "{E3F87809-15D8-46FE-B0DD-B086B4F586E2}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

@@ -1,6 +1,6 @@
 using System.Diagnostics;
 
-namespace UsbDoctor.Uninstall;
+namespace UsbDoctor.Maintenance;
 
 public enum UninstallOutcome { Completed, NoUninstaller, LaunchFailed, Cancelled }
 

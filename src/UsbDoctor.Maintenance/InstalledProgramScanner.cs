@@ -1,6 +1,6 @@
 using Microsoft.Win32;
 
-namespace UsbDoctor.Uninstall;
+namespace UsbDoctor.Maintenance;
 
 /// <summary>
 /// Reads the installed-program list from the Windows uninstall keys.

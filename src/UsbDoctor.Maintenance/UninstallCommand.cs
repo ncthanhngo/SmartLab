@@ -1,4 +1,4 @@
-namespace UsbDoctor.Uninstall;
+namespace UsbDoctor.Maintenance;
 
 /// <param name="FileName">Executable to launch.</param>
 /// <param name="Arguments">Everything after it, possibly empty.</param>

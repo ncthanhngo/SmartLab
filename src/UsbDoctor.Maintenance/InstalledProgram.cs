@@ -1,4 +1,4 @@
-namespace UsbDoctor.Uninstall;
+namespace UsbDoctor.Maintenance;
 
 /// <summary>One entry from a Windows uninstall registry key.</summary>
 public sealed record InstalledProgram(string DisplayName, string RegistryKeyPath)

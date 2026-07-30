@@ -2,7 +2,7 @@ using System.Diagnostics;
 using System.IO;
 using Microsoft.Win32;
 
-namespace UsbDoctor.Uninstall;
+namespace UsbDoctor.Maintenance;
 
 /// <summary>
 /// Deletes traces, deferring the one it cannot delete from inside itself.
@@ -30,6 +30,8 @@ public sealed class Win32TraceRemover(bool dryRun, string? runningFromDirectory 
                 TraceKind.RegistryKey => RemoveRegistryKey(trace),
                 TraceKind.File => RemoveFile(trace),
                 TraceKind.Directory => RemoveDirectory(trace),
+                TraceKind.DirectoryContents => EmptyDirectory(trace),
+                TraceKind.RecycleBin => EmptyRecycleBin(trace),
                 _ => new RemovalResult(trace, RemovalOutcome.Failed, "Unsupported trace kind."),
             };
         }
@@ -76,6 +78,70 @@ public sealed class Win32TraceRemover(bool dryRun, string? runningFromDirectory 
         File.Delete(trace.Location);
         return new RemovalResult(trace, RemovalOutcome.Removed);
     }
+
+    /// <summary>
+    /// Deletes everything inside a directory, keeping the directory.
+    /// </summary>
+    /// <remarks>
+    /// Locked files are expected, not exceptional: a temp folder on a live machine
+    /// always holds handles that something still owns. Each failure costs that one
+    /// entry, and the count is reported so the number reflects what actually went
+    /// rather than what was attempted.
+    /// </remarks>
+    private static RemovalResult EmptyDirectory(AppTrace trace)
+    {
+        if (!Directory.Exists(trace.Location)) return new RemovalResult(trace, RemovalOutcome.NotFound);
+
+        int removed = 0, locked = 0;
+
+        foreach (var file in Directory.EnumerateFiles(trace.Location, "*", new EnumerationOptions
+        {
+            RecurseSubdirectories = true,
+            IgnoreInaccessible = true,
+            AttributesToSkip = FileAttributes.ReparsePoint,
+        }))
+        {
+            try
+            {
+                File.SetAttributes(file, FileAttributes.Normal);
+                File.Delete(file);
+                removed++;
+            }
+            catch
+            {
+                locked++;
+            }
+        }
+
+        // Subdirectories are swept after their files so the empty ones can go.
+        // Reparse points are skipped: following a junction out of a temp folder is
+        // how a cleaner deletes something that was never inside it.
+        foreach (var directory in Directory.EnumerateDirectories(trace.Location))
+        {
+            try
+            {
+                var info = new DirectoryInfo(directory);
+                if (info.Attributes.HasFlag(FileAttributes.ReparsePoint)) continue;
+
+                Directory.Delete(directory, recursive: true);
+            }
+            catch
+            {
+                locked++;
+            }
+        }
+
+        var detail = locked > 0
+            ? $"{removed} file(s) removed, {locked} still in use"
+            : $"{removed} file(s) removed";
+
+        return new RemovalResult(trace, RemovalOutcome.Removed, detail);
+    }
+
+    private static RemovalResult EmptyRecycleBin(AppTrace trace) =>
+        RecycleBin.Empty(out var error)
+            ? new RemovalResult(trace, RemovalOutcome.Removed)
+            : new RemovalResult(trace, RemovalOutcome.Failed, error);
 
     private RemovalResult RemoveDirectory(AppTrace trace)
     {

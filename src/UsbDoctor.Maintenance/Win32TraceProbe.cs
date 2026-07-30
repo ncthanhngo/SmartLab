@@ -1,7 +1,7 @@
 using System.IO;
 using Microsoft.Win32;
 
-namespace UsbDoctor.Uninstall;
+namespace UsbDoctor.Maintenance;
 
 /// <summary>Splits a full registry path such as <c>HKEY_CURRENT_USER\Software\...</c>.</summary>
 internal static class RegistryPath
@@ -74,6 +74,38 @@ public sealed class Win32TraceProbe : ITraceProbe
             return 0;
         }
     }
+
+    public (long Bytes, int Files) DirectoryStats(string path)
+    {
+        try
+        {
+            long bytes = 0;
+            var files = 0;
+
+            foreach (var file in Directory.EnumerateFiles(path, "*", new EnumerationOptions
+            {
+                RecurseSubdirectories = true,
+                IgnoreInaccessible = true,
+                AttributesToSkip = FileAttributes.ReparsePoint,
+            }))
+            {
+                try
+                {
+                    bytes += new FileInfo(file).Length;
+                    files++;
+                }
+                catch { /* vanished or locked mid-walk */ }
+            }
+
+            return (bytes, files);
+        }
+        catch
+        {
+            return (0, 0);
+        }
+    }
+
+    public long RecycleBinSize() => RecycleBin.QuerySize();
 
     public bool RegistryValueExists(string keyPath, string valueName)
     {

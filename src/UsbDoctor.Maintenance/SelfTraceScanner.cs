@@ -1,6 +1,6 @@
 using System.IO;
 
-namespace UsbDoctor.Uninstall;
+namespace UsbDoctor.Maintenance;
 
 /// <summary>
 /// Lists everything USB Doctor has put on the machine.
