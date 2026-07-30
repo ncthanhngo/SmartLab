@@ -1,10 +1,8 @@
 using System.ComponentModel;
-using System.IO;
 using System.Windows;
 using System.Windows.Interop;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
 using UsbDoctor.Win32.Devices;
+using Application = System.Windows.Application;
 using Drawing = System.Drawing;
 using Forms = System.Windows.Forms;
 
@@ -92,7 +90,7 @@ public partial class MainWindow : Window
             Close();
         });
 
-        _trayIcon = TryRenderBoltIcon();
+        _trayIcon = TryLoadAppIcon();
 
         _tray = new Forms.NotifyIcon
         {
@@ -108,58 +106,31 @@ public partial class MainWindow : Window
     }
 
     /// <summary>
-    /// Draws the EVSELab bolt into a tray-sized icon at runtime.
+    /// Loads the tray icon from the application's own .ico.
     /// </summary>
     /// <remarks>
-    /// The mark is vector geometry in a resource dictionary, so an icon can be
-    /// produced from the same definition the window uses instead of shipping a
-    /// separate .ico that could drift from it. Falls back to a stock icon if
-    /// anything about the render fails - a missing tray glyph is not worth taking
-    /// the window down for.
+    /// The same file gives the executable, the window and the tray their icon, so
+    /// none of them can drift from the others. Windows is asked for the system's
+    /// small-icon size rather than a hardcoded 16, which is what keeps the glyph
+    /// crisp on a scaled display.
+    /// <para>
+    /// Sizes up to 64 are stored as uncompressed DIBs precisely because this path
+    /// exists: GDI+ cannot decode PNG-compressed icon frames, so a tray icon read
+    /// from an all-PNG .ico throws.
+    /// </para>
+    /// Falls back to a stock icon on failure - a missing tray glyph is not worth
+    /// taking the window down for.
     /// </remarks>
-    private Drawing.Icon? TryRenderBoltIcon()
+    private static Drawing.Icon? TryLoadAppIcon()
     {
         try
         {
-            // Fully qualified: enabling WinForms puts System.Drawing.Brush in scope too.
-            if (TryFindResource("BoltGeometry") is not Geometry bolt) return null;
-            if (TryFindResource("BoltBrush") is not System.Windows.Media.Brush fill) return null;
+            var uri = new Uri("pack://application:,,,/Assets/app.ico");
+            using var stream = Application.GetResourceStream(uri)?.Stream;
+            if (stream is null) return null;
 
-            const int size = 32;
-
-            var visual = new DrawingVisual();
-            using (var context = visual.RenderOpen())
-            {
-                // Scale the 24-unit design box into the icon with a little padding
-                // so the bolt does not touch the edges at small sizes.
-                var scale = size / 24.0 * 0.86;
-                context.PushTransform(new TranslateTransform(size * 0.07, size * 0.07));
-                context.PushTransform(new ScaleTransform(scale, scale));
-                context.DrawGeometry(fill, null, bolt);
-                context.Pop();
-                context.Pop();
-            }
-
-            var target = new RenderTargetBitmap(size, size, 96, 96, PixelFormats.Pbgra32);
-            target.Render(visual);
-
-            var encoder = new PngBitmapEncoder();
-            encoder.Frames.Add(BitmapFrame.Create(target));
-
-            using var stream = new MemoryStream();
-            encoder.Save(stream);
-            stream.Position = 0;
-
-            using var bitmap = new Drawing.Bitmap(stream);
-            var handle = bitmap.GetHicon();
-
-            // Clone so the icon owns managed memory, then release the GDI handle -
-            // Icon.FromHandle does not take ownership of it.
-            using var borrowed = Drawing.Icon.FromHandle(handle);
-            var owned = (Drawing.Icon)borrowed.Clone();
-            NativeIcon.Destroy(handle);
-
-            return owned;
+            using var full = new Drawing.Icon(stream);
+            return new Drawing.Icon(full, Forms.SystemInformation.SmallIconSize);
         }
         catch
         {

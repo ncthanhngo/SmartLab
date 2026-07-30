@@ -5,6 +5,7 @@
         xmlns:local="clr-namespace:UsbDoctor.App"
         Title="USB Doctor" Height="720" Width="1140"
         MinHeight="560" MinWidth="920"
+        Icon="Assets/app.ico"
         WindowStyle="None" ResizeMode="CanResize"
         TextOptions.TextFormattingMode="Ideal"
         FontFamily="{StaticResource UiFont}">
