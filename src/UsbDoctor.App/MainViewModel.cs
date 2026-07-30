@@ -1,6 +1,8 @@
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.IO;
 using System.Media;
+using System.Windows.Data;
 using System.Windows.Media;
 using Brush = System.Windows.Media.Brush;
 using Color = System.Windows.Media.Color;
@@ -49,6 +51,24 @@ public sealed partial class DeletedEntryViewModel(
     public string Path => Entry.Path;
     public string Confidence => confidence.ToString();
     public string Summary => summary;
+
+    /// <summary>
+    /// Sort key that puts the recoverable entries at the top.
+    /// </summary>
+    /// <remarks>
+    /// Groups in a WPF collection view appear in the order their first member does,
+    /// so this is what decides whether the list opens on what can be had back or on
+    /// what cannot. Sorting by the verdict's name instead would order them
+    /// Likely, Overwritten, Partial, Superseded - alphabetical, and meaningless.
+    /// </remarks>
+    public int ConfidenceRank => confidence switch
+    {
+        RecoveryConfidence.Likely => 0,
+        RecoveryConfidence.Superseded => 1,
+        RecoveryConfidence.Partial => 2,
+        RecoveryConfidence.Overwritten => 3,
+        _ => 4,
+    };
 
     public string SizeText => Entry.Length >= 1024 * 1024
         ? $"{Entry.Length / 1024.0 / 1024:F1} MB"
@@ -209,6 +229,13 @@ public sealed partial class MainViewModel : ObservableObject
     public MainViewModel()
     {
         SelectedSection = Sections[0];
+
+        GroupedDeletedEntries.Source = DeletedEntries;
+        GroupedDeletedEntries.SortDescriptions.Add(new SortDescription(
+            nameof(DeletedEntryViewModel.ConfidenceRank), ListSortDirection.Ascending));
+        GroupedDeletedEntries.GroupDescriptions.Add(new PropertyGroupDescription(
+            nameof(DeletedEntryViewModel.Confidence)));
+
         RefreshDrives();
     }
 
@@ -523,6 +550,17 @@ public sealed partial class MainViewModel : ObservableObject
     // ---- raw access: entries the mounted filesystem will not show ---------------
 
     public ObservableCollection<DeletedEntryViewModel> DeletedEntries { get; } = [];
+
+    /// <summary>
+    /// <see cref="DeletedEntries"/> grouped by verdict, recoverable first.
+    /// </summary>
+    /// <remarks>
+    /// Grouping lives here rather than in XAML because the sort is what makes it
+    /// meaningful, and the sort key is a decision about the domain: an entry whose
+    /// clusters have been reused is not worth the operator's attention until the
+    /// ones that can still be carved have been dealt with.
+    /// </remarks>
+    public CollectionViewSource GroupedDeletedEntries { get; } = new();
 
     [ObservableProperty] private string _recoverTo =
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),

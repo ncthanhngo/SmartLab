@@ -1,6 +1,9 @@
 using System.Collections.ObjectModel;
+using System.ComponentModel;
+using System.Windows.Data;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using UsbDoctor.App.Converters;
 using UsbDoctor.Maintenance;
 
 namespace UsbDoctor.App;
@@ -38,6 +41,17 @@ public sealed partial class UninstallViewModel : ObservableObject
     {
         _uninstaller = new ProgramUninstaller(_probe);
         InstallDirectory = AppContext.BaseDirectory;
+
+        GroupedPrograms.Source = Programs;
+
+        // Per-user first: those are the ones this process can actually remove.
+        GroupedPrograms.SortDescriptions.Add(new SortDescription(
+            nameof(InstalledProgram.IsPerUser), ListSortDirection.Descending));
+        GroupedPrograms.SortDescriptions.Add(new SortDescription(
+            nameof(InstalledProgram.DisplayName), ListSortDirection.Ascending));
+
+        GroupedPrograms.GroupDescriptions.Add(new PropertyGroupDescription(
+            nameof(InstalledProgram.IsPerUser), new InstallScopeConverter()));
     }
 
     public string InstallDirectory { get; }
@@ -112,6 +126,17 @@ public sealed partial class UninstallViewModel : ObservableObject
     // ---- removing other programs ------------------------------------------------
 
     public ObservableCollection<InstalledProgram> Programs { get; } = [];
+
+    /// <summary>
+    /// <see cref="Programs"/> split into what this user can remove and what needs
+    /// administrator, each side sorted by name.
+    /// </summary>
+    /// <remarks>
+    /// Grouped through a converter rather than a display property on the record, so
+    /// <see cref="InstalledProgram"/> keeps its own vocabulary and does not start
+    /// carrying strings written for a window.
+    /// </remarks>
+    public CollectionViewSource GroupedPrograms { get; } = new();
 
     [ObservableProperty] private InstalledProgram? _selectedProgram;
 

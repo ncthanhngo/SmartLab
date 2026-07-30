@@ -401,6 +401,26 @@
         </Setter>
     </Style>
 
+    <!-- PlainList with the per-item padding removed. Inset rows have to sit flush
+         against each other or the hairline between them stops reading as a divider
+         and starts reading as a gap. -->
+    <Style x:Key="InsetList" TargetType="ListBox" BasedOn="{StaticResource PlainList}">
+        <Setter Property="ItemContainerStyle">
+            <Setter.Value>
+                <Style TargetType="ListBoxItem">
+                    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate TargetType="ListBoxItem">
+                                <ContentPresenter />
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
+                </Style>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
     <Style x:Key="SlimScrollBar" TargetType="ScrollBar">
         <Setter Property="Width" Value="8" />
         <Setter Property="Background" Value="Transparent" />
@@ -434,6 +454,75 @@
         <Setter Property="Background" Value="#141B23" />
         <Setter Property="BorderThickness" Value="0" />
     </Style>
+
+    <!-- ============================ inset lists ============================
+
+         For the two screens that are lists rather than summaries. Rows sit flush
+         inside one bordered container separated by hairlines, instead of each
+         floating as its own card - at thirty rows the gaps between cards become
+         the loudest thing on the screen, and the eye counts them instead of
+         reading the rows.
+    -->
+
+    <Style x:Key="InsetGroup" TargetType="Border">
+        <Setter Property="BorderBrush" Value="{StaticResource HairlineBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="10" />
+        <Setter Property="Background" Value="{StaticResource SurfaceBrush}" />
+    </Style>
+
+    <Style x:Key="GroupLabel" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="10.5" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="{StaticResource TextMutedBrush}" />
+        <Setter Property="Margin" Value="3,0,0,6" />
+    </Style>
+
+    <!-- The separator goes on each row's top edge, and the first row suppresses it.
+         PreviousData is null only for the first item, which is the one hook WPF
+         offers for "is this the first row" without numbering the collection. -->
+    <Style x:Key="InsetRow" TargetType="Border">
+        <Setter Property="BorderBrush" Value="{StaticResource HairlineBrush}" />
+        <Setter Property="BorderThickness" Value="0,1,0,0" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Padding" Value="13,10" />
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding RelativeSource={RelativeSource PreviousData}}"
+                         Value="{x:Null}">
+                <Setter Property="BorderThickness" Value="0" />
+            </DataTrigger>
+        </Style.Triggers>
+    </Style>
+
+    <!-- One heading and one container per group, shared by both inset lists. The
+         count belongs in the heading: on a recovery screen the useful fact is how
+         many files landed in each verdict, not just that the verdict exists. -->
+    <GroupStyle x:Key="InsetGroups">
+        <GroupStyle.ContainerStyle>
+            <Style TargetType="GroupItem">
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="GroupItem">
+                            <!-- Right margin keeps the group's border clear of the
+                                 scrollbar, which otherwise sits on top of it. -->
+                            <StackPanel Margin="0,0,10,14">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="{Binding Name}"
+                                               Style="{StaticResource GroupLabel}" />
+                                    <TextBlock Text="{Binding ItemCount, StringFormat=' ({0})'}"
+                                               Style="{StaticResource GroupLabel}"
+                                               Margin="0,0,0,6" />
+                                </StackPanel>
+                                <Border Style="{StaticResource InsetGroup}">
+                                    <ItemsPresenter />
+                                </Border>
+                            </StackPanel>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+        </GroupStyle.ContainerStyle>
+    </GroupStyle>
 
     <!-- ============================ grid headers ============================
 
