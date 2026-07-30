@@ -19,7 +19,84 @@ public class PlanExecutorTests
     private static ExecutionOptions Options => new() { QuarantineRoot = @"C:\quarantine" };
 
     private static PlanExecutor Executor(FakeFileSystem fs, RecordingJournal journal) =>
-        new(fs, journal, new RescueCopier(fs, fs, journal));
+        new(fs, journal, new RescueCopier(fs, fs, journal), fs);
+
+    /// <summary>
+    /// The repair the whole tool exists for: the worm moved everything into a
+    /// staging folder, and the volume is only actually fixed once the contents are
+    /// back where they were.
+    /// </summary>
+    [Fact]
+    public async Task RestoreToRoot_puts_the_contents_back_and_removes_the_folder()
+    {
+        var fs = new FakeFileSystem();
+        var staging = ExtendedPath.From(@"E:\").Child(Nbsp);
+        fs.AddRawDirectory(staging, EntryAttributes.Hidden | EntryAttributes.System);
+        fs.AddRawDirectory(staging.Child("Boot"), EntryAttributes.Directory);
+        fs.AddRawFile(staging.Child("Boot").Child("bcd"), "boot config");
+        fs.AddRawFile(staging.Child("Grldr"), "loader");
+
+        var action = new RecoveryAction(RecoveryActionKind.RestoreToRoot, staging, "restore")
+        {
+            Destination = ExtendedPath.From(@"E:\"),
+            TargetIsDirectory = true,
+        };
+
+        var report = await Executor(fs, new RecordingJournal())
+            .ApplyAsync(PlanWith(action).Approve([action]), Options, null, default);
+
+        Assert.True(report.AllSucceeded);
+
+        // Back at the root, with the subtree intact.
+        Assert.True(fs.Exists(@"E:\Grldr"));
+        Assert.True(fs.Exists(@"E:\Boot\bcd"));
+        Assert.False(fs.ExistsRaw(staging));
+    }
+
+    [Fact]
+    public async Task RestoreToRoot_never_overwrites_a_name_already_at_the_root()
+    {
+        var fs = new FakeFileSystem();
+        var staging = ExtendedPath.From(@"E:\").Child(Nbsp);
+        fs.AddRawDirectory(staging, EntryAttributes.Hidden);
+        fs.AddRawFile(staging.Child("readme.txt"), "from the staging folder");
+        fs.AddFile(@"E:\readme.txt", "already at the root");
+
+        var action = new RecoveryAction(RecoveryActionKind.RestoreToRoot, staging, "restore")
+        {
+            Destination = ExtendedPath.From(@"E:\"),
+            TargetIsDirectory = true,
+        };
+
+        var report = await Executor(fs, new RecordingJournal())
+            .ApplyAsync(PlanWith(action).Approve([action]), Options, null, default);
+
+        // The colliding file stays put and the folder is kept, because deleting it
+        // would destroy what could not be moved.
+        Assert.True(fs.ExistsRaw(staging.Child("readme.txt")));
+        Assert.True(fs.ExistsRaw(staging));
+        Assert.Contains("left in place", report.Outcomes[0].Note, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task RestoreToRoot_without_a_reader_reports_rather_than_pretending()
+    {
+        var fs = new FakeFileSystem();
+        var staging = ExtendedPath.From(@"E:\").Child(Nbsp);
+        fs.AddRawDirectory(staging, EntryAttributes.Hidden);
+
+        var action = new RecoveryAction(RecoveryActionKind.RestoreToRoot, staging, "restore")
+        {
+            Destination = ExtendedPath.From(@"E:\"),
+        };
+
+        // No reader supplied.
+        var executor = new PlanExecutor(fs, new RecordingJournal());
+        var report = await executor.ApplyAsync(PlanWith(action).Approve([action]), Options, null, default);
+
+        Assert.False(report.AllSucceeded);
+        Assert.True(fs.ExistsRaw(staging));
+    }
 
     [Fact]
     public async Task Dry_run_changes_nothing()
