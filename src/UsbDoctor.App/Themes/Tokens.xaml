@@ -1,0 +1,23 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!--
+        Everything that does not change with the theme. Kept apart from the palettes
+        so a theme file has exactly one job: name a colour for every role. A radius
+        or a typeface that only existed in one palette would be a silent difference
+        between the two themes.
+
+        These are looked up with StaticResource, so this dictionary must be merged
+        before Controls and Logo.
+    -->
+
+    <!-- Three radii only. Mixed corner sizes are the fastest way to make a layout
+         look accidental. -->
+    <CornerRadius x:Key="CardRadius">14</CornerRadius>
+    <CornerRadius x:Key="ControlRadius">8</CornerRadius>
+    <CornerRadius x:Key="ShellRadius">12</CornerRadius>
+
+    <FontFamily x:Key="UiFont">Segoe UI Variable Display, Segoe UI</FontFamily>
+    <FontFamily x:Key="MonoFont">Cascadia Mono, Consolas</FontFamily>
+
+</ResourceDictionary>

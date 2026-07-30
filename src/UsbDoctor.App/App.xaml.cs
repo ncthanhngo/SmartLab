@@ -1,6 +1,7 @@
 using System.IO;
 using System.Windows;
 using System.Windows.Threading;
+using UsbDoctor.App.Theming;
 
 // Enabling WinForms for the tray icon brings a second Application and MessageBox
 // into scope. Aliasing keeps every reference in this file unambiguously WPF.
@@ -24,6 +25,11 @@ public partial class App : Application
         DispatcherUnhandledException += OnDispatcherUnhandledException;
         AppDomain.CurrentDomain.UnhandledException += OnDomainUnhandledException;
         TaskScheduler.UnobservedTaskException += OnUnobservedTaskException;
+
+        // Before base.OnStartup, which is what creates the main window. Swapping the
+        // palette afterwards would work - every colour is a DynamicResource - but the
+        // window would be visibly born in the wrong theme first.
+        ThemeManager.ApplyStartupTheme();
 
         base.OnStartup(e);
     }

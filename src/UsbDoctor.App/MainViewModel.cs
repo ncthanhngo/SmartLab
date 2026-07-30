@@ -15,6 +15,7 @@ using UsbDoctor.Engine;
 using UsbDoctor.Engine.Detectors;
 using UsbDoctor.Engine.Journal;
 using UsbDoctor.Fat;
+using UsbDoctor.App.Theming;
 using UsbDoctor.Signatures;
 using UsbDoctor.Win32.Devices;
 using UsbDoctor.Win32.Io;
@@ -88,32 +89,64 @@ public sealed partial class DeletedEntryViewModel(
                                entry is { IsDirectory: false, Length: > 0, FirstCluster: >= 2 };
 }
 
-/// <param name="Glyph">Segoe MDL2 Assets code point, so the sidebar needs no image assets.</param>
-/// <param name="AccentHex">
-/// The section's own colour. Each row carries one so the sidebar has focal points
-/// rather than six identical grey lines, and so the eye can learn where a section
-/// is by its colour before reading the label.
-/// </param>
-public sealed record NavSection(string Key, string Title, string Subtitle, string Glyph, string AccentHex)
+/// <summary>
+/// One entry in the navigation rail, carrying its own accent colour.
+/// </summary>
+/// <remarks>
+/// <para>
+/// Each section has a hue so the rail has focal points rather than six identical
+/// grey glyphs, and so the eye can learn where a section is by its colour before
+/// reading the label.
+/// </para>
+/// <para>
+/// The hue comes from the palette under a key rather than from a literal, because
+/// the saturated greens and ambers that carry a glyph on the dark rail are far too
+/// pale on the light one. That makes these the only brushes in the app built in
+/// code instead of resolved by DynamicResource, so they are the only ones that
+/// have to be rebuilt by hand when the theme changes.
+/// </para>
+/// </remarks>
+/// <param name="Glyph">Segoe MDL2 Assets code point, so the rail needs no image assets.</param>
+/// <param name="AccentKey">Palette key holding this section's hue as a hex string.</param>
+public sealed class NavSection(string key, string title, string subtitle, string glyph, string accentKey)
+    : ObservableObject
 {
-    /// <summary>Full-strength accent, for the icon plate and the selection rail.</summary>
-    public Brush Accent { get; } = Frozen(AccentHex, 1.0);
+    public string Key { get; } = key;
+    public string Title { get; } = title;
+    public string Subtitle { get; } = subtitle;
+    public string Glyph { get; } = glyph;
+    public string AccentKey { get; } = accentKey;
 
-    /// <summary>The same hue at low opacity, for the selected row's fill.</summary>
-    public Brush SelectedFill { get; } = Frozen(AccentHex, 0.14);
+    /// <summary>Full-strength accent, for the glyph itself.</summary>
+    public Brush Accent => Frozen(1.0);
 
-    /// <summary>Behind the glyph when the row is not selected.</summary>
-    public Brush IconPlate { get; } = Frozen(AccentHex, 0.18);
+    /// <summary>The same hue at low opacity, for the selected cell's fill.</summary>
+    public Brush SelectedFill => Frozen(0.14);
+
+    /// <summary>Behind the glyph when the cell is not selected.</summary>
+    public Brush IconPlate => Frozen(0.18);
+
+    /// <summary>Re-reads the hue after the palette has been swapped.</summary>
+    public void OnThemeChanged()
+    {
+        OnPropertyChanged(nameof(Accent));
+        OnPropertyChanged(nameof(SelectedFill));
+        OnPropertyChanged(nameof(IconPlate));
+    }
 
     /// <remarks>
-    /// Frozen because these are created once and read from the render thread; an
-    /// unfrozen brush would be copied on every use.
+    /// Frozen because these are read from the render thread; an unfrozen brush would
+    /// be copied on every use. Freezing is why they cannot simply be mutated when
+    /// the theme changes and are rebuilt instead.
     /// </remarks>
-    private static Brush Frozen(string hex, double opacity)
+    private Brush Frozen(double opacity)
     {
-        var colour = (Color)System.Windows.Media.ColorConverter.ConvertFromString(hex);
+        var hex = System.Windows.Application.Current?.TryFindResource(AccentKey) as string;
+        var colour = (Color)System.Windows.Media.ColorConverter.ConvertFromString(hex ?? "#8B98A8");
+
         var brush = new SolidColorBrush(colour) { Opacity = opacity };
         brush.Freeze();
+
         return brush;
     }
 }
@@ -134,12 +167,12 @@ public sealed partial class MainViewModel : ObservableObject
     /// </remarks>
     public ObservableCollection<NavSection> Sections { get; } =
     [
-        new("repair", "Repair", "Find and undo hiding", Glyph(0xE72E), "#2BD673"),
-        new("deleted", "Deleted files", "Carve what was erased", Glyph(0xE74C), "#5AA9FF"),
-        new("cleanup", "Cleanup", "Reclaim disk space", Glyph(0xE74E), "#F5B93B"),
-        new("uninstall", "Uninstall", "Apps and leftovers", Glyph(0xE74D), "#FF6B8A"),
-        new("settings", "Settings", "Watching and startup", Glyph(0xE713), "#A78BFA"),
-        new("about", "About", "Version and author", Glyph(0xE946), "#4DD4C4"),
+        new("repair", "Repair", "Find and undo hiding", Glyph(0xE72E), "NavRepairHex"),
+        new("deleted", "Deleted files", "Carve what was erased", Glyph(0xE74C), "NavDeletedHex"),
+        new("cleanup", "Cleanup", "Reclaim disk space", Glyph(0xE74E), "NavCleanupHex"),
+        new("uninstall", "Uninstall", "Apps and leftovers", Glyph(0xE74D), "NavUninstallHex"),
+        new("settings", "Settings", "Watching and startup", Glyph(0xE713), "NavSettingsHex"),
+        new("about", "About", "Version and author", Glyph(0xE946), "NavAboutHex"),
     ];
 
     private static string Glyph(int codePoint) => ((char)codePoint).ToString();
@@ -225,6 +258,24 @@ public sealed partial class MainViewModel : ObservableObject
 
     /// <summary>Raised so the view can show a tray balloon while the window is hidden.</summary>
     public event Action<string, string, bool>? NotifyRequested;
+
+    /// <summary>
+    /// Light or dark. Bound to a switch in Settings.
+    /// </summary>
+    /// <remarks>
+    /// Seeded from whatever ThemeManager settled on at startup, which is the stored
+    /// choice or, on a first run, whatever Windows itself is set to.
+    /// </remarks>
+    [ObservableProperty] private bool _isLightTheme = ThemeManager.IsLight;
+
+    partial void OnIsLightThemeChanged(bool value)
+    {
+        ThemeManager.Apply(value ? AppTheme.Light : AppTheme.Dark);
+
+        // Only the rail needs telling. Everything else in the window resolves its
+        // colours through DynamicResource and has already re-read them.
+        foreach (var section in Sections) section.OnThemeChanged();
+    }
 
     public MainViewModel()
     {

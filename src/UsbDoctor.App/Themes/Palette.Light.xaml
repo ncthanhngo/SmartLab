@@ -1,0 +1,93 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=mscorlib">
+
+    <!--
+        Light theme. Same keys as Palette.Dark.xaml, chosen rather than inverted.
+        Two rules did most of the work here:
+
+        The greens, ambers and blues that read well on a dark ground are far too
+        pale on a white one. Anything that carries text or a thin glyph is darkened
+        until it holds its own against white; anything that is a large filled area,
+        like a gauge ring, keeps its saturation because area supplies the contrast
+        that a caption cannot.
+
+        The ground is not white. A blue bias in the greys echoes the dark theme's
+        blue-black and stops the surfaces reading as bare paper.
+    -->
+
+    <Color x:Key="ShellTopColor">#F2F5FA</Color>
+    <Color x:Key="ShellBottomColor">#E5EAF3</Color>
+
+    <SolidColorBrush x:Key="SurfaceBrush" Color="#FFFFFF" />
+    <SolidColorBrush x:Key="SurfaceRaisedBrush" Color="#F4F7FC" />
+    <SolidColorBrush x:Key="SurfaceSunkenBrush" Color="#E9EEF6" />
+
+    <!-- Tinted rather than white. A white rail against white cards would leave the
+         navigation with no edge of its own, and the hairline alone cannot carry it. -->
+    <LinearGradientBrush x:Key="SidebarBrush" StartPoint="0,0" EndPoint="0.7,1">
+        <GradientStop Color="#E3EAF8" Offset="0" />
+        <GradientStop Color="#DAE2F2" Offset="0.45" />
+        <GradientStop Color="#D1DAEC" Offset="1" />
+    </LinearGradientBrush>
+
+    <LinearGradientBrush x:Key="BrandBlockBrush" StartPoint="0,0" EndPoint="1,1">
+        <GradientStop Color="#DCE5F7" Offset="0" />
+        <GradientStop Color="#CCD8EE" Offset="1" />
+    </LinearGradientBrush>
+
+    <SolidColorBrush x:Key="HairlineBrush" Color="#D6DDE8" />
+    <SolidColorBrush x:Key="SidebarHairlineBrush" Color="#C2CCDF" />
+
+    <SolidColorBrush x:Key="HoverBrush" Color="#E2E8F2" />
+    <SolidColorBrush x:Key="SidebarHoverBrush" Color="#C9D4EA" />
+
+    <!-- White, not grey: on light the toggle track is already pale, so an off knob
+         has to be lighter than its track rather than darker. -->
+    <SolidColorBrush x:Key="ToggleKnobBrush" Color="#FFFFFF" />
+    <SolidColorBrush x:Key="ScrollThumbBrush" Color="#C0CAD9" />
+
+    <LinearGradientBrush x:Key="LogoPlateBrush" StartPoint="0,0" EndPoint="1,1">
+        <GradientStop Color="#E7F3EB" Offset="0" />
+        <GradientStop Color="#DFE8F2" Offset="1" />
+    </LinearGradientBrush>
+
+    <SolidColorBrush x:Key="TextPrimaryBrush" Color="#131A25" />
+    <SolidColorBrush x:Key="TextSecondaryBrush" Color="#4E5A6B" />
+    <SolidColorBrush x:Key="TextMutedBrush" Color="#78859A" />
+
+    <!-- The EVSELab green at #2BD673 sits at about 1.7:1 on white, which is not a
+         colour so much as a suggestion of one. Darkened until it can carry a label. -->
+    <Color x:Key="AccentColor">#0E9E56</Color>
+    <SolidColorBrush x:Key="AccentBrush" Color="#0E9E56" />
+    <SolidColorBrush x:Key="AccentPressedBrush" Color="#0A7B42" />
+    <SolidColorBrush x:Key="AccentSoftBrush" Color="#DCF2E6" />
+
+    <!-- Flipped: on light the accent plate is the dark element, so its text is white. -->
+    <SolidColorBrush x:Key="OnAccentBrush" Color="#FFFFFF" />
+
+    <Color x:Key="BoltColor">#D8930A</Color>
+    <SolidColorBrush x:Key="BoltBrush" Color="#D8930A" />
+
+    <SolidColorBrush x:Key="WarningBrush" Color="#A96A05" />
+    <SolidColorBrush x:Key="DangerBrush" Color="#C62B2B" />
+    <SolidColorBrush x:Key="InfoBrush" Color="#1F5FBF" />
+
+    <!-- Large filled areas, so these stay more saturated than the text brushes. -->
+    <SolidColorBrush x:Key="AccentDeletedBrush" Color="#2E7FE0" />
+    <SolidColorBrush x:Key="AccentCleanupBrush" Color="#E09A0C" />
+    <SolidColorBrush x:Key="AccentUninstallBrush" Color="#D8446A" />
+    <SolidColorBrush x:Key="AccentAboutBrush" Color="#0F9086" />
+
+    <SolidColorBrush x:Key="GaugeTrackBrush" Color="#DFE6F1" />
+
+    <!-- Darkened for the same reason the accent was: these draw 17px glyphs on a
+         tinted rail, and a glyph is a thin mark before it is a colour. -->
+    <sys:String x:Key="NavRepairHex">#0E9E56</sys:String>
+    <sys:String x:Key="NavDeletedHex">#2166CC</sys:String>
+    <sys:String x:Key="NavCleanupHex">#B3760A</sys:String>
+    <sys:String x:Key="NavUninstallHex">#C93A5E</sys:String>
+    <sys:String x:Key="NavSettingsHex">#6B4FD0</sys:String>
+    <sys:String x:Key="NavAboutHex">#0C8078</sys:String>
+
+</ResourceDictionary>

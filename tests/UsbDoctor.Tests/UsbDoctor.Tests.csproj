@@ -18,6 +18,15 @@
     <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
   </ItemGroup>
 
+  <!-- Copied rather than referenced through the assembly: the palettes are compiled
+       to BAML and reading them back would need a WPF Application on an STA thread,
+       when all the parity test needs is the set of keys each file declares. -->
+  <ItemGroup>
+    <None Include="..\..\src\UsbDoctor.App\Themes\Palette.*.xaml"
+          Link="Themes\%(Filename)%(Extension)"
+          CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\..\src\UsbDoctor.App\UsbDoctor.App.csproj" />
     <ProjectReference Include="..\..\src\UsbDoctor.Cli\UsbDoctor.Cli.csproj" />

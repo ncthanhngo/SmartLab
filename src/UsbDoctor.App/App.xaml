@@ -5,11 +5,16 @@
     <Application.Resources>
         <ResourceDictionary>
             <!--
-                Palette must load before Controls and Logo: both resolve brushes
-                from it with StaticResource, which is looked up at parse time.
+                Tokens must load before Controls and Logo, which resolve radii and
+                typefaces from it with StaticResource at parse time.
+
+                The palette listed here is only the starting one. ThemeManager
+                replaces this entry at startup and whenever the theme changes, which
+                works because every colour is referenced with DynamicResource.
             -->
             <ResourceDictionary.MergedDictionaries>
-                <ResourceDictionary Source="Themes/Palette.xaml" />
+                <ResourceDictionary Source="Themes/Tokens.xaml" />
+                <ResourceDictionary Source="Themes/Palette.Dark.xaml" />
                 <ResourceDictionary Source="Themes/Controls.xaml" />
                 <ResourceDictionary Source="Themes/Logo.xaml" />
             </ResourceDictionary.MergedDictionaries>
