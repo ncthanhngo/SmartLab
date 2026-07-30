@@ -162,42 +162,83 @@ internal static class Program
         Console.WriteLine();
 
         var listed = 0;
-        var deleted = 0;
         var recovered = 0;
+        var skipped = 0;
         var sanitizer = new NameSanitizer();
+
+        // First pass prints live entries and collects what is needed to judge the
+        // deleted ones: the starting clusters that live files still claim. Only the
+        // deleted entries are held, so memory stays bounded on a large volume.
+        var deletedEntries = new List<RawEntry>();
+        var liveFirstClusters = new HashSet<uint>();
 
         foreach (var item in fileSystem.EnumerateTree())
         {
-            if (item.IsDeleted) deleted++;
-            if (options.DeletedOnly && !item.IsDeleted) continue;
+            if (item.IsDeleted)
+            {
+                deletedEntries.Add(item);
+                continue;
+            }
 
-            var mark = item.IsDeleted ? "DEL" : item.IsDirectory ? "DIR" : "   ";
+            if (!item.IsDirectory && item.FirstCluster >= 2)
+                liveFirstClusters.Add(item.FirstCluster);
+
+            if (options.DeletedOnly) continue;
+
+            var mark = item.IsDirectory ? "DIR" : "   ";
             Console.WriteLine($"  [{mark}] {item.Path}  (cluster {item.FirstCluster}, {item.Length} bytes)");
             listed++;
+        }
 
-            if (options.RecoverTo is { } destination && item is
-                { IsDeleted: true, IsDirectory: false, Length: > 0, FirstCluster: >= 2 })
+        foreach (var item in deletedEntries)
+        {
+            Console.WriteLine($"  [DEL] {item.Path}  (cluster {item.FirstCluster}, {item.Length} bytes)");
+            listed++;
+
+            if (item is not { IsDirectory: false, Length: > 0, FirstCluster: >= 2 }) continue;
+
+            var assessment = fileSystem.AssessRange(item.FirstCluster, item.Length);
+            var confidence = DeletedEntryAssessor.Refine(
+                assessment.Confidence, item.FirstCluster, liveFirstClusters);
+
+            Console.WriteLine($"        {confidence}: {assessment.SummaryFor(confidence)}");
+
+            if (options.RecoverTo is not { } destination) continue;
+
+            // Carving a fully reallocated range returns another file's bytes under
+            // this file's name, which is worse than returning nothing. A superseded
+            // range is different: the data is intact, just renamed.
+            if (confidence == RecoveryConfidence.Overwritten && !options.RecoverAnyway)
             {
-                if (TryRecover(fileSystem, item, destination, sanitizer, out var written))
-                {
-                    Console.WriteLine($"        -> recovered {written} byte(s)");
-                    recovered++;
-                }
+                skipped++;
+                Console.WriteLine("        skipped - use --recover-anyway to carve it regardless");
+                continue;
+            }
+
+            if (TryRecover(fileSystem, item, destination, sanitizer, out var written))
+            {
+                Console.WriteLine($"        -> recovered {written} byte(s)");
+                recovered++;
             }
         }
 
         Console.WriteLine();
-        Console.WriteLine($"{listed} entr(ies) listed, {deleted} deleted entr(ies) found.");
+        Console.WriteLine($"{listed} entr(ies) listed, {deletedEntries.Count} deleted entr(ies) found.");
 
         if (options.RecoverTo is not null)
         {
             Console.WriteLine($"{recovered} file(s) carved into {options.RecoverTo}");
+
+            if (skipped > 0)
+                Console.WriteLine($"{skipped} skipped because their clusters were fully reallocated.");
+
             Console.WriteLine(
-                "Recovery assumes the data was not fragmented. Verify every file before " +
-                "trusting it - the bytes may belong to something written since.");
+                "Recovery assumes the data was not fragmented. 'Likely' means no cluster " +
+                "has been reallocated since the delete, not that the file is verified - " +
+                "check every result before trusting it.");
         }
 
-        return deleted > 0 ? ExitFindings : ExitClean;
+        return deletedEntries.Count > 0 ? ExitFindings : ExitClean;
     }
 
     private static bool TryRecover(

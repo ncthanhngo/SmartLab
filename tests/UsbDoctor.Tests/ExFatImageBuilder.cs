@@ -104,6 +104,44 @@ public sealed class ExFatImageBuilder
         return this;
     }
 
+    private uint _bitmapCluster;
+
+    /// <summary>
+    /// Adds the allocation bitmap entry to the root directory.
+    /// </summary>
+    /// <remarks>
+    /// exFAT stores the bitmap as an ordinary root-directory entry rather than at
+    /// a fixed offset, so a reader has to go looking for it. Every cluster starts
+    /// free; call <see cref="SetClusterAllocated"/> to mark one in use.
+    /// </remarks>
+    public ExFatImageBuilder AddAllocationBitmap(uint bitmapCluster, long lengthBytes)
+    {
+        _bitmapCluster = bitmapCluster;
+
+        var entry = new byte[EntrySize];
+        entry[0] = 0x81;
+        entry[1] = 0; // describes the first FAT
+        BinaryPrimitives.WriteUInt32LittleEndian(entry.AsSpan(20), bitmapCluster);
+        BinaryPrimitives.WriteInt64LittleEndian(entry.AsSpan(24), lengthBytes);
+
+        Add(RootCluster, entry);
+        EndChain(bitmapCluster);
+        return this;
+    }
+
+    /// <summary>Sets or clears the bitmap bit covering a cluster.</summary>
+    public ExFatImageBuilder SetClusterAllocated(uint cluster, bool allocated)
+    {
+        var bit = cluster - 2;
+        var offset = (int)(ClusterOffset(_bitmapCluster) + (bit / 8));
+        var mask = (byte)(1 << (int)(bit % 8));
+
+        if (allocated) _image[offset] |= mask;
+        else _image[offset] &= (byte)~mask;
+
+        return this;
+    }
+
     /// <summary>Writes file content into consecutive clusters.</summary>
     public ExFatImageBuilder WriteData(uint firstCluster, byte[] data)
     {

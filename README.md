@@ -115,6 +115,7 @@ a filesystem already known to be damaged.
 | WPF UI | implemented (scan, select, dry run, apply) |
 | Raw FAT32 + exFAT sector readers | implemented, validated on live drives |
 | Deleted-file carving (`raw --recover`) | implemented, verified byte-for-byte |
+| Recovery confidence grading | implemented (FAT + exFAT allocation bitmap) |
 | Elevated worker + named-pipe RPC | **not implemented** |
 | Format / repair action | **not implemented** |
 | Resume from the journal | **not implemented** |
@@ -171,9 +172,27 @@ automation can branch on the result. Add `--json` for machine-readable output,
 out. Deletion clears the allocation-table entries, so the chain describing where a
 file actually lived is gone; reading forward from the starting cluster is the only
 option left, and it is correct exactly when the file was not fragmented. Every
-result is therefore a **candidate**, not a guarantee — the bytes may belong to
-something written since. Output never overwrites, and the destination is refused
-if it is on the volume being read.
+result is therefore a **candidate**, not a guarantee. Output never overwrites, and
+the destination is refused if it is on the volume being read.
+
+Each candidate is graded against the allocation state — the FAT itself on FAT32,
+the allocation bitmap on exFAT:
+
+| Verdict | Meaning |
+| --- | --- |
+| `Likely` | No cluster has been reallocated since the delete. |
+| `Partial` | Some clusters now belong to a live file. |
+| `Overwritten` | All clusters were reused. Skipped unless `--recover-anyway`. |
+| `Superseded` | In use by a live entry starting at the same cluster — the data is intact, just renamed. |
+| `Unknown` | Allocation state unreadable. Never reported as safe. |
+
+`Superseded` exists because of a false negative caught on real hardware. After a
+rescue moved files to the volume root, their old entries were deleted while the
+new ones pointed at the same clusters. The allocation table honestly reports those
+clusters as in use, so the range measured as `Overwritten` and was skipped — yet
+carving it returned byte-identical copies of the surviving files. On the test
+drive that reclassified 12 of 16 skipped entries, taking a run from 36 recovered
+files to 48.
 
 exFAT recovers far better than FAT32. FAT32 overwrites the first character of the
 8.3 name with the deletion marker, so `Grldr` comes back as `_RLDR`; exFAT clears
@@ -191,9 +210,9 @@ by SHA-256.
    and the target must prove it is a removable volume of the expected size.
 3. **Resume from the journal** — the records are already written; nothing reads
    them back yet.
-4. **Fragmented-file recovery** — cross-referencing the allocation bitmap could
-   distinguish free clusters from reused ones and flag which carved files are
-   trustworthy.
+4. **Fragmented-file recovery** — grading tells you whether a contiguous read is
+   safe, but not how to reassemble a file that was fragmented. Reconstructing a
+   plausible chain from free-cluster runs is the remaining hard problem.
 
 ## Field notes
 

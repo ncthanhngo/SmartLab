@@ -43,6 +43,42 @@ public sealed class Fat32Reader : IRawFileSystem
         $"FAT32  {_boot.BytesPerSector} B/sector  {_boot.SectorsPerCluster} sector(s)/cluster  " +
         $"{_boot.BytesPerCluster} B/cluster  root cluster {_boot.RootCluster}";
 
+    /// <summary>
+    /// Assesses a carve range using the FAT itself.
+    /// </summary>
+    /// <remarks>
+    /// FAT32 has no separate allocation bitmap: a cluster is free precisely when
+    /// its FAT entry is zero. Deleting a file zeroes its chain, so a range that
+    /// reads back as all zeroes is one nothing has claimed since.
+    /// </remarks>
+    public ClusterRangeAssessment AssessRange(uint firstCluster, long length)
+    {
+        if (firstCluster < 2 || length <= 0) return ClusterRangeAssessment.None;
+
+        var clusters = (int)Math.Min(
+            MaxClustersPerChain,
+            (length + _boot.BytesPerCluster - 1) / _boot.BytesPerCluster);
+
+        int free = 0, inUse = 0, unknown = 0;
+        Span<byte> entry = stackalloc byte[4];
+
+        for (var i = 0; i < clusters; i++)
+        {
+            var cluster = firstCluster + (uint)i;
+
+            if (!_sectors.TryRead(_boot.FatOffset + ((long)cluster * 4), entry))
+            {
+                unknown++;
+                continue;
+            }
+
+            if ((BinaryPrimitives.ReadUInt32LittleEndian(entry) & 0x0FFFFFFF) == 0) free++;
+            else inUse++;
+        }
+
+        return new ClusterRangeAssessment(clusters, free, inUse, unknown);
+    }
+
     public byte[] ReadContiguous(uint firstCluster, long length)
     {
         if (firstCluster < 2 || length <= 0) return [];

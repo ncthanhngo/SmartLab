@@ -28,6 +28,9 @@ public sealed record CliOptions
 
     /// <summary>For <c>raw</c>: write recovered deleted-file data to this directory.</summary>
     public string? RecoverTo { get; init; }
+
+    /// <summary>Carve even when every cluster has been reallocated.</summary>
+    public bool RecoverAnyway { get; init; }
     public string? QuarantineRoot { get; init; }
     public ExtendedPath? RescueDestination { get; init; }
 
@@ -94,6 +97,10 @@ public sealed record CliOptions
 
                 case "--deleted-only":
                     options = options with { DeletedOnly = true };
+                    break;
+
+                case "--recover-anyway":
+                    options = options with { RecoverAnyway = true };
                     break;
 
                 case "--recover":
@@ -188,6 +195,7 @@ public sealed record CliOptions
                                   [--quarantine <dir>] [--execute] [--yes]
                                   [--stop-on-error]
           usbdoctor raw   <drive> [--deleted-only] [--recover <dir>]
+                                  [--recover-anyway]
 
         scan   Read-only. Reports findings and the plan it would propose.
         apply  Runs the plan. Dry run unless --execute is given.
@@ -208,6 +216,9 @@ public sealed record CliOptions
           --deleted-only   raw: list only deleted entries.
           --recover DIR    raw: carve deleted files into DIR. Assumes the data was
                            not fragmented, so treat every result as a candidate.
+                           Files whose clusters are fully reallocated are skipped.
+          --recover-anyway raw: carve even fully reallocated ranges, which return
+                           another file's bytes under the deleted file's name.
 
         Exit codes
           0  clean / all actions succeeded

@@ -16,6 +16,94 @@ public sealed record RawEntry(
     long Length,
     bool IsContiguous = false);
 
+/// <summary>How much of a carved region is still unallocated.</summary>
+public enum RecoveryConfidence
+{
+    /// <summary>Allocation state could not be read, so nothing can be said.</summary>
+    Unknown,
+
+    /// <summary>Every cluster is still free. The data is most likely intact.</summary>
+    Likely,
+
+    /// <summary>Some clusters have been reallocated. The file is partly another file.</summary>
+    Partial,
+
+    /// <summary>Every cluster belongs to something else. Carving would return foreign data.</summary>
+    Overwritten,
+
+    /// <summary>
+    /// The clusters are in use, but by a live entry starting at the same place:
+    /// the data is intact and already reachable under another name.
+    /// </summary>
+    Superseded,
+}
+
+/// <summary>
+/// Distinguishes clusters genuinely reused by another file from clusters still
+/// holding the same data under a newer directory entry.
+/// </summary>
+/// <remarks>
+/// Observed on a live drive: a rescue that moved files to the volume root left
+/// their old entries deleted while the new entries pointed at the same clusters.
+/// The allocation table honestly reports those clusters as in use, so a naive
+/// reading calls the data overwritten and skips it - yet carving them returned
+/// byte-identical copies of the surviving files. Matching the deleted entry's
+/// starting cluster against live entries separates the two cases.
+/// </remarks>
+public static class DeletedEntryAssessor
+{
+    public static RecoveryConfidence Refine(
+        RecoveryConfidence measured, uint firstCluster, IReadOnlySet<uint> liveFirstClusters) =>
+        measured is RecoveryConfidence.Overwritten or RecoveryConfidence.Partial &&
+        liveFirstClusters.Contains(firstCluster)
+            ? RecoveryConfidence.Superseded
+            : measured;
+}
+
+/// <param name="TotalClusters">Clusters the file would occupy if unfragmented.</param>
+/// <param name="FreeClusters">Of those, how many the filesystem still considers free.</param>
+public sealed record ClusterRangeAssessment(
+    int TotalClusters, int FreeClusters, int InUseClusters, int UnknownClusters)
+{
+    public static ClusterRangeAssessment None { get; } = new(0, 0, 0, 0);
+
+    /// <summary>
+    /// Turns raw counts into a verdict.
+    /// </summary>
+    /// <remarks>
+    /// A cluster still marked free is one the filesystem has not handed to anyone
+    /// since the delete, so its contents are very likely the original file's. A
+    /// cluster marked in-use belongs to a live file, and reading it back returns
+    /// that file's bytes, not the deleted one's. This is the difference between a
+    /// recovery worth attempting and one that produces convincing garbage.
+    /// </remarks>
+    public RecoveryConfidence Confidence
+    {
+        get
+        {
+            if (TotalClusters == 0) return RecoveryConfidence.Unknown;
+            if (UnknownClusters == TotalClusters) return RecoveryConfidence.Unknown;
+            if (InUseClusters == 0) return RecoveryConfidence.Likely;
+            if (FreeClusters == 0) return RecoveryConfidence.Overwritten;
+            return RecoveryConfidence.Partial;
+        }
+    }
+
+    public string Summary => Confidence switch
+    {
+        RecoveryConfidence.Likely => $"all {TotalClusters} cluster(s) still free",
+        RecoveryConfidence.Partial => $"{InUseClusters} of {TotalClusters} cluster(s) reallocated",
+        RecoveryConfidence.Overwritten => $"all {TotalClusters} cluster(s) reallocated",
+        _ => "allocation state unavailable",
+    };
+
+    /// <summary>Summary for a confidence refined by <see cref="DeletedEntryAssessor"/>.</summary>
+    public string SummaryFor(RecoveryConfidence confidence) =>
+        confidence == RecoveryConfidence.Superseded
+            ? $"{TotalClusters} cluster(s) in use by a live entry at the same start - data intact"
+            : Summary;
+}
+
 /// <summary>
 /// Read-only access to a filesystem parsed directly from device sectors.
 /// </summary>
@@ -45,6 +133,15 @@ public interface IRawFileSystem
     /// a candidate rather than a result.
     /// </remarks>
     byte[] ReadContiguous(uint firstCluster, long length);
+
+    /// <summary>
+    /// Reports how many clusters in the range a carve would read are still free.
+    /// </summary>
+    /// <remarks>
+    /// Lets the caller tell a recovery worth keeping from one that will return
+    /// another file's bytes, instead of leaving the operator to guess.
+    /// </remarks>
+    ClusterRangeAssessment AssessRange(uint firstCluster, long length);
 }
 
 /// <summary>Opens whichever supported filesystem a device holds.</summary>

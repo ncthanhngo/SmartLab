@@ -20,6 +20,7 @@ public sealed class ExFatReader : IRawFileSystem
     private readonly SectorReader _sectors;
     private readonly ExFatBootSector _boot;
 
+    private const byte EntryTypeAllocationBitmap = 0x81;
     private const byte EntryTypeFile = 0x85;
     private const byte EntryTypeStream = 0xC0;
     private const byte EntryTypeFileName = 0xC1;
@@ -83,6 +84,95 @@ public sealed class ExFatReader : IRawFileSystem
         }
 
         return chain;
+    }
+
+    private bool _bitmapSearched;
+    private IReadOnlyList<uint>? _bitmapChain;
+    private long _bitmapLength;
+
+    /// <summary>
+    /// Locates the allocation bitmap, which exFAT stores as an ordinary entry in
+    /// the root directory rather than at a fixed offset.
+    /// </summary>
+    private bool TryLoadBitmap()
+    {
+        if (_bitmapSearched) return _bitmapChain is { Count: > 0 };
+        _bitmapSearched = true;
+
+        var root = ReadDirectoryData(_boot.RootDirectoryCluster, contiguous: false);
+
+        for (var offset = 0; offset + EntrySize <= root.Length; offset += EntrySize)
+        {
+            var type = root[offset];
+            if (type == 0x00) break;
+            if (type != EntryTypeAllocationBitmap) continue;
+
+            // Bit 0 of the flags selects which FAT the bitmap describes. On a
+            // single-FAT volume only the first is meaningful.
+            if ((root[offset + 1] & 0x01) != 0) continue;
+
+            var firstCluster = BinaryPrimitives.ReadUInt32LittleEndian(root.AsSpan(offset + 20));
+            _bitmapLength = BinaryPrimitives.ReadInt64LittleEndian(root.AsSpan(offset + 24));
+
+            if (firstCluster < 2 || _bitmapLength <= 0) return false;
+
+            _bitmapChain = GetChain(firstCluster);
+            return _bitmapChain.Count > 0;
+        }
+
+        return false;
+    }
+
+    /// <summary>Reads one byte of the bitmap, mapping through its cluster chain.</summary>
+    private bool TryReadBitmapByte(long byteOffset, out byte value)
+    {
+        value = 0;
+
+        if (_bitmapChain is null || byteOffset < 0 || byteOffset >= _bitmapLength) return false;
+
+        var index = (int)(byteOffset / _boot.BytesPerCluster);
+        if (index >= _bitmapChain.Count) return false;
+
+        var within = byteOffset % _boot.BytesPerCluster;
+        var offset = _boot.ClusterToOffset(_bitmapChain[index]) + within;
+
+        Span<byte> one = stackalloc byte[1];
+        if (!_sectors.TryRead(offset, one)) return false;
+
+        value = one[0];
+        return true;
+    }
+
+    /// <summary>
+    /// Assesses a carve range against the allocation bitmap.
+    /// </summary>
+    /// <remarks>
+    /// Each bit covers one cluster starting at cluster 2; a set bit means the
+    /// cluster belongs to a live file. Reading a set cluster back returns that
+    /// file's bytes, not the deleted one's.
+    /// </remarks>
+    public ClusterRangeAssessment AssessRange(uint firstCluster, long length)
+    {
+        if (firstCluster < 2 || length <= 0) return ClusterRangeAssessment.None;
+
+        var clusters = (int)Math.Min(
+            MaxClustersPerChain,
+            (length + _boot.BytesPerCluster - 1) / _boot.BytesPerCluster);
+
+        if (!TryLoadBitmap()) return new ClusterRangeAssessment(clusters, 0, 0, clusters);
+
+        int free = 0, inUse = 0, unknown = 0;
+
+        for (var i = 0; i < clusters; i++)
+        {
+            var bit = (long)firstCluster + i - 2;
+
+            if (!TryReadBitmapByte(bit / 8, out var b)) unknown++;
+            else if ((b & (1 << (int)(bit % 8))) != 0) inUse++;
+            else free++;
+        }
+
+        return new ClusterRangeAssessment(clusters, free, inUse, unknown);
     }
 
     public byte[] ReadContiguous(uint firstCluster, long length)
