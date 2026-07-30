@@ -20,6 +20,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UsbDoctor.App", "src\UsbDoc
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UsbDoctor.Fat", "src\UsbDoctor.Fat\UsbDoctor.Fat.csproj", "{E8404823-6A97-4BA4-BBAE-F846B7736E0E}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UsbDoctor.Uninstall", "src\UsbDoctor.Uninstall\UsbDoctor.Uninstall.csproj", "{E3F87809-15D8-46FE-B0DD-B086B4F586E2}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -58,6 +60,10 @@ Global
 		{E8404823-6A97-4BA4-BBAE-F846B7736E0E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{E8404823-6A97-4BA4-BBAE-F846B7736E0E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{E8404823-6A97-4BA4-BBAE-F846B7736E0E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E3F87809-15D8-46FE-B0DD-B086B4F586E2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E3F87809-15D8-46FE-B0DD-B086B4F586E2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E3F87809-15D8-46FE-B0DD-B086B4F586E2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E3F87809-15D8-46FE-B0DD-B086B4F586E2}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -65,5 +71,6 @@ Global
 	GlobalSection(NestedProjects) = preSolution
 		{B0E84B09-4BC7-4030-AC96-8A4581A95370} = {BB3AEEE1-DEE5-4E45-8EEE-E445887EDA67}
 		{E8404823-6A97-4BA4-BBAE-F846B7736E0E} = {BB3AEEE1-DEE5-4E45-8EEE-E445887EDA67}
+		{E3F87809-15D8-46FE-B0DD-B086B4F586E2} = {BB3AEEE1-DEE5-4E45-8EEE-E445887EDA67}
 	EndGlobalSection
 EndGlobal

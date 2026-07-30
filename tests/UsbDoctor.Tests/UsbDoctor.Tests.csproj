@@ -19,6 +19,7 @@
     <ProjectReference Include="..\..\src\UsbDoctor.Engine\UsbDoctor.Engine.csproj" />
     <ProjectReference Include="..\..\src\UsbDoctor.Signatures\UsbDoctor.Signatures.csproj" />
     <ProjectReference Include="..\..\src\UsbDoctor.Fat\UsbDoctor.Fat.csproj" />
+    <ProjectReference Include="..\..\src\UsbDoctor.Uninstall\UsbDoctor.Uninstall.csproj" />
   </ItemGroup>
 
 </Project>

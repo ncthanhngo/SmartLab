@@ -233,6 +233,40 @@ key: that needs Administrator and would launch for every account on a shared lab
 PC, which is not something a checkbox should decide. Unticking removes the value
 and leaves nothing behind.
 
+## Uninstalling
+
+Two separate jobs, both under `Uninstall` in the app and readable from
+`usbdoctor uninstall`.
+
+**Removing USB Doctor.** The trace list is written out explicitly in
+`SelfTraceScanner` rather than discovered by searching for the app's name. A search
+would be incomplete — it cannot know a `Run` value is ours — and dangerous, since
+anything else on the machine with `UsbDoctor` in its path would be swept up too.
+
+Rescued data, quarantined samples and carved files are listed with their sizes but
+**start unticked**. Someone clicking Uninstall is asking to remove a program, not to
+discard the gigabytes it recovered for them, and that data may be the only copy left
+of a drive that has since been formatted. The application folder cannot delete
+itself while running, so that one is handed to a detached script that waits for the
+process to exit — reported as deferred rather than silently failing.
+
+**Removing other programs.** Entries come from all three uninstall locations: the
+64-bit and 32-bit machine views and the per-user hive. Reading only the default view
+is the classic mistake — a 64-bit process silently misses every 32-bit application.
+
+The vendor's own uninstaller always runs first and is never bypassed. Deleting a
+program's files directly leaves its registration, services and drivers behind, which
+is worse than not uninstalling at all. Leftover cleanup is a separate second step
+over what actually remains, and it is deliberately narrow: only the install folder
+the program registered and its own uninstall key. It does not hunt the filesystem
+for the vendor's name — that is how a cleaner ends up proposing to delete a shared
+runtime or an unrelated product from the same publisher, with no way for the
+operator to tell which suggestions are safe.
+
+System components, updates, hotfixes and add-ons belonging to another product are
+excluded. Offering those as if they were applications invites the user to remove
+something that takes the operating system with it.
+
 ## Progress reporting
 
 Both front ends show the entry under inspection as the walk proceeds, because a
