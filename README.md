@@ -5,10 +5,22 @@ volumes on Windows.
 
 Author: **nc.thanhngo@gmail.com** — EVSE Lab.
 
-The EVSELab mark is drawn as vector geometry in `Themes/Logo.xaml`, not shipped as
-an image. One definition serves the title bar, the About view and the tray icon,
-which is rendered from the same geometry at runtime so it cannot drift; and the
-single-file executable carries no binary asset.
+The EVSELab wordmark is drawn as vector geometry in `Themes/Logo.xaml` rather than
+shipped as an image, so the black background of the original is simply absent and
+one definition serves the title bar and the About view at any size.
+
+The application icon is a shield holding a USB stick — the tool protects removable
+drives — with the EVSELab bolt added only at sizes where it still reads. This one
+*must* be a real file: the Windows shell reads an executable's icon from an `.ico`
+resource, so it cannot be resolved at runtime. `tools/build-icon.ps1` is the source
+of truth and regenerates `src/UsbDoctor.App/Assets/app.ico`; the `.ico` is
+committed so a clone builds without running it. The same file gives the executable,
+the window and the tray their icon, so none can drift from the others.
+
+Sizes up to 64 px are stored as uncompressed DIBs and larger ones as PNG. That
+split is not a preference: GDI+ cannot decode PNG-compressed icon frames, so an
+all-PNG `.ico` throws the moment `NotifyIcon` reads it for the tray, while the
+shell needs PNG for the large sizes to keep the file from bloating.
 
 USB Doctor scans a volume, reports what it found, and proposes a plan. Producing
 a plan never touches the disk — nothing executes until an operator reviews the
