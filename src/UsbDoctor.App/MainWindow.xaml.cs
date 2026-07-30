@@ -1,6 +1,10 @@
 using System.ComponentModel;
+using System.IO;
 using System.Windows;
 using System.Windows.Interop;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
+using System.Windows.Threading;
 using UsbDoctor.Win32.Devices;
 using Application = System.Windows.Application;
 using Drawing = System.Drawing;
@@ -68,10 +72,103 @@ public partial class MainWindow : Window
     {
         CreateTrayIcon();
 
+        var args = Environment.GetCommandLineArgs();
+
+        var screenshotIndex = Array.FindIndex(
+            args, a => a.Equals("--screenshot", StringComparison.OrdinalIgnoreCase));
+
+        if (screenshotIndex >= 0 && screenshotIndex + 1 < args.Length)
+        {
+            _ = CaptureSectionsAsync(args[screenshotIndex + 1]);
+            return;
+        }
+
         // Launched by the Run key: come up in the tray rather than in the user's
         // face. Nobody wants a window every time they log in.
-        if (Environment.GetCommandLineArgs().Contains("--tray", StringComparer.OrdinalIgnoreCase))
+        if (args.Contains("--tray", StringComparer.OrdinalIgnoreCase))
             HideToTray(announce: false);
+    }
+
+    /// <summary>
+    /// Renders every section to PNG and exits.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Exists because the machine this is developed on is usually reached over a
+    /// remote session, where the console is often locked. A screen grab then
+    /// captures the lock screen, and <c>PrintWindow</c> leaves parts of a WPF window
+    /// black because those areas were never asked to repaint.
+    /// </para>
+    /// <para>
+    /// <see cref="RenderTargetBitmap"/> walks the visual tree instead of reading
+    /// pixels off the desktop, so it does not care whether the window is visible,
+    /// obscured or on a locked session. It renders at the window's own DPI so the
+    /// text is as crisp as it is on screen.
+    /// </para>
+    /// </remarks>
+    private async Task CaptureSectionsAsync(string directory)
+    {
+        try
+        {
+            Directory.CreateDirectory(directory);
+
+            if (ViewModel is not { } viewModel) return;
+
+            foreach (var section in viewModel.Sections)
+            {
+                viewModel.SelectedSection = section;
+
+                // Populate the sections that are empty until something is measured,
+                // so the captures show the interface doing its job rather than a set
+                // of blank panels. All three are read-only.
+                switch (section.Key)
+                {
+                    case "cleanup":
+                        await viewModel.Cleanup.AnalyseCommand.ExecuteAsync(null).ConfigureAwait(true);
+                        break;
+                    case "uninstall":
+                        viewModel.Uninstall.ScanSelfCommand.Execute(null);
+                        await viewModel.Uninstall.ScanProgramsCommand.ExecuteAsync(null).ConfigureAwait(true);
+                        break;
+                }
+
+                // Two passes at ContextIdle: the first lets bindings propagate, the
+                // second lets the layout they caused actually run. Rendering after
+                // only one catches the section mid-measure.
+                await Dispatcher.Yield(DispatcherPriority.ContextIdle);
+                UpdateLayout();
+                await Dispatcher.Yield(DispatcherPriority.ContextIdle);
+
+                Save(section.Key, directory);
+            }
+        }
+        catch (Exception ex)
+        {
+            File.WriteAllText(Path.Combine(directory, "capture-error.txt"), ex.ToString());
+        }
+        finally
+        {
+            _reallyExiting = true;
+            Application.Current.Shutdown();
+        }
+    }
+
+    private void Save(string key, string directory)
+    {
+        var dpi = VisualTreeHelper.GetDpi(this);
+
+        var target = new RenderTargetBitmap(
+            (int)Math.Ceiling(ActualWidth * dpi.DpiScaleX),
+            (int)Math.Ceiling(ActualHeight * dpi.DpiScaleY),
+            dpi.PixelsPerInchX, dpi.PixelsPerInchY, PixelFormats.Pbgra32);
+
+        target.Render(this);
+
+        var encoder = new PngBitmapEncoder();
+        encoder.Frames.Add(BitmapFrame.Create(target));
+
+        using var stream = File.Create(Path.Combine(directory, $"section-{key}.png"));
+        encoder.Save(stream);
     }
 
     private void CreateTrayIcon()
