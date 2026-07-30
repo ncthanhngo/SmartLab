@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <RootNamespace>UsbDoctor.App</RootNamespace>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+
+    <!--
+      Overrides the solution-wide setting. WPF is not compatible with invariant
+      globalization: every data binding resolves a culture through
+      XmlLanguage.GetSpecificCulture, which throws "Cannot find non-neutral
+      culture related to 'en-us'" when the ICU data is absent. The window fails to
+      construct and the process dies at startup. The console and engine projects
+      keep the invariant setting, where it costs nothing.
+    -->
+    <InvariantGlobalization>false</InvariantGlobalization>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.3.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\UsbDoctor.Engine\UsbDoctor.Engine.csproj" />
+  </ItemGroup>
+
+</Project>
