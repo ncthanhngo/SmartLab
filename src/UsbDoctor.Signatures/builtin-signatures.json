@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "signatures": [
+    {
+      "id": "fake-recycler-bin",
+      "description": "Folder posing as the Recycle Bin. Windows uses RECYCLER or $RECYCLE.BIN; RECYCLER.BIN is not a system name.",
+      "severity": "High",
+      "action": "Quarantine",
+      "anyOf": [
+        { "type": "dirName", "pattern": "^RECYCLER\\.BIN$", "requireAttributes": [ "Hidden", "System" ] }
+      ]
+    },
+    {
+      "id": "recycle-bin-clsid-disguise",
+      "description": "desktop.ini assigning the Recycle Bin CLSID, making an ordinary folder render with the Recycle Bin icon.",
+      "severity": "High",
+      "action": "Quarantine",
+      "anyOf": [
+        {
+          "type": "fileContains",
+          "pattern": "^desktop\\.ini$",
+          "contains": "645FF040-5081-101B-9F08-00AA002F954E"
+        }
+      ]
+    },
+    {
+      "id": "adobe-masquerade-payload",
+      "description": "Worm payload observed 2026-07-30 on a 14 GB FAT32 stick: explorer.exe carrying forged Adobe CEF Helper version info, alongside hex.dll and adobeupdate.dat.",
+      "severity": "Critical",
+      "action": "Quarantine",
+      "anyOf": [
+        {
+          "type": "sha256",
+          "values": [
+            "0459E62C5444896D5BE404C559C834BA455FA5CAE1689C70FC8C61BC15468681",
+            "E3FAFA3B5C5EB9EDD1002A848312BC182460F2FF9C0DF732E6B6ACF6E00FC5EA"
+          ]
+        },
+        { "type": "fileName", "pattern": "^adobeupdate\\.dat$" },
+        { "type": "fileName", "pattern": "^hex\\.dll$", "requireAttributes": [ "Hidden" ] }
+      ]
+    },
+    {
+      "id": "root-decoy-shortcut",
+      "description": "Shortcut at the volume root named after the drive itself. The user is meant to click it instead of their missing files.",
+      "severity": "Medium",
+      "action": "Report",
+      "anyOf": [
+        { "type": "fileName", "pattern": "^(Removable Disk|USB Drive|New Volume).*\\.lnk$", "rootOnly": true }
+      ]
+    },
+    {
+      "id": "autorun-inf-launcher",
+      "description": "autorun.inf at a removable root that launches a program. Bootable and branded USB sticks legitimately ship an autorun.inf carrying only Icon and Label, so the mere presence of the file is not evidence — only a directive that executes something is.",
+      "severity": "Medium",
+      "action": "Quarantine",
+      "anyOf": [
+        { "type": "fileContains", "pattern": "^autorun\\.inf$", "contains": "open=", "rootOnly": true },
+        { "type": "fileContains", "pattern": "^autorun\\.inf$", "contains": "shellexecute=", "rootOnly": true },
+        { "type": "fileContains", "pattern": "^autorun\\.inf$", "contains": "shell\\open\\command", "rootOnly": true }
+      ]
+    }
+  ]
+}
