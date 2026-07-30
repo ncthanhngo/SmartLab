@@ -93,12 +93,32 @@ locking need Administrator, but the UI must not run elevated.
 
 ## Proposed actions
 
-`ClearAttributes`, `RenameToSafeName`, `RescueCopy`, `Quarantine`, and
-`DeleteThreat`. Destructive actions are flagged and left unchecked by default.
+`RescueCopy`, `Quarantine`, `DeleteThreat`, `ClearAttributes`,
+`RenameToSafeName`, and `RestoreToRoot`. Destructive actions are flagged and left
+unchecked by default. The executor orders them so earlier ones cannot invalidate
+later paths: rescue first, then threats, then attributes, then renames and
+restoration deepest-first.
 
-Renaming in place is preferred over moving contents out: a rename is one
-directory-entry write, whereas moving children is thousands of operations against
-a filesystem already known to be damaged.
+`RestoreToRoot` is the one that actually repairs the volume. Renaming the staging
+folder makes the data reachable, but it still sits one level deeper than before
+the worm moved it — a bootable stick whose loader lives at the root stops booting,
+and every saved path into the volume stays broken. Each child is moved up with a
+rename, both paths in extended form, so on the same volume it is a directory-entry
+update: instant, no free space needed, no file data rewritten. A name already
+present at the root is never overwritten, and the folder is removed only once it
+is genuinely empty.
+
+Position decides which applies. A pathological folder **at the volume root** is
+the worm's staging area, so its contents are restored. Below the root nothing was
+relocated, so the name is simply made addressable — moving contents there would
+invent a change nobody asked for.
+
+Signatures decide their own disposition. A `Report` rule contributes a finding and
+proposes nothing, so a weak indicator can be surfaced without proposing that a
+user's file be taken away.
+
+After a real apply, both front ends rescan and report what is left. "The actions
+succeeded" and "the volume is clean" are different claims.
 
 ## Status
 
