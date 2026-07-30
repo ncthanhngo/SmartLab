@@ -6,15 +6,48 @@
         from borders or shadows, which is what keeps a dark interface from looking
         like a stack of outlined boxes.
     -->
-    <Color x:Key="ShellTopColor">#11151B</Color>
-    <Color x:Key="ShellBottomColor">#0A0D12</Color>
+    <!--
+        Blue-black rather than neutral black. A trace of hue in the darkest tones is
+        what stops a dark interface reading as switched off, and it gives the
+        coloured accents something to sit against instead of a void.
+    -->
+    <Color x:Key="ShellTopColor">#141B29</Color>
+    <Color x:Key="ShellBottomColor">#0B0F18</Color>
 
-    <SolidColorBrush x:Key="SurfaceBrush" Color="#161C24" />
-    <SolidColorBrush x:Key="SurfaceRaisedBrush" Color="#1C232D" />
-    <SolidColorBrush x:Key="SurfaceSunkenBrush" Color="#0F141A" />
-    <SolidColorBrush x:Key="SidebarBrush" Color="#0D1218" />
+    <SolidColorBrush x:Key="SurfaceBrush" Color="#181F2C" />
+    <SolidColorBrush x:Key="SurfaceRaisedBrush" Color="#1F2735" />
+    <SolidColorBrush x:Key="SurfaceSunkenBrush" Color="#10161F" />
 
-    <SolidColorBrush x:Key="HairlineBrush" Color="#232C37" />
+    <!-- The sidebar is its own gradient so it reads as a distinct surface without
+         needing a border to say so. -->
+    <LinearGradientBrush x:Key="SidebarBrush" StartPoint="0,0" EndPoint="0.7,1">
+        <GradientStop Color="#223058" Offset="0" />
+        <GradientStop Color="#18213A" Offset="0.45" />
+        <GradientStop Color="#101728" Offset="1" />
+    </LinearGradientBrush>
+
+    <!-- Sits behind the brand block at the top of the sidebar. -->
+    <LinearGradientBrush x:Key="BrandBlockBrush" StartPoint="0,0" EndPoint="1,1">
+        <GradientStop Color="#2C3D6E" Offset="0" />
+        <GradientStop Color="#1E2A4C" Offset="1" />
+    </LinearGradientBrush>
+
+    <!-- Per-section accents. Each nav row carries its own so the sidebar has focal
+         points instead of six identical grey lines. -->
+    <Color x:Key="AccentRepairColor">#2BD673</Color>
+    <Color x:Key="AccentDeletedColor">#5AA9FF</Color>
+    <Color x:Key="AccentCleanupColor">#F5B93B</Color>
+    <Color x:Key="AccentUninstallColor">#FF6B8A</Color>
+    <Color x:Key="AccentSettingsColor">#A78BFA</Color>
+    <Color x:Key="AccentAboutColor">#4DD4C4</Color>
+
+    <SolidColorBrush x:Key="AccentAboutBrush" Color="#4DD4C4" />
+
+    <!-- Sits on a saturated accent plate, so it has to be dark rather than light. -->
+    <SolidColorBrush x:Key="OnAccentBrush" Color="#0B1018" />
+
+    <SolidColorBrush x:Key="HairlineBrush" Color="#28323F" />
+    <SolidColorBrush x:Key="SidebarHairlineBrush" Color="#2A3552" />
 
     <SolidColorBrush x:Key="TextPrimaryBrush" Color="#E9EEF4" />
     <SolidColorBrush x:Key="TextSecondaryBrush" Color="#8B98A8" />

@@ -1,6 +1,9 @@
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Media;
+using System.Windows.Media;
+using Brush = System.Windows.Media.Brush;
+using Color = System.Windows.Media.Color;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using UsbDoctor.Core.Model;
@@ -66,7 +69,34 @@ public sealed partial class DeletedEntryViewModel(
 }
 
 /// <param name="Glyph">Segoe MDL2 Assets code point, so the sidebar needs no image assets.</param>
-public sealed record NavSection(string Key, string Title, string Subtitle, string Glyph);
+/// <param name="AccentHex">
+/// The section's own colour. Each row carries one so the sidebar has focal points
+/// rather than six identical grey lines, and so the eye can learn where a section
+/// is by its colour before reading the label.
+/// </param>
+public sealed record NavSection(string Key, string Title, string Subtitle, string Glyph, string AccentHex)
+{
+    /// <summary>Full-strength accent, for the icon plate and the selection rail.</summary>
+    public Brush Accent { get; } = Frozen(AccentHex, 1.0);
+
+    /// <summary>The same hue at low opacity, for the selected row's fill.</summary>
+    public Brush SelectedFill { get; } = Frozen(AccentHex, 0.14);
+
+    /// <summary>Behind the glyph when the row is not selected.</summary>
+    public Brush IconPlate { get; } = Frozen(AccentHex, 0.18);
+
+    /// <remarks>
+    /// Frozen because these are created once and read from the render thread; an
+    /// unfrozen brush would be copied on every use.
+    /// </remarks>
+    private static Brush Frozen(string hex, double opacity)
+    {
+        var colour = (Color)System.Windows.Media.ColorConverter.ConvertFromString(hex);
+        var brush = new SolidColorBrush(colour) { Opacity = opacity };
+        brush.Freeze();
+        return brush;
+    }
+}
 
 public sealed partial class MainViewModel : ObservableObject
 {
@@ -84,12 +114,12 @@ public sealed partial class MainViewModel : ObservableObject
     /// </remarks>
     public ObservableCollection<NavSection> Sections { get; } =
     [
-        new("repair", "Repair", "Find and undo hiding", Glyph(0xE72E)),
-        new("deleted", "Deleted files", "Carve what was erased", Glyph(0xE74C)),
-        new("cleanup", "Cleanup", "Reclaim disk space", Glyph(0xE74E)),
-        new("uninstall", "Uninstall", "Remove apps and leftovers", Glyph(0xE74D)),
-        new("settings", "Settings", "Watching and startup", Glyph(0xE713)),
-        new("about", "About", "Version and author", Glyph(0xE946)),
+        new("repair", "Repair", "Find and undo hiding", Glyph(0xE72E), "#2BD673"),
+        new("deleted", "Deleted files", "Carve what was erased", Glyph(0xE74C), "#5AA9FF"),
+        new("cleanup", "Cleanup", "Reclaim disk space", Glyph(0xE74E), "#F5B93B"),
+        new("uninstall", "Uninstall", "Apps and leftovers", Glyph(0xE74D), "#FF6B8A"),
+        new("settings", "Settings", "Watching and startup", Glyph(0xE713), "#A78BFA"),
+        new("about", "About", "Version and author", Glyph(0xE946), "#4DD4C4"),
     ];
 
     private static string Glyph(int codePoint) => ((char)codePoint).ToString();

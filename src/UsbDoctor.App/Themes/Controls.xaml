@@ -158,44 +158,21 @@
         <Setter Property="BorderThickness" Value="0" />
         <Setter Property="Padding" Value="8,4" />
         <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled" />
+        <!--
+            The container is deliberately bare. Selection and hover are drawn by the
+            item template instead, because each row is tinted with its own section
+            colour and a container template has no access to the bound item.
+        -->
         <Setter Property="ItemContainerStyle">
             <Setter.Value>
                 <Style TargetType="ListBoxItem">
                     <Setter Property="Cursor" Value="Hand" />
-                    <Setter Property="Margin" Value="0,2" />
+                    <Setter Property="Margin" Value="0,3" />
+                    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
                     <Setter Property="Template">
                         <Setter.Value>
                             <ControlTemplate TargetType="ListBoxItem">
-                                <Border x:Name="Bd" Background="Transparent"
-                                        CornerRadius="{StaticResource ControlRadius}"
-                                        Padding="12,9">
-                                    <Grid>
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="Auto" />
-                                            <ColumnDefinition Width="*" />
-                                        </Grid.ColumnDefinitions>
-
-                                        <!-- Selection is shown by an accent bar, not by a
-                                             filled row: it reads at a glance without
-                                             fighting the card surfaces beside it. -->
-                                        <Border x:Name="Rail" Grid.Column="0"
-                                                Width="3" CornerRadius="2"
-                                                Background="{StaticResource AccentBrush}"
-                                                Opacity="0" Margin="0,0,10,0" />
-
-                                        <ContentPresenter Grid.Column="1"
-                                                          VerticalAlignment="Center" />
-                                    </Grid>
-                                </Border>
-                                <ControlTemplate.Triggers>
-                                    <Trigger Property="IsMouseOver" Value="True">
-                                        <Setter TargetName="Bd" Property="Background" Value="#141B23" />
-                                    </Trigger>
-                                    <Trigger Property="IsSelected" Value="True">
-                                        <Setter TargetName="Bd" Property="Background" Value="#16202A" />
-                                        <Setter TargetName="Rail" Property="Opacity" Value="1" />
-                                    </Trigger>
-                                </ControlTemplate.Triggers>
+                                <ContentPresenter />
                             </ControlTemplate>
                         </Setter.Value>
                     </Setter>
