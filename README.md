@@ -113,10 +113,11 @@ a filesystem already known to be damaged.
 | Rescue copy | implemented, unit tested |
 | CLI `scan` / `apply` / `raw` | implemented, validated on live drives |
 | WPF UI | implemented (scan, select, dry run, apply) |
-| Raw FAT32 sector reader | implemented, validated on a live drive |
-| exFAT raw reader | **not implemented** |
+| Raw FAT32 + exFAT sector readers | implemented, validated on live drives |
+| Deleted-file carving (`raw --recover`) | implemented, verified byte-for-byte |
 | Elevated worker + named-pipe RPC | **not implemented** |
 | Format / repair action | **not implemented** |
+| Resume from the journal | **not implemented** |
 
 `apply` performs a dry run unless `--execute` is passed, and the UI ships with
 "Dry run" ticked. `scan` and `raw` cannot write at all.
@@ -164,22 +165,35 @@ dotnet run --project src/UsbDoctor.Cli -- scan E:
 automation can branch on the result. Add `--json` for machine-readable output,
 `--depth N` to limit recursion.
 
+## Recovering deleted files
+
+`usbdoctor raw <drive> --deleted-only --recover <dir>` carves deleted entries back
+out. Deletion clears the allocation-table entries, so the chain describing where a
+file actually lived is gone; reading forward from the starting cluster is the only
+option left, and it is correct exactly when the file was not fragmented. Every
+result is therefore a **candidate**, not a guarantee — the bytes may belong to
+something written since. Output never overwrites, and the destination is refused
+if it is on the volume being read.
+
+exFAT recovers far better than FAT32. FAT32 overwrites the first character of the
+8.3 name with the deletion marker, so `Grldr` comes back as `_RLDR`; exFAT clears
+only the high bit of each entry type, leaving the full name intact.
+
+Verified on a live FAT32 stick: of 80 deleted entries, 52 carved successfully, and
+the recovered `Boot.ico` and `Grldr` matched the surviving originals byte-for-byte
+by SHA-256.
+
 ## Roadmap
 
-1. **Recover file content from deleted entries** — `raw` already reports a deleted
-   entry's starting cluster and length. Reading the chain back and writing the
-   bytes out is the obvious next step, with the caveat that a deleted file's
-   clusters may already have been reused.
-2. **exFAT** — the second drive rescued during development was reformatted to
-   exFAT, so the raw reader currently cannot read it. Same structure as the FAT32
-   reader: a boot-sector parser plus a directory walker behind `Fat32Reader`'s
-   interface.
-3. **Elevated worker + named-pipe RPC** — needed before format and repair, so the
+1. **Elevated worker + named-pipe RPC** — needed before format and repair, so the
    UI itself never runs as Administrator.
-4. **Format / repair** — behind two independent guards: the backup must verify,
+2. **Format / repair** — behind two independent guards: the backup must verify,
    and the target must prove it is a removable volume of the expected size.
-5. **Resume from the journal** — the records are already written; nothing reads
+3. **Resume from the journal** — the records are already written; nothing reads
    them back yet.
+4. **Fragmented-file recovery** — cross-referencing the allocation bitmap could
+   distinguish free clusters from reused ones and flag which carved files are
+   trustworthy.
 
 ## Field notes
 

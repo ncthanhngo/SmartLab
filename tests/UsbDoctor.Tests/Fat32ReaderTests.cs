@@ -190,7 +190,7 @@ public class Fat32ReaderTests
 
         var found = Open(builder).EnumerateTree().ToList();
 
-        Assert.Contains(found, e => e.Entry.IsDeleted);
+        Assert.Contains(found, e => e.IsDeleted);
         Assert.DoesNotContain(found, e => e.Path.Contains("GHOST", StringComparison.Ordinal));
     }
 
@@ -222,7 +222,7 @@ public class Fat32ReaderTests
 
         Assert.Contains(found, e => e.Path == "GRLDR");
         Assert.Contains(found, e => e.Path == @"NHV\INNER.DAT");
-        Assert.Contains(found, e => e.Entry.IsDeleted);
+        Assert.Contains(found, e => e.IsDeleted);
 
         // Chain following is where the unaligned reads were.
         Assert.Equal([10u, 11u], reader.GetChain(10));
