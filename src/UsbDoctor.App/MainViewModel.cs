@@ -65,10 +65,38 @@ public sealed partial class DeletedEntryViewModel(
                                entry is { IsDirectory: false, Length: > 0, FirstCluster: >= 2 };
 }
 
+/// <param name="Glyph">Segoe MDL2 Assets code point, so the sidebar needs no image assets.</param>
+public sealed record NavSection(string Key, string Title, string Subtitle, string Glyph);
+
 public sealed partial class MainViewModel : ObservableObject
 {
     private readonly Win32VolumeReader _reader = new();
     private RecoveryPlan? _plan;
+
+    public const string AppVersion = "0.1.0";
+    public const string AppAuthor = "nc.thanhngo@gmail.com";
+
+    public ObservableCollection<NavSection> Sections { get; } =
+    [
+        new("repair", "Repair", "Find and undo hiding", ""),
+        new("deleted", "Deleted files", "Carve what was erased", ""),
+        new("settings", "Settings", "Watching and startup", ""),
+        new("about", "About", "Version and author", ""),
+    ];
+
+    [ObservableProperty] private NavSection? _selectedSection;
+
+    /// <summary>Large headline for the current volume, in the manner of a health panel.</summary>
+    [ObservableProperty] private string _headline = "No drive selected";
+
+    [ObservableProperty] private string _headlineDetail =
+        "Plug in a USB drive, or pick one above and press Scan.";
+
+    [ObservableProperty] private string _headlineTone = "neutral";
+
+    [ObservableProperty] private int _threatCount;
+    [ObservableProperty] private int _anomalyCount;
+    [ObservableProperty] private int _damagedCount;
 
     public ObservableCollection<VolumeInfo> Drives { get; } = [];
     public ObservableCollection<ActionItemViewModel> Actions { get; } = [];
@@ -115,7 +143,11 @@ public sealed partial class MainViewModel : ObservableObject
     /// <summary>Raised so the view can show a tray balloon while the window is hidden.</summary>
     public event Action<string, string, bool>? NotifyRequested;
 
-    public MainViewModel() => RefreshDrives();
+    public MainViewModel()
+    {
+        SelectedSection = Sections[0];
+        RefreshDrives();
+    }
 
     partial void OnStartWithWindowsChanged(bool value)
     {
@@ -260,6 +292,8 @@ public sealed partial class MainViewModel : ObservableObject
             foreach (var action in _plan.ProposedActions)
                 Actions.Add(new ActionItemViewModel(action));
 
+            UpdateHeadline(drive, _plan);
+
             Status = Findings.Count == 0
                 ? "Clean - nothing found."
                 : $"{_plan.Threats.Count} threat(s), {_plan.Anomalies.Count} anomaly(ies), " +
@@ -358,6 +392,48 @@ public sealed partial class MainViewModel : ObservableObject
         finally
         {
             IsBusy = false;
+        }
+    }
+
+    /// <summary>
+    /// Sets the headline panel from a completed scan.
+    /// </summary>
+    /// <remarks>
+    /// Threats and anomalies are reported separately and never summed. A worm
+    /// payload and a file with an awkward name are not the same finding, and a
+    /// single blended number would let one hide behind the other.
+    /// </remarks>
+    private void UpdateHeadline(VolumeInfo drive, RecoveryPlan plan)
+    {
+        ThreatCount = plan.Threats.Count;
+        AnomalyCount = plan.Anomalies.Count;
+        DamagedCount = plan.Damaged.Count;
+
+        if (ThreatCount > 0)
+        {
+            Headline = "Malware found";
+            HeadlineDetail =
+                $"{ThreatCount} threat(s) on {drive.Root}. Rescue the data first, then apply the plan.";
+            HeadlineTone = "danger";
+        }
+        else if (AnomalyCount > 0)
+        {
+            Headline = "Hidden data found";
+            HeadlineDetail =
+                $"{AnomalyCount} anomaly(ies) on {drive.Root}. No malware signature matched.";
+            HeadlineTone = "warning";
+        }
+        else if (DamagedCount > 0)
+        {
+            Headline = "Readable, with damage";
+            HeadlineDetail = $"{DamagedCount} entr(ies) on {drive.Root} could not be read.";
+            HeadlineTone = "warning";
+        }
+        else
+        {
+            Headline = "This drive is clean";
+            HeadlineDetail = $"Nothing hidden and no signature matched on {drive.Root}.";
+            HeadlineTone = "good";
         }
     }
 
@@ -542,6 +618,26 @@ public sealed partial class MainViewModel : ObservableObject
         ApplyCommand.NotifyCanExecuteChanged();
         ReadDeletedCommand.NotifyCanExecuteChanged();
         DeletedEntries.Clear();
+
+        // Counts belong to the drive that was scanned, so they cannot be carried
+        // over to a different one. Showing the previous drive's numbers against
+        // this drive's name would be worse than showing none.
+        ThreatCount = 0;
+        AnomalyCount = 0;
+        DamagedCount = 0;
+        HeadlineTone = "neutral";
+
+        if (value is null)
+        {
+            Headline = "No drive selected";
+            HeadlineDetail = "Plug in a USB drive, or pick one and press Scan.";
+            return;
+        }
+
+        Headline = "Not scanned yet";
+        HeadlineDetail =
+            $"{value.Root} {value.Label ?? "(no label)"} - {value.FileSystem ?? "unknown"}, " +
+            $"{value.SizeBytes / 1024.0 / 1024 / 1024:F1} GB. Press Scan to look inside.";
     }
 
     partial void OnIsBusyChanged(bool value)
