@@ -1,13 +1,17 @@
 using System.Collections.ObjectModel;
 using System.IO;
+using System.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using UsbDoctor.Core.Model;
+using UsbDoctor.Core.Naming;
 using UsbDoctor.Core.Paths;
 using UsbDoctor.Engine;
 using UsbDoctor.Engine.Detectors;
 using UsbDoctor.Engine.Journal;
+using UsbDoctor.Fat;
 using UsbDoctor.Signatures;
+using UsbDoctor.Win32.Devices;
 using UsbDoctor.Win32.Io;
 
 namespace UsbDoctor.App;
@@ -28,6 +32,34 @@ public sealed partial class ActionItemViewModel(RecoveryAction action) : Observa
     /// </summary>
     [ObservableProperty]
     private bool _isSelected = !action.IsDestructive;
+}
+
+/// <summary>One deleted entry recovered from raw structures, with its grading.</summary>
+public sealed partial class DeletedEntryViewModel(
+    RawEntry entry, RecoveryConfidence confidence, string summary) : ObservableObject
+{
+    public RawEntry Entry { get; } = entry;
+
+    public string Path => Entry.Path;
+    public string Confidence => confidence.ToString();
+    public string Summary => summary;
+
+    public string SizeText => Entry.Length >= 1024 * 1024
+        ? $"{Entry.Length / 1024.0 / 1024:F1} MB"
+        : $"{Entry.Length:N0} B";
+
+    /// <summary>False when carving would return another file's bytes.</summary>
+    public bool CanRecover =>
+        confidence is RecoveryConfidence.Likely or RecoveryConfidence.Superseded &&
+        Entry is { IsDirectory: false, Length: > 0, FirstCluster: >= 2 };
+
+    /// <summary>
+    /// Only entries worth carving start ticked. Everything is still listed, so the
+    /// operator can see what was lost as well as what can be had back.
+    /// </summary>
+    [ObservableProperty]
+    private bool _isSelected = confidence is RecoveryConfidence.Likely or RecoveryConfidence.Superseded &&
+                               entry is { IsDirectory: false, Length: > 0, FirstCluster: >= 2 };
 }
 
 public sealed partial class MainViewModel : ObservableObject
@@ -54,7 +86,63 @@ public sealed partial class MainViewModel : ObservableObject
 
     [ObservableProperty] private bool _rescueFirst = true;
 
+    /// <summary>
+    /// Scan a removable volume as soon as it is plugged in.
+    /// </summary>
+    /// <remarks>
+    /// On by default, and the reason is concrete: the second infected stick found
+    /// during development had been carrying the worm for six days before anyone
+    /// looked, and it was a shared bootable drive moving between machines the whole
+    /// time. Waiting for someone to remember to scan is how that happens.
+    /// </remarks>
+    [ObservableProperty] private bool _autoScanOnInsert = true;
+
     public MainViewModel() => RefreshDrives();
+
+    /// <summary>Called from the window procedure when a volume appears or leaves.</summary>
+    public void OnVolumeChanged(VolumeChangeKind kind, IReadOnlyList<char> driveLetters)
+    {
+        _ = HandleVolumeChangedAsync(kind, driveLetters);
+    }
+
+    private async Task HandleVolumeChangedAsync(VolumeChangeKind kind, IReadOnlyList<char> driveLetters)
+    {
+        try
+        {
+            if (kind == VolumeChangeKind.Removed)
+            {
+                RefreshDrives();
+                return;
+            }
+
+            // Windows announces arrival as the volume mounts, which is a moment
+            // before it is reliably readable. Without this pause the drive is often
+            // absent from the very list this event is meant to populate.
+            await Task.Delay(500).ConfigureAwait(true);
+            RefreshDrives();
+
+            var arrived = Drives.FirstOrDefault(d => driveLetters.Contains(d.DriveLetter));
+            if (arrived is null) return; // not removable, or gone again already
+
+            SelectedDrive = arrived;
+
+            if (!AutoScanOnInsert)
+            {
+                Status = $"{arrived.Root} inserted. Auto-scan is off.";
+                return;
+            }
+
+            Status = $"{arrived.Root} inserted - scanning automatically...";
+            await ScanAsync().ConfigureAwait(true);
+
+            if (_plan is { } plan && (plan.Threats.Count > 0 || plan.Anomalies.Count > 0))
+                SystemSounds.Exclamation.Play();
+        }
+        catch (Exception ex)
+        {
+            Status = $"Auto-scan failed: {ex.Message}";
+        }
+    }
 
     [RelayCommand]
     private void RefreshDrives()
@@ -237,15 +325,178 @@ public sealed partial class MainViewModel : ObservableObject
         }
     }
 
+    // ---- raw access: entries the mounted filesystem will not show ---------------
+
+    public ObservableCollection<DeletedEntryViewModel> DeletedEntries { get; } = [];
+
+    [ObservableProperty] private string _recoverTo =
+        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+            "UsbDoctor", "recovered");
+
+    [ObservableProperty] private string _rawStatus = "Reads the device directly to find deleted files.";
+
+    private bool CanReadRaw() => SelectedDrive is not null && !IsBusy;
+
+    [RelayCommand(CanExecute = nameof(CanReadRaw))]
+    private async Task ReadDeletedAsync()
+    {
+        if (SelectedDrive is not { } drive) return;
+
+        IsBusy = true;
+        DeletedEntries.Clear();
+
+        try
+        {
+            var found = await Task.Run(() => ReadDeletedEntries(drive.DriveLetter)).ConfigureAwait(true);
+
+            foreach (var item in found) DeletedEntries.Add(item);
+            RecoverDeletedCommand.NotifyCanExecuteChanged();
+
+            RawStatus = found.Count == 0
+                ? "No deleted entries found."
+                : $"{found.Count} deleted entr(ies). " +
+                  $"{found.Count(e => e.CanRecover)} look recoverable.";
+        }
+        catch (Exception ex)
+        {
+            RawStatus = $"Raw read failed: {ex.Message}";
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    /// <summary>
+    /// Walks the raw filesystem and grades every deleted entry.
+    /// </summary>
+    /// <remarks>
+    /// Two passes, as in the CLI: live starting clusters must be known before the
+    /// deleted entries can be judged, otherwise a file whose clusters are still
+    /// held by a live entry under a new name is wrongly written off as overwritten.
+    /// </remarks>
+    private static List<DeletedEntryViewModel> ReadDeletedEntries(char driveLetter)
+    {
+        using var stream = RawVolume.Open(driveLetter);
+
+        if (!RawFileSystem.TryOpen(stream, out var fileSystem, out var error))
+            throw new InvalidOperationException(error ?? "No supported filesystem.");
+
+        var deleted = new List<RawEntry>();
+        var liveClusters = new HashSet<uint>();
+
+        foreach (var entry in fileSystem!.EnumerateTree())
+        {
+            if (entry.IsDeleted) deleted.Add(entry);
+            else if (!entry.IsDirectory && entry.FirstCluster >= 2) liveClusters.Add(entry.FirstCluster);
+        }
+
+        var results = new List<DeletedEntryViewModel>(deleted.Count);
+
+        foreach (var entry in deleted)
+        {
+            var assessment = entry is { IsDirectory: false, Length: > 0, FirstCluster: >= 2 }
+                ? fileSystem.AssessRange(entry.FirstCluster, entry.Length)
+                : ClusterRangeAssessment.None;
+
+            var confidence = DeletedEntryAssessor.Refine(
+                assessment.Confidence, entry.FirstCluster, liveClusters);
+
+            results.Add(new DeletedEntryViewModel(entry, confidence, assessment.SummaryFor(confidence)));
+        }
+
+        return results;
+    }
+
+    // Deliberately not gated on the selection. Each row's tick lives on its own
+    // view model, so gating here would need every row to notify the parent just to
+    // keep a button's enabled state honest - and a stale CanExecute is worse than a
+    // command that politely does nothing.
+    private bool CanRecover() => SelectedDrive is not null && !IsBusy && DeletedEntries.Count > 0;
+
+    [RelayCommand(CanExecute = nameof(CanRecover))]
+    private async Task RecoverDeletedAsync()
+    {
+        if (SelectedDrive is not { } drive) return;
+
+        var chosen = DeletedEntries.Where(e => e.IsSelected).Select(e => e.Entry).ToArray();
+        if (chosen.Length == 0) return;
+
+        IsBusy = true;
+
+        try
+        {
+            var (recovered, failed) = await Task
+                .Run(() => Carve(drive.DriveLetter, chosen, RecoverTo)).ConfigureAwait(true);
+
+            RawStatus =
+                $"{recovered} file(s) written to {RecoverTo}" +
+                (failed > 0 ? $", {failed} failed." : ".") +
+                " Recovery assumes the data was not fragmented - verify every file.";
+        }
+        catch (Exception ex)
+        {
+            RawStatus = $"Recovery failed: {ex.Message}";
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    private static (int Recovered, int Failed) Carve(
+        char driveLetter, IReadOnlyList<RawEntry> entries, string destination)
+    {
+        using var stream = RawVolume.Open(driveLetter);
+
+        if (!RawFileSystem.TryOpen(stream, out var fileSystem, out var error))
+            throw new InvalidOperationException(error ?? "No supported filesystem.");
+
+        Directory.CreateDirectory(destination);
+
+        var sanitizer = new NameSanitizer();
+        int recovered = 0, failed = 0;
+
+        foreach (var entry in entries)
+        {
+            try
+            {
+                var data = fileSystem!.ReadContiguous(entry.FirstCluster, entry.Length);
+                if (data.Length == 0) { failed++; continue; }
+
+                // The cluster number keeps deleted names distinct - FAT32 loses the
+                // first character of every one - and CreateNew means a second run
+                // can never overwrite the first.
+                var safe = sanitizer.Sanitize($"{entry.FirstCluster}_{entry.Name}").Safe;
+
+                using var file = new FileStream(
+                    Path.Combine(destination, safe), FileMode.CreateNew, FileAccess.Write);
+                file.Write(data);
+
+                recovered++;
+            }
+            catch
+            {
+                failed++;
+            }
+        }
+
+        return (recovered, failed);
+    }
+
     partial void OnSelectedDriveChanged(VolumeInfo? value)
     {
         ScanCommand.NotifyCanExecuteChanged();
         ApplyCommand.NotifyCanExecuteChanged();
+        ReadDeletedCommand.NotifyCanExecuteChanged();
+        DeletedEntries.Clear();
     }
 
     partial void OnIsBusyChanged(bool value)
     {
         ScanCommand.NotifyCanExecuteChanged();
         ApplyCommand.NotifyCanExecuteChanged();
+        ReadDeletedCommand.NotifyCanExecuteChanged();
+        RecoverDeletedCommand.NotifyCanExecuteChanged();
     }
 }
