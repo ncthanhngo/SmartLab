@@ -206,6 +206,19 @@ dotnet run --project src/UsbDoctor.Cli -- scan E:
 automation can branch on the result. Add `--json` for machine-readable output,
 `--depth N` to limit recursion.
 
+### Capturing the interface
+
+```powershell
+UsbDoctor.App.exe --screenshot <dir>
+```
+
+Renders every section to PNG and exits. This exists because the machine is usually
+reached over a remote session where the console is locked: a screen grab then
+captures the lock screen, and `PrintWindow` leaves parts of a WPF window black
+because those areas were never asked to repaint. `RenderTargetBitmap` walks the
+visual tree instead, so it does not care whether the window is visible, obscured or
+on a locked session.
+
 ## Scanning on insert
 
 The UI scans a removable volume as soon as it is plugged in, on by default. The
