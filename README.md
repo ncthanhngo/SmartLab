@@ -132,7 +132,8 @@ succeeded" and "the volume is clean" are different claims.
 | Executor (applying a plan) | implemented, unit tested |
 | Rescue copy | implemented, unit tested |
 | CLI `scan` / `apply` / `raw` | implemented, validated on live drives |
-| WPF UI | implemented (scan, select, dry run, apply) |
+| WPF UI | implemented (scan, select, dry run, apply, deleted-file recovery) |
+| Auto-scan on USB insert | implemented; decoding unit-tested, plug event not yet verified |
 | Raw FAT32 + exFAT sector readers | implemented, validated on live drives |
 | Deleted-file carving (`raw --recover`) | implemented, verified byte-for-byte |
 | Recovery confidence grading | implemented (FAT + exFAT allocation bitmap) |
@@ -185,6 +186,24 @@ dotnet run --project src/UsbDoctor.Cli -- scan E:
 `scan` exits `0` when clean and `3` when it found anomalies or threats, so lab
 automation can branch on the result. Add `--json` for machine-readable output,
 `--depth N` to limit recursion.
+
+## Scanning on insert
+
+The UI scans a removable volume as soon as it is plugged in, on by default. The
+reason is concrete: the second infected stick found during development had carried
+the worm for six days before anyone looked, and it was a shared bootable drive
+moving between machines the whole time. Waiting for someone to remember to scan is
+how that happens.
+
+Arrival comes from `WM_DEVICECHANGE` rather than WMI polling — pushed the moment
+the volume mounts, no elevation, and nothing consumed while idle. Two details
+matter: the device type is checked before the payload is read, because arrivals
+also fire for interfaces and ports that carry a different structure entirely; and
+the event is debounced by half a second, because Windows announces the volume just
+before it is reliably readable.
+
+The watcher only runs while the window is open. A resident tray version is not
+built yet.
 
 ## Recovering deleted files
 
