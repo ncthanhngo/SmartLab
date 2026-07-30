@@ -109,6 +109,13 @@ locking need Administrator, but the UI must not run elevated.
   editor, diff, or encoding conversion.
 - Do not reimplement antivirus. Signatures identify *hiding behaviour*; delegate
   malware removal to Defender via `MpCmdRun.exe`.
+- Reference every colour with `DynamicResource`, never `StaticResource`. The two
+  palettes are swapped whole at runtime; a static reference is resolved once when
+  the element is parsed and keeps the colour it was born with. Radii, typefaces
+  and styles stay static — they live in `Tokens.xaml` and do not change.
+- A colour added to one palette must be added to the other. A missing key breaks
+  in whichever theme nobody was working in, which is why `PaletteParityTests`
+  compares the two key sets.
 
 ## Proposed actions
 
@@ -218,6 +225,11 @@ captures the lock screen, and `PrintWindow` leaves parts of a WPF window black
 because those areas were never asked to repaint. `RenderTargetBitmap` walks the
 visual tree instead, so it does not care whether the window is visible, obscured or
 on a locked session.
+
+It renders in whichever theme is currently stored, so capturing both means running
+it twice. Wait for each run: `UsbDoctor.App.exe` is a GUI subsystem binary, so
+PowerShell's `&` returns immediately and two runs will overlap and capture the same
+theme twice. Use `Start-Process -Wait`.
 
 ## Scanning on insert
 
