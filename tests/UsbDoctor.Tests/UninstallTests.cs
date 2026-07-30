@@ -1,4 +1,4 @@
-using UsbDoctor.Uninstall;
+using UsbDoctor.Maintenance;
 using Xunit;
 
 namespace UsbDoctor.Tests;
@@ -11,12 +11,18 @@ public sealed class FakeTraceProbe : ITraceProbe
     public HashSet<string> RegistryKeys { get; } = new(StringComparer.OrdinalIgnoreCase);
     public HashSet<string> RegistryValues { get; } = new(StringComparer.OrdinalIgnoreCase);
     public Dictionary<string, long> Sizes { get; } = new(StringComparer.OrdinalIgnoreCase);
+    public Dictionary<string, int> FileCounts { get; } = new(StringComparer.OrdinalIgnoreCase);
+    public long RecycleBinBytes { get; set; }
 
     public bool FileExists(string path) => Files.Contains(path);
     public bool DirectoryExists(string path) => Directories.Contains(path);
     public long DirectorySize(string path) => Sizes.TryGetValue(path, out var s) ? s : 0;
     public long FileSize(string path) => Sizes.TryGetValue(path, out var s) ? s : 0;
     public bool RegistryKeyExists(string keyPath) => RegistryKeys.Contains(keyPath);
+    public long RecycleBinSize() => RecycleBinBytes;
+
+    public (long Bytes, int Files) DirectoryStats(string path) =>
+        (DirectorySize(path), FileCounts.TryGetValue(path, out var c) ? c : 0);
 
     public bool RegistryValueExists(string keyPath, string valueName) =>
         RegistryValues.Contains($"{keyPath}::{valueName}");

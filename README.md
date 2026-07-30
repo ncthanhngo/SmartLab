@@ -233,6 +233,35 @@ key: that needs Administrator and would launch for every account on a shared lab
 PC, which is not something a checkbox should decide. Unticking removes the value
 and leaves nothing behind.
 
+## Disk cleanup
+
+`Cleanup` in the app, `usbdoctor clean` for a read-only report.
+
+The catalogue is deliberately short. Every entry is a location whose entire purpose
+is to hold disposable data, which is what makes deleting it defensible. The long
+tail a cleaner *could* reach — recent-document lists, jump lists, prefetch, font
+caches, event logs — is either privacy rather than space, or something Windows uses
+to stay fast, where clearing it trades a measurable slowdown for a few megabytes.
+
+Browser entries name **cache directories only**. Cookies, saved logins, history and
+bookmarks live in sibling files and never appear: signing a user out of everything
+to reclaim disk space is not a trade anyone asked for. There is a test asserting
+those filenames are absent from every browser path.
+
+**The Recycle Bin is never ticked by default.** This tool exists to recover deleted
+files, so emptying the one place Windows keeps them for the user — by default —
+would contradict the whole thing. More generally, every category carrying a caution
+starts unticked, and a test enforces that: a warning next to a pre-ticked box is
+decoration, not a warning.
+
+Two other details. The headline total counts only ticked categories, because that is
+what pressing Clean would actually remove — a figure including unticked ones
+promises space the operator has declined to free. And cleaning **empties**
+directories rather than deleting them: removing `%TEMP%` outright breaks every
+program that expects it to exist. Locked files are expected on a live machine, so
+each is skipped and counted, and the categories are re-measured afterwards rather
+than assumed empty.
+
 ## Uninstalling
 
 Two separate jobs, both under `Uninstall` in the app and readable from
