@@ -8,6 +8,19 @@ public enum RecoveryActionKind
     ClearAttributes,
     /// <summary>Rename a pathological directory name to a safe ASCII one.</summary>
     RenameToSafeName,
+
+    /// <summary>
+    /// Move a staging folder's contents back up to the volume root and remove the
+    /// empty folder.
+    /// </summary>
+    /// <remarks>
+    /// Renaming the folder makes the data reachable, but it still sits one level
+    /// deeper than it did before the worm moved it. That difference is not
+    /// cosmetic: a bootable stick whose loader lives at the root stops booting,
+    /// and every saved path that pointed into the volume is still broken. This is
+    /// the action that actually restores the volume.
+    /// </remarks>
+    RestoreToRoot,
     /// <summary>Copy data off the damaged volume to a rescue destination.</summary>
     RescueCopy,
     /// <summary>Move a suspected malicious file to the quarantine store.</summary>

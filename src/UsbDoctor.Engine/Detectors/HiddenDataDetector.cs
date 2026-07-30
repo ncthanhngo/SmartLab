@@ -31,16 +31,24 @@ public sealed class HiddenDataDetector : IAnomalyDetector
 
     public IEnumerable<Anomaly> Inspect(FileEntry entry, ScanContext context)
     {
-        if (entry.IsDirectory && entry.IsHidden && entry.IsSystem &&
+        // Only at the volume root. A worm hides relocated user data there, where
+        // the owner would look for it. Application installers routinely mark
+        // folders deep inside their own tree Hidden+System - scanning a stick with
+        // an installer on it produced six such warnings from one driver utility,
+        // and noise at that rate trains the operator to ignore the report. An
+        // invisible or unaddressable *name* is still flagged at any depth by
+        // NameAnomalyDetector, which is the stronger signal anyway.
+        if (context.IsVolumeRoot && entry.IsDirectory && entry.IsHidden && entry.IsSystem &&
             !KnownSystemNames.Contains(entry.Name))
         {
             yield return new Anomaly(
                 AnomalyKind.HiddenSystemUserData,
-                context.IsVolumeRoot ? Severity.High : Severity.Medium,
+                Severity.High,
                 entry.Path,
-                "Directory carries Hidden+System but is not a name Windows or macOS creates. " +
-                "Applying both attributes is how a worm keeps relocated user data out of sight, " +
-                "since Explorer hides System items even when 'show hidden files' is enabled.")
+                "Directory at the volume root carries Hidden+System but is not a name Windows " +
+                "or macOS creates. Applying both attributes is how a worm keeps relocated user " +
+                "data out of sight, since Explorer hides System items even when 'show hidden " +
+                "files' is enabled.")
             { VisibleName = SuspiciousNameRules.Describe(entry.Name) };
         }
 

@@ -50,8 +50,27 @@ public static class RecoveryPlanner
                 case AnomalyKind.NonPrintableName:
                 case AnomalyKind.BidiOverride:
                 {
-                    // One rename per path, even when several rules fired on it.
+                    // One proposal per path, even when several rules fired on it.
                     if (!renamed.Add(anomaly.Path.Value)) break;
+
+                    // A pathological folder sitting directly at the volume root is
+                    // the worm's staging folder: everything the user had was moved
+                    // into it. Putting the contents back where they were is the
+                    // repair; renaming the folder would only make them reachable.
+                    if (anomaly.Path.Parent is { IsDriveRoot: true })
+                    {
+                        actions.Add(new RecoveryAction(
+                            RecoveryActionKind.RestoreToRoot,
+                            anomaly.Path,
+                            $"Move everything inside '{anomaly.VisibleName}' back to {volume.Root} " +
+                            "and remove the empty folder, restoring the original layout")
+                        {
+                            Destination = ExtendedPath.From(volume.Root),
+                            Severity = anomaly.Severity,
+                            TargetIsDirectory = true,
+                        });
+                        break;
+                    }
 
                     var safe = ProposeSafeName(anomaly.Path);
                     if (safe is null) break;
@@ -85,10 +104,21 @@ public static class RecoveryPlanner
 
         foreach (var threat in threats)
         {
+            // Report-only signatures contribute a finding and nothing else. They
+            // exist so a weak indicator can be surfaced without proposing that the
+            // user's file be taken away.
+            if (threat.Action == ThreatAction.Report) continue;
+
+            var kind = threat.Action == ThreatAction.Delete
+                ? RecoveryActionKind.DeleteThreat
+                : RecoveryActionKind.Quarantine;
+
+            var verb = kind == RecoveryActionKind.DeleteThreat ? "Delete" : "Quarantine";
+
             actions.Add(new RecoveryAction(
-                RecoveryActionKind.Quarantine,
+                kind,
                 threat.Path,
-                $"Quarantine {(threat.IsDirectory ? "folder" : "file")} " +
+                $"{verb} {(threat.IsDirectory ? "folder" : "file")} " +
                 $"'{threat.Path.ForDisplay()}' — matched '{threat.SignatureId}': {threat.Reason}")
             {
                 Severity = threat.Severity,

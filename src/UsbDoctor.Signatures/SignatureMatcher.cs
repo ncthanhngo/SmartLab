@@ -33,6 +33,12 @@ public sealed class SignatureMatcher(SignatureSet signatures)
                 hits.Add(new ThreatMatch(sig.Id, sig.Severity, entry.Path, sig.Description, hash)
                 {
                     IsDirectory = entry.IsDirectory,
+                    Action = sig.Action switch
+                    {
+                        SignatureAction.Report => ThreatAction.Report,
+                        SignatureAction.Delete => ThreatAction.Delete,
+                        _ => ThreatAction.Quarantine,
+                    },
                 });
                 break; // anyOf — one rule is enough
             }

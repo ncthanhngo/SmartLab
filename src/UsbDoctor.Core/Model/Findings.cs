@@ -37,6 +37,19 @@ public sealed record Anomaly(
     public string VisibleName { get; init; } = string.Empty;
 }
 
+/// <summary>What a signature asks the planner to do about a match.</summary>
+public enum ThreatAction
+{
+    /// <summary>Show it in the findings, propose nothing. For weak indicators.</summary>
+    Report,
+
+    /// <summary>Copy to the quarantine store, then remove from the volume.</summary>
+    Quarantine,
+
+    /// <summary>Delete outright, keeping no copy.</summary>
+    Delete,
+}
+
 public sealed record ThreatMatch(
     string SignatureId,
     Severity Severity,
@@ -44,6 +57,17 @@ public sealed record ThreatMatch(
     string Reason,
     string? Sha256 = null)
 {
+    /// <summary>
+    /// The disposition the matching signature asked for.
+    /// </summary>
+    /// <remarks>
+    /// Carried through so a signature can flag something suspicious without the
+    /// planner proposing its removal. Treating every match as quarantine-worthy
+    /// makes weak indicators unusable: nobody will add a heuristic rule if firing
+    /// it means proposing that a user's file be taken away.
+    /// </remarks>
+    public ThreatAction Action { get; init; } = ThreatAction.Quarantine;
+
     /// <summary>
     /// Whether the match is a directory. Carried from the scan because a path
     /// string cannot be classified reliably after the fact — a folder named
