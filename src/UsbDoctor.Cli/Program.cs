@@ -1,4 +1,5 @@
 using UsbDoctor.Core.Model;
+using UsbDoctor.Core.Naming;
 using UsbDoctor.Engine;
 using UsbDoctor.Engine.Journal;
 using UsbDoctor.Fat;
@@ -151,36 +152,84 @@ internal static class Program
 
         using var stream = RawVolume.Open(options.DriveLetter);
 
-        if (!Fat32Reader.TryOpen(stream, out var reader, out var error))
+        if (!RawFileSystem.TryOpen(stream, out var fileSystem, out var error))
         {
-            Console.Error.WriteLine($"Not a readable FAT32 volume: {error}");
+            Console.Error.WriteLine($"No supported filesystem found: {error}");
             return ExitError;
         }
 
-        var boot = reader!.BootSector;
-        Console.WriteLine(
-            $"FAT32  {boot.BytesPerSector} B/sector  {boot.SectorsPerCluster} sector(s)/cluster  " +
-            $"{boot.BytesPerCluster} B/cluster  root cluster {boot.RootCluster}");
+        Console.WriteLine(fileSystem!.Describe());
         Console.WriteLine();
 
         var listed = 0;
         var deleted = 0;
+        var recovered = 0;
+        var sanitizer = new NameSanitizer();
 
-        foreach (var item in reader.EnumerateTree())
+        foreach (var item in fileSystem.EnumerateTree())
         {
-            if (item.Entry.IsDeleted) deleted++;
-            if (options.DeletedOnly && !item.Entry.IsDeleted) continue;
+            if (item.IsDeleted) deleted++;
+            if (options.DeletedOnly && !item.IsDeleted) continue;
 
-            var mark = item.Entry.IsDeleted ? "DEL" : item.Entry.IsDirectory ? "DIR" : "   ";
-            Console.WriteLine(
-                $"  [{mark}] {item.Path}  (cluster {item.Entry.FirstCluster}, {item.Entry.Length} bytes)");
+            var mark = item.IsDeleted ? "DEL" : item.IsDirectory ? "DIR" : "   ";
+            Console.WriteLine($"  [{mark}] {item.Path}  (cluster {item.FirstCluster}, {item.Length} bytes)");
             listed++;
+
+            if (options.RecoverTo is { } destination && item is
+                { IsDeleted: true, IsDirectory: false, Length: > 0, FirstCluster: >= 2 })
+            {
+                if (TryRecover(fileSystem, item, destination, sanitizer, out var written))
+                {
+                    Console.WriteLine($"        -> recovered {written} byte(s)");
+                    recovered++;
+                }
+            }
         }
 
         Console.WriteLine();
         Console.WriteLine($"{listed} entr(ies) listed, {deleted} deleted entr(ies) found.");
 
+        if (options.RecoverTo is not null)
+        {
+            Console.WriteLine($"{recovered} file(s) carved into {options.RecoverTo}");
+            Console.WriteLine(
+                "Recovery assumes the data was not fragmented. Verify every file before " +
+                "trusting it - the bytes may belong to something written since.");
+        }
+
         return deleted > 0 ? ExitFindings : ExitClean;
+    }
+
+    private static bool TryRecover(
+        IRawFileSystem fileSystem, RawEntry entry, string destination,
+        NameSanitizer sanitizer, out int written)
+    {
+        written = 0;
+
+        try
+        {
+            Directory.CreateDirectory(destination);
+
+            var data = fileSystem.ReadContiguous(entry.FirstCluster, entry.Length);
+            if (data.Length == 0) return false;
+
+            // Deleted names collide readily - FAT32 loses the first character of
+            // every one - so the cluster number keeps them distinct, and the file
+            // is never overwritten if it somehow already exists.
+            var safe = sanitizer.Sanitize($"{entry.FirstCluster}_{entry.Name}").Safe;
+            var path = Path.Combine(destination, safe);
+
+            using var file = new FileStream(path, FileMode.CreateNew, FileAccess.Write);
+            file.Write(data);
+
+            written = data.Length;
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"        recovery failed: {ex.Message}");
+            return false;
+        }
     }
 
     private static bool HasFindings(RecoveryPlan plan) =>

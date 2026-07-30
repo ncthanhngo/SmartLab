@@ -25,6 +25,9 @@ public sealed record CliOptions
 
     /// <summary>For <c>raw</c>: report only entries the mounted filesystem hides.</summary>
     public bool DeletedOnly { get; init; }
+
+    /// <summary>For <c>raw</c>: write recovered deleted-file data to this directory.</summary>
+    public string? RecoverTo { get; init; }
     public string? QuarantineRoot { get; init; }
     public ExtendedPath? RescueDestination { get; init; }
 
@@ -93,6 +96,15 @@ public sealed record CliOptions
                     options = options with { DeletedOnly = true };
                     break;
 
+                case "--recover":
+                    if (!TryTakeValue(args, ref i, out var recover))
+                    {
+                        error = "--recover requires a directory.";
+                        return options with { Command = CliCommand.None };
+                    }
+                    options = options with { RecoverTo = recover };
+                    break;
+
                 case "--depth":
                     if (!TryTakeValue(args, ref i, out var depthText) ||
                         !int.TryParse(depthText, out var depth))
@@ -142,6 +154,14 @@ public sealed record CliOptions
             return options with { Command = CliCommand.None };
         }
 
+        // Writing recovered data back onto the source would overwrite the very
+        // clusters still being read from.
+        if (options.RecoverTo is { } rec && StartsWithDrive(rec, options.DriveLetter))
+        {
+            error = "--recover must not be on the volume being read.";
+            return options with { Command = CliCommand.None };
+        }
+
         return options;
     }
 
@@ -167,13 +187,14 @@ public sealed record CliOptions
           usbdoctor apply <drive> [--depth N] [--rescue-to <dir>]
                                   [--quarantine <dir>] [--execute] [--yes]
                                   [--stop-on-error]
-          usbdoctor raw   <drive> [--deleted-only]
+          usbdoctor raw   <drive> [--deleted-only] [--recover <dir>]
 
         scan   Read-only. Reports findings and the plan it would propose.
         apply  Runs the plan. Dry run unless --execute is given.
-        raw    Reads FAT32 structures directly from the device, bypassing the
-               mounted filesystem. Shows deleted directory entries that Explorer
-               cannot see and that chkdsk /F discards.
+        raw    Reads FAT32 or exFAT structures directly from the device, bypassing
+               the mounted filesystem. Shows deleted directory entries that
+               Explorer cannot see and that chkdsk /F discards, and can carve their
+               data back out.
 
         Options
           --depth N        Limit directory recursion.
@@ -185,6 +206,8 @@ public sealed record CliOptions
           --yes, -y        Skip the confirmation prompt.
           --stop-on-error  Halt on the first failed action.
           --deleted-only   raw: list only deleted entries.
+          --recover DIR    raw: carve deleted files into DIR. Assumes the data was
+                           not fragmented, so treat every result as a candidate.
 
         Exit codes
           0  clean / all actions succeeded
