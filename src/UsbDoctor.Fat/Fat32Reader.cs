@@ -2,9 +2,6 @@ using System.Buffers.Binary;
 
 namespace UsbDoctor.Fat;
 
-/// <summary>A directory entry together with the path it was found at.</summary>
-public sealed record RawEntry(string Path, FatDirectoryEntry Entry);
-
 /// <summary>
 /// Reads FAT32 structures directly from a byte stream.
 /// </summary>
@@ -21,7 +18,7 @@ public sealed record RawEntry(string Path, FatDirectoryEntry Entry);
 /// not, which is why the two concerns are separate types.
 /// </para>
 /// </remarks>
-public sealed class Fat32Reader
+public sealed class Fat32Reader : IRawFileSystem
 {
     private readonly SectorReader _sectors;
     private readonly Fat32BootSector _boot;
@@ -39,6 +36,37 @@ public sealed class Fat32Reader
     }
 
     public Fat32BootSector BootSector => _boot;
+
+    public int BytesPerCluster => _boot.BytesPerCluster;
+
+    public string Describe() =>
+        $"FAT32  {_boot.BytesPerSector} B/sector  {_boot.SectorsPerCluster} sector(s)/cluster  " +
+        $"{_boot.BytesPerCluster} B/cluster  root cluster {_boot.RootCluster}";
+
+    public byte[] ReadContiguous(uint firstCluster, long length)
+    {
+        if (firstCluster < 2 || length <= 0) return [];
+
+        var buffer = new byte[length];
+        var clusterSize = _boot.BytesPerCluster;
+        var written = 0;
+
+        for (var cluster = firstCluster; written < length; cluster++)
+        {
+            var wanted = (int)Math.Min(clusterSize, length - written);
+            var offset = _boot.ClusterToOffset(cluster);
+
+            // Stop at the first unreadable cluster and return what was recovered.
+            // A short result is honest; padding it with zeroes would hide where the
+            // recovery actually ended.
+            if (!_sectors.TryRead(offset, buffer.AsSpan(written, wanted)))
+                return buffer[..written];
+
+            written += wanted;
+        }
+
+        return buffer;
+    }
 
     public static bool TryOpen(Stream stream, out Fat32Reader? reader, out string? error)
     {
@@ -133,7 +161,10 @@ public sealed class Fat32Reader
                 if (entry.ShortName is "." or ".." or "_." or "_..") continue;
 
                 var childPath = path.Length == 0 ? entry.Name : $"{path}\\{entry.Name}";
-                yield return new RawEntry(childPath, entry);
+
+                yield return new RawEntry(
+                    childPath, entry.Name, entry.IsDirectory, entry.IsDeleted,
+                    entry.FirstCluster, entry.Length);
 
                 // A deleted directory's contents are no longer reliably reachable:
                 // its clusters may already be reallocated, so descending risks
