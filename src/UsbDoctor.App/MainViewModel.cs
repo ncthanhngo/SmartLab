@@ -178,7 +178,8 @@ public sealed partial class MainViewModel : ObservableObject
 
             await using var journal = new JsonlJournal(journalPath);
             var gate = new Win32WriteGate(journal, DryRun);
-            var executor = new PlanExecutor(gate, journal, new RescueCopier(_reader, gate, journal));
+            var executor = new PlanExecutor(
+                gate, journal, new RescueCopier(_reader, gate, journal), _reader);
 
             var options = new ExecutionOptions
             {
@@ -205,9 +206,26 @@ public sealed partial class MainViewModel : ObservableObject
                              (outcome.Note is null ? string.Empty : $" ({outcome.Note})"));
             }
 
-            Status = DryRun
-                ? $"Dry run complete: {report.Succeeded} action(s) would run. Untick 'Dry run' to apply."
-                : $"{report.Succeeded} succeeded, {report.Failed} failed. Journal: {journalPath}";
+            if (DryRun)
+            {
+                Status = $"Dry run complete: {report.Succeeded} action(s) would run. " +
+                         "Untick 'Dry run' to apply.";
+                return;
+            }
+
+            Status = $"{report.Succeeded} succeeded, {report.Failed} failed. Verifying...";
+            IsBusy = false;
+
+            // Re-scan so the run ends with evidence rather than an assumption.
+            // "The actions succeeded" and "the volume is clean" are different
+            // claims, and only the second is what the operator came for.
+            await ScanAsync().ConfigureAwait(true);
+
+            Findings.Insert(0, report.Failed == 0 && Findings.Count == 0
+                ? "--- REPAIRED: rescan found nothing ---"
+                : "--- rescan results below ---");
+
+            Status = $"{report.Succeeded} action(s) applied. Journal: {journalPath}";
         }
         catch (Exception ex)
         {

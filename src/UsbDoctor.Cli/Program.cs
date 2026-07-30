@@ -95,7 +95,7 @@ internal static class Program
 
         await using var journal = new JsonlJournal(JournalPath(options.DriveLetter));
         var gate = new Win32WriteGate(journal, dryRun: !options.Execute);
-        var executor = new PlanExecutor(gate, journal, new RescueCopier(reader, gate, journal));
+        var executor = new PlanExecutor(gate, journal, new RescueCopier(reader, gate, journal), reader);
 
         var executionOptions = new ExecutionOptions
         {
@@ -116,7 +116,19 @@ internal static class Program
         PlanRenderer.WriteExecutionReport(report, dryRun: !options.Execute);
         Console.WriteLine($"Journal: {JournalPath(options.DriveLetter)}");
 
-        return report.AllSucceeded ? ExitClean : ExitFindings;
+        if (!options.Execute) return report.AllSucceeded ? ExitClean : ExitFindings;
+
+        // Re-scan so the run ends with evidence rather than an assumption. "The
+        // actions succeeded" and "the volume is clean" are different claims.
+        Console.WriteLine();
+        Console.WriteLine("Verifying...");
+
+        var after = await ScanRunner.RunAsync(reader, options, quiet: false, ct).ConfigureAwait(false);
+
+        Console.WriteLine(
+            $"After repair: {after.Threats.Count} threat(s), {after.Anomalies.Count} anomaly(ies).");
+
+        return report.AllSucceeded && !HasFindings(after) ? ExitClean : ExitFindings;
     }
 
     private static bool Confirm(RecoveryPlan plan)
