@@ -233,6 +233,22 @@ key: that needs Administrator and would launch for every account on a shared lab
 PC, which is not something a checkbox should decide. Unticking removes the value
 and leaves nothing behind.
 
+## Progress reporting
+
+Both front ends show the entry under inspection as the walk proceeds, because a
+long scan with nothing but a counter reads as a hang.
+
+The scanner samples **every twelfth entry** rather than reporting each one, and
+each consumer throttles again on top of that — the UI updates the path at most 25
+times a second, the CLI redraws at most every 60 ms. This is deliberate, not an
+oversight to tidy up: at these rates no one can read individual paths, and
+reporting every entry makes a caller spend longer rendering the walk than walking
+it. `ScanProgress` is a struct for the same reason.
+
+Paths are trimmed from the **left**. Cutting the tail leaves a column of
+near-identical directory prefixes, which says nothing about progress; the file name
+at the end is the part that moves.
+
 ## Recovering deleted files
 
 `usbdoctor raw <drive> --deleted-only --recover <dir>` carves deleted entries back
