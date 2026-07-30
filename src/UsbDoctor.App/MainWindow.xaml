@@ -500,6 +500,152 @@
                     </Border>
                 </StackPanel>
 
+                <!-- ===== Cleanup ===== -->
+                <DockPanel DataContext="{Binding Cleanup}">
+                    <DockPanel.Style>
+                        <Style TargetType="DockPanel">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding DataContext.SelectedSection.Key,
+                                                 RelativeSource={RelativeSource AncestorType=Window}}"
+                                             Value="cleanup">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </DockPanel.Style>
+
+                    <!-- headline: reclaimable total and the two actions -->
+                    <Border DockPanel.Dock="Top" Style="{StaticResource Card}" Padding="20"
+                            Margin="0,0,0,14">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+
+                            <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,22,0">
+                                <TextBlock Text="{Binding TotalText}" FontSize="34" FontWeight="SemiBold"
+                                           Foreground="{StaticResource AccentBrush}" />
+                                <TextBlock Text="reclaimable" Style="{StaticResource CaptionText}" />
+                            </StackPanel>
+
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock Text="Disk cleanup" Style="{StaticResource DisplayText}"
+                                           FontSize="20" />
+                                <TextBlock Style="{StaticResource BodyText}" Margin="0,4,0,0"
+                                           Text="Only the ticked categories are counted, and only ticked categories are cleaned." />
+                            </StackPanel>
+
+                            <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                                <CheckBox Style="{StaticResource ToggleCheck}" Content="Dry run"
+                                          IsChecked="{Binding DryRun}" FontWeight="SemiBold"
+                                          Margin="0,0,16,0" />
+                                <Button Content="Analyse" Style="{StaticResource PrimaryButton}"
+                                        Command="{Binding AnalyseCommand}" />
+                                <Button Content="Clean" Style="{StaticResource GhostButton}"
+                                        Command="{Binding CleanCommand}" Margin="10,0,0,0" />
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+
+                    <Border DockPanel.Dock="Bottom" Style="{StaticResource Card}"
+                            Background="{StaticResource SurfaceSunkenBrush}" Padding="14,10"
+                            Margin="0,14,0,0">
+                        <TextBlock Text="{Binding Status}" Style="{StaticResource BodyText}" />
+                    </Border>
+
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="1.4*" />
+                            <ColumnDefinition Width="14" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+
+                        <Border Grid.Column="0" Style="{StaticResource Card}" Padding="14">
+                            <DockPanel>
+                                <TextBlock DockPanel.Dock="Top" Text="What to clean"
+                                           Style="{StaticResource SectionTitle}" />
+                                <ListBox Style="{StaticResource PlainList}" ItemsSource="{Binding Categories}">
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Background="{StaticResource SurfaceRaisedBrush}"
+                                                    CornerRadius="{StaticResource ControlRadius}"
+                                                    Padding="12,10" Margin="0,0,0,6">
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="Auto" />
+                                                        <ColumnDefinition Width="*" />
+                                                        <ColumnDefinition Width="Auto" />
+                                                    </Grid.ColumnDefinitions>
+
+                                                    <CheckBox Grid.Column="0" Style="{StaticResource RowCheck}"
+                                                              IsChecked="{Binding IsSelected}"
+                                                              VerticalAlignment="Top" Margin="0,2,11,0" />
+
+                                                    <StackPanel Grid.Column="1">
+                                                        <StackPanel Orientation="Horizontal">
+                                                            <TextBlock Text="{Binding Name}" FontSize="12.5"
+                                                                       FontWeight="SemiBold"
+                                                                       Foreground="{StaticResource TextPrimaryBrush}" />
+                                                            <Border Background="{StaticResource SurfaceSunkenBrush}"
+                                                                    CornerRadius="4" Padding="6,1" Margin="8,0,0,0"
+                                                                    Visibility="{Binding NeedsElevation,
+                                                                        Converter={StaticResource BoolToVisibility}}">
+                                                                <TextBlock Text="admin" FontSize="10"
+                                                                           Foreground="{StaticResource InfoBrush}" />
+                                                            </Border>
+                                                        </StackPanel>
+
+                                                        <TextBlock Text="{Binding Detail}"
+                                                                   Style="{StaticResource CaptionText}"
+                                                                   Margin="0,3,0,0" />
+
+                                                        <TextBlock Text="{Binding Caution}" FontSize="11"
+                                                                   Margin="0,3,0,0" TextWrapping="Wrap"
+                                                                   Foreground="{StaticResource WarningBrush}"
+                                                                   Visibility="{Binding HasCaution,
+                                                                       Converter={StaticResource BoolToVisibility}}" />
+                                                    </StackPanel>
+
+                                                    <StackPanel Grid.Column="2" Margin="10,0,0,0"
+                                                                VerticalAlignment="Center">
+                                                        <TextBlock Text="{Binding SizeText}" FontSize="12.5"
+                                                                   HorizontalAlignment="Right"
+                                                                   Foreground="{StaticResource TextPrimaryBrush}" />
+                                                        <TextBlock HorizontalAlignment="Right"
+                                                                   Style="{StaticResource CaptionText}"
+                                                                   Text="{Binding Files, StringFormat={}{0:N0} files}"
+                                                                   Visibility="{Binding Measured,
+                                                                       Converter={StaticResource BoolToVisibility}}" />
+                                                    </StackPanel>
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+                            </DockPanel>
+                        </Border>
+
+                        <Border Grid.Column="2" Style="{StaticResource Card}" Padding="14">
+                            <DockPanel>
+                                <TextBlock DockPanel.Dock="Top" Text="Log"
+                                           Style="{StaticResource SectionTitle}" />
+                                <ListBox Style="{StaticResource PlainList}" ItemsSource="{Binding Log}"
+                                         FontFamily="{StaticResource MonoFont}" FontSize="11">
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding}" TextWrapping="Wrap"
+                                                       Foreground="{StaticResource TextSecondaryBrush}" />
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+                            </DockPanel>
+                        </Border>
+                    </Grid>
+                </DockPanel>
+
                 <!-- ===== Uninstall ===== -->
                 <DockPanel DataContext="{Binding Uninstall}">
                     <DockPanel.Style>
@@ -608,20 +754,6 @@
                                         <Button Content="Uninstall selected" Style="{StaticResource GhostButton}"
                                                 Command="{Binding UninstallProgramCommand}" Margin="10,0,0,0" />
                                     </StackPanel>
-                                </StackPanel>
-
-                                <!-- leftovers appear under the list once an uninstall has run -->
-                                <StackPanel DockPanel.Dock="Bottom">
-                                    <StackPanel.Style>
-                                        <Style TargetType="StackPanel">
-                                            <Setter Property="Visibility" Value="Collapsed" />
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding Leftovers.Count}" Value="0">
-                                                    <Setter Property="Visibility" Value="Collapsed" />
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </StackPanel.Style>
                                 </StackPanel>
 
                                 <DockPanel>

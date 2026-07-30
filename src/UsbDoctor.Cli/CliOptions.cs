@@ -2,7 +2,7 @@ using UsbDoctor.Core.Paths;
 
 namespace UsbDoctor.Cli;
 
-public enum CliCommand { None, Scan, Apply, Raw, Uninstall }
+public enum CliCommand { None, Scan, Apply, Raw, Uninstall, Clean }
 
 /// <summary>
 /// Parsed command line. Shared by every command so flag names cannot drift apart.
@@ -47,6 +47,7 @@ public sealed record CliOptions
             "apply" => CliCommand.Apply,
             "raw" => CliCommand.Raw,
             "uninstall" => CliCommand.Uninstall,
+            "clean" => CliCommand.Clean,
             _ => CliCommand.None,
         };
 
@@ -56,9 +57,9 @@ public sealed record CliOptions
             return new CliOptions { Command = CliCommand.None };
         }
 
-        // uninstall works on the machine, not on a volume, so it takes no drive.
-        if (command == CliCommand.Uninstall)
-            return new CliOptions { Command = CliCommand.Uninstall };
+        // These work on the machine, not on a volume, so they take no drive letter.
+        if (command is CliCommand.Uninstall or CliCommand.Clean)
+            return new CliOptions { Command = command };
 
         if (args.Length < 2)
         {
@@ -202,6 +203,7 @@ public sealed record CliOptions
           usbdoctor raw   <drive> [--deleted-only] [--recover <dir>]
                                   [--recover-anyway]
           usbdoctor uninstall
+          usbdoctor clean
 
         scan   Read-only. Reports findings and the plan it would propose.
         apply  Runs the plan. Dry run unless --execute is given.

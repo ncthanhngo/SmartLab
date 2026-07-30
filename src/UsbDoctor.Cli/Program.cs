@@ -3,7 +3,7 @@ using UsbDoctor.Core.Naming;
 using UsbDoctor.Engine;
 using UsbDoctor.Engine.Journal;
 using UsbDoctor.Fat;
-using UsbDoctor.Uninstall;
+using UsbDoctor.Maintenance;
 using UsbDoctor.Win32.Io;
 
 namespace UsbDoctor.Cli;
@@ -38,6 +38,7 @@ internal static class Program
                 CliCommand.Apply => await RunApplyAsync(options, cts.Token).ConfigureAwait(false),
                 CliCommand.Raw => RunRaw(options),
                 CliCommand.Uninstall => RunUninstallReport(),
+                CliCommand.Clean => RunCleanReport(),
                 _ => ExitUsage,
             };
         }
@@ -347,6 +348,49 @@ internal static class Program
         Console.WriteLine(
             $"{programs.Count} program(s); {orphans} registered no uninstaller. " +
             "Windows components and updates are excluded.");
+
+        return ExitClean;
+    }
+
+    /// <summary>
+    /// Measures each junk category. Read-only; cleaning is in the app.
+    /// </summary>
+    /// <remarks>
+    /// The default column shows what would be ticked in the app rather than being
+    /// decoration: a report that lists every category with a size, without saying
+    /// which ones the tool would actually act on, invites the reader to add up the
+    /// wrong number.
+    /// </remarks>
+    private static int RunCleanReport()
+    {
+        var probe = new Win32TraceProbe();
+        var categories = JunkCatalogue.ForCurrentUser();
+        var findings = new JunkScanner(probe).Scan(categories);
+
+        Console.WriteLine("RECLAIMABLE SPACE");
+        Console.WriteLine();
+
+        foreach (var finding in findings)
+        {
+            var ticked = finding.Category.EnabledByDefault ? "[x]" : "[ ]";
+            var admin = finding.Category.NeedsElevation ? " admin" : string.Empty;
+
+            Console.WriteLine(
+                $"  {ticked} {finding.Category.Name,-28} {finding.SizeText,10} " +
+                $"{finding.Files,8:N0} files{admin}");
+
+            if (finding.Category.Caution is { } caution)
+                Console.WriteLine($"        ! {caution}");
+        }
+
+        var defaultTotal = findings.Where(f => f.Category.EnabledByDefault).Sum(f => f.Bytes);
+        var everything = findings.Sum(f => f.Bytes);
+
+        Console.WriteLine();
+        Console.WriteLine($"Ticked by default: {defaultTotal / 1024.0 / 1024:N0} MB");
+        Console.WriteLine($"Every category:    {everything / 1024.0 / 1024:N0} MB");
+        Console.WriteLine();
+        Console.WriteLine("Read-only. Cleaning is in the app, where each category can be reviewed first.");
 
         return ExitClean;
     }

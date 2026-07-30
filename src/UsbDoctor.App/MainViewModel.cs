@@ -86,15 +86,18 @@ public sealed partial class MainViewModel : ObservableObject
     [
         new("repair", "Repair", "Find and undo hiding", Glyph(0xE72E)),
         new("deleted", "Deleted files", "Carve what was erased", Glyph(0xE74C)),
-        new("settings", "Settings", "Watching and startup", Glyph(0xE713)),
+        new("cleanup", "Cleanup", "Reclaim disk space", Glyph(0xE74E)),
         new("uninstall", "Uninstall", "Remove apps and leftovers", Glyph(0xE74D)),
+        new("settings", "Settings", "Watching and startup", Glyph(0xE713)),
         new("about", "About", "Version and author", Glyph(0xE946)),
     ];
 
     private static string Glyph(int codePoint) => ((char)codePoint).ToString();
 
-    /// <summary>Own view model: uninstall has nothing to do with volumes.</summary>
+    /// <summary>Own view models: machine maintenance has nothing to do with volumes.</summary>
     public UninstallViewModel Uninstall { get; } = new();
+
+    public CleanupViewModel Cleanup { get; } = new();
 
     [ObservableProperty] private NavSection? _selectedSection;
 
