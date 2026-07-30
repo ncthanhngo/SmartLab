@@ -2,6 +2,11 @@ using System.IO;
 using System.Windows;
 using System.Windows.Threading;
 
+// Enabling WinForms for the tray icon brings a second Application and MessageBox
+// into scope. Aliasing keeps every reference in this file unambiguously WPF.
+using Application = System.Windows.Application;
+using MessageBox = System.Windows.MessageBox;
+
 namespace UsbDoctor.App;
 
 public partial class App : Application

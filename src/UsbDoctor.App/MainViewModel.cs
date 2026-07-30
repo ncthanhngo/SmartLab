@@ -34,6 +34,9 @@ public sealed partial class ActionItemViewModel(RecoveryAction action) : Observa
     private bool _isSelected = !action.IsDestructive;
 }
 
+/// <param name="EntriesSeen">Directory entries walked so far, live and deleted.</param>
+public readonly record struct RawProgress(int EntriesSeen, int DeletedFound);
+
 /// <summary>One deleted entry recovered from raw structures, with its grading.</summary>
 public sealed partial class DeletedEntryViewModel(
     RawEntry entry, RecoveryConfidence confidence, string summary) : ObservableObject
@@ -97,7 +100,28 @@ public sealed partial class MainViewModel : ObservableObject
     /// </remarks>
     [ObservableProperty] private bool _autoScanOnInsert = true;
 
+    /// <summary>
+    /// Closing the window hides it instead of exiting.
+    /// </summary>
+    /// <remarks>
+    /// The volume watcher lives on the window's message loop, so closing would
+    /// silently stop the monitoring the user turned on. Keeping it alive in the
+    /// tray is what makes the feature worth having.
+    /// </remarks>
+    [ObservableProperty] private bool _keepWatchingInTray = true;
+
+    [ObservableProperty] private bool _startWithWindows = StartupRegistration.IsEnabled();
+
+    /// <summary>Raised so the view can show a tray balloon while the window is hidden.</summary>
+    public event Action<string, string, bool>? NotifyRequested;
+
     public MainViewModel() => RefreshDrives();
+
+    partial void OnStartWithWindowsChanged(bool value)
+    {
+        if (!StartupRegistration.Set(value, out var error))
+            Status = $"Could not change the startup setting: {error}";
+    }
 
     /// <summary>Called from the window procedure when a volume appears or leaves.</summary>
     public void OnVolumeChanged(VolumeChangeKind kind, IReadOnlyList<char> driveLetters)
@@ -135,8 +159,20 @@ public sealed partial class MainViewModel : ObservableObject
             Status = $"{arrived.Root} inserted - scanning automatically...";
             await ScanAsync().ConfigureAwait(true);
 
+            // The window is often hidden when this fires, so the result has to
+            // reach the user some other way or the automation is pointless.
             if (_plan is { } plan && (plan.Threats.Count > 0 || plan.Anomalies.Count > 0))
+            {
                 SystemSounds.Exclamation.Play();
+                NotifyRequested?.Invoke(
+                    $"{arrived.Root} needs attention",
+                    $"{plan.Threats.Count} threat(s), {plan.Anomalies.Count} anomaly(ies) found.",
+                    true);
+            }
+            else
+            {
+                NotifyRequested?.Invoke($"{arrived.Root} is clean", "Nothing found.", false);
+            }
         }
         catch (Exception ex)
         {
@@ -347,7 +383,15 @@ public sealed partial class MainViewModel : ObservableObject
 
         try
         {
-            var found = await Task.Run(() => ReadDeletedEntries(drive.DriveLetter)).ConfigureAwait(true);
+            // Walking a 110 GB volume takes long enough that silence looks like a
+            // hang. Progress<T> marshals these back to the UI thread for us.
+            var progress = new Progress<RawProgress>(p =>
+                RawStatus = $"Reading device... {p.EntriesSeen:N0} entries, {p.DeletedFound:N0} deleted");
+
+            RawStatus = "Opening the device...";
+
+            var found = await Task.Run(() => ReadDeletedEntries(drive.DriveLetter, progress))
+                .ConfigureAwait(true);
 
             foreach (var item in found) DeletedEntries.Add(item);
             RecoverDeletedCommand.NotifyCanExecuteChanged();
@@ -375,7 +419,8 @@ public sealed partial class MainViewModel : ObservableObject
     /// deleted entries can be judged, otherwise a file whose clusters are still
     /// held by a live entry under a new name is wrongly written off as overwritten.
     /// </remarks>
-    private static List<DeletedEntryViewModel> ReadDeletedEntries(char driveLetter)
+    private static List<DeletedEntryViewModel> ReadDeletedEntries(
+        char driveLetter, IProgress<RawProgress>? progress)
     {
         using var stream = RawVolume.Open(driveLetter);
 
@@ -384,12 +429,19 @@ public sealed partial class MainViewModel : ObservableObject
 
         var deleted = new List<RawEntry>();
         var liveClusters = new HashSet<uint>();
+        var seen = 0;
 
         foreach (var entry in fileSystem!.EnumerateTree())
         {
             if (entry.IsDeleted) deleted.Add(entry);
             else if (!entry.IsDirectory && entry.FirstCluster >= 2) liveClusters.Add(entry.FirstCluster);
+
+            // Reported in batches: a UI update per directory entry would flood the
+            // dispatcher and slow the very walk it is describing.
+            if (++seen % 500 == 0) progress?.Report(new RawProgress(seen, deleted.Count));
         }
+
+        progress?.Report(new RawProgress(seen, deleted.Count));
 
         var results = new List<DeletedEntryViewModel>(deleted.Count);
 

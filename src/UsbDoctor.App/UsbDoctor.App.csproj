@@ -4,6 +4,13 @@
     <OutputType>WinExe</OutputType>
     <TargetFramework>net8.0-windows</TargetFramework>
     <UseWPF>true</UseWPF>
+
+    <!--
+      For NotifyIcon. WPF has no tray-icon primitive of its own, and pulling in a
+      third-party control for one icon is a worse trade than enabling the WinForms
+      reference that already ships with the desktop SDK.
+    -->
+    <UseWindowsForms>true</UseWindowsForms>
     <RootNamespace>UsbDoctor.App</RootNamespace>
     <ApplicationManifest>app.manifest</ApplicationManifest>
 
