@@ -202,8 +202,17 @@ also fire for interfaces and ports that carry a different structure entirely; an
 the event is debounced by half a second, because Windows announces the volume just
 before it is reliably readable.
 
-The watcher only runs while the window is open. A resident tray version is not
-built yet.
+The watcher lives on the window's message loop, so closing the window would
+silently stop the monitoring the user turned on. Closing therefore hides to the
+tray instead, and exit is an explicit choice in the tray menu rather than a side
+effect. A tray balloon reports each result, because the window is usually hidden
+when a scan fires and automation nobody sees is not worth having.
+
+"Start with Windows" writes the **per-user** Run key with a `--tray` argument, so
+the app comes up in the tray rather than in the user's face. Never the machine-wide
+key: that needs Administrator and would launch for every account on a shared lab
+PC, which is not something a checkbox should decide. Unticking removes the value
+and leaves nothing behind.
 
 ## Recovering deleted files
 
