@@ -29,6 +29,17 @@ public interface IWriteGate
 
     Task<WriteResult> SetAttributesAsync(ExtendedPath path, EntryAttributes attributes, CancellationToken ct);
 
+    /// <summary>
+    /// Removes the given attribute flags, leaving the rest untouched.
+    /// </summary>
+    /// <remarks>
+    /// Read-modify-write lives behind the gate rather than in the caller, so the
+    /// current attributes are fetched with the same extended path that the write
+    /// uses. A caller that read attributes through an ordinary path could act on a
+    /// different entry entirely when the name is one Win32 normalisation alters.
+    /// </remarks>
+    Task<WriteResult> ClearAttributesAsync(ExtendedPath path, EntryAttributes toRemove, CancellationToken ct);
+
     /// <summary>Renames or moves via a true directory-entry update. Never falls back to copying.</summary>
     Task<WriteResult> RenameAsync(ExtendedPath from, ExtendedPath to, CancellationToken ct);
 
@@ -38,6 +49,18 @@ public interface IWriteGate
         ExtendedPath from, ExtendedPath to, IProgress<long>? progress, CancellationToken ct);
 
     Task<WriteResult> DeleteFileAsync(ExtendedPath path, CancellationToken ct);
+
+    /// <summary>
+    /// Removes an empty directory.
+    /// </summary>
+    /// <remarks>
+    /// Deliberately non-recursive. A recursive delete on a damaged volume is the
+    /// most dangerous operation this tool could offer: one misread directory entry
+    /// and it walks somewhere unintended. Callers remove the contents through
+    /// individually approved actions first, so what is deleted here is only ever a
+    /// directory already known to be empty.
+    /// </remarks>
+    Task<WriteResult> DeleteEmptyDirectoryAsync(ExtendedPath path, CancellationToken ct);
 }
 
 public sealed record WriteResult(

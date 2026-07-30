@@ -28,6 +28,9 @@ public sealed record RecoveryAction(
     public ExtendedPath? Destination { get; init; }
     public Severity Severity { get; init; } = Severity.Info;
 
+    /// <summary>Whether <see cref="Target"/> is a directory, as observed during the scan.</summary>
+    public bool TargetIsDirectory { get; init; }
+
     /// <summary>
     /// True when the action cannot be undone. The UI must render these
     /// distinctly and leave them unchecked by default.

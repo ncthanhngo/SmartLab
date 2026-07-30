@@ -42,7 +42,15 @@ public sealed record ThreatMatch(
     Severity Severity,
     ExtendedPath Path,
     string Reason,
-    string? Sha256 = null);
+    string? Sha256 = null)
+{
+    /// <summary>
+    /// Whether the match is a directory. Carried from the scan because a path
+    /// string cannot be classified reliably after the fact — a folder named
+    /// <c>RECYCLER.BIN</c> looks exactly like a file with an extension.
+    /// </summary>
+    public bool IsDirectory { get; init; }
+}
 
 /// <summary>An entry the scanner could see but not read.</summary>
 public sealed record DamagedEntry(

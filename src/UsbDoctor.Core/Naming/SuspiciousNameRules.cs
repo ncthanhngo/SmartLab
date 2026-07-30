@@ -9,8 +9,8 @@ namespace UsbDoctor.Core.Naming;
 /// </summary>
 /// <remarks>
 /// The rules here are deliberately additive. New worm families invent new hiding
-/// tricks; adding one should mean adding a code point to a set, not restructuring
-/// the scanner.
+/// tricks; adding one should mean adding a code point to a list, not
+/// restructuring the scanner.
 /// </remarks>
 public static class SuspiciousNameRules
 {
@@ -24,57 +24,61 @@ public static class SuspiciousNameRules
     /// named its staging folder with a single non-breaking space. Explorer drew
     /// it as an empty label, and Win32 path resolution discarded it — so
     /// <c>E:\{U+00A0}</c> resolved to <c>E:\</c> and every listing returned the
-    /// volume root instead of the folder's real contents.
+    /// volume root instead of the folder's real 7 GB of contents.
     /// </para>
     /// <para>
-    /// These are written as <c>\uXXXX</c> escapes, never as literal characters.
-    /// A set of invisible code points pasted verbatim into source is
-    /// unreviewable in a diff and gets silently mangled by editors and tooling
-    /// that normalise whitespace — which is exactly the failure mode this class
-    /// exists to detect.
+    /// These are declared as numeric code points, never as literal characters and
+    /// not as <c>\uXXXX</c> escapes either. The source stays pure ASCII, so it
+    /// survives any editor, diff, patch tool, or encoding conversion intact. A
+    /// table of invisible characters written literally is unreviewable and gets
+    /// silently mangled by tooling that normalises whitespace — which is exactly
+    /// the failure mode this class exists to detect.
     /// </para>
     /// </remarks>
-    private static readonly HashSet<char> InvisibleSpaces =
-    [
-        '\u00A0', // NO-BREAK SPACE  <- used by the worm in the source incident
-        '\u1680', // OGHAM SPACE MARK
-        '\u2000', // EN QUAD
-        '\u2001', // EM QUAD
-        '\u2002', // EN SPACE
-        '\u2003', // EM SPACE
-        '\u2004', // THREE-PER-EM SPACE
-        '\u2005', // FOUR-PER-EM SPACE
-        '\u2006', // SIX-PER-EM SPACE
-        '\u2007', // FIGURE SPACE
-        '\u2008', // PUNCTUATION SPACE
-        '\u2009', // THIN SPACE
-        '\u200A', // HAIR SPACE
-        '\u202F', // NARROW NO-BREAK SPACE
-        '\u205F', // MEDIUM MATHEMATICAL SPACE
-        '\u3000', // IDEOGRAPHIC SPACE
-        '\u200B', // ZERO WIDTH SPACE
-        '\u200C', // ZERO WIDTH NON-JOINER
-        '\u200D', // ZERO WIDTH JOINER
-        '\u2060', // WORD JOINER
-        '\uFEFF', // ZERO WIDTH NO-BREAK SPACE / BOM
-    ];
+    private static readonly HashSet<char> InvisibleSpaces = ToCharSet(
+        0x00A0, // NO-BREAK SPACE  <- used by the worm in the source incident
+        0x1680, // OGHAM SPACE MARK
+        0x2000, // EN QUAD
+        0x2001, // EM QUAD
+        0x2002, // EN SPACE
+        0x2003, // EM SPACE
+        0x2004, // THREE-PER-EM SPACE
+        0x2005, // FOUR-PER-EM SPACE
+        0x2006, // SIX-PER-EM SPACE
+        0x2007, // FIGURE SPACE
+        0x2008, // PUNCTUATION SPACE
+        0x2009, // THIN SPACE
+        0x200A, // HAIR SPACE
+        0x202F, // NARROW NO-BREAK SPACE
+        0x205F, // MEDIUM MATHEMATICAL SPACE
+        0x3000, // IDEOGRAPHIC SPACE
+        0x200B, // ZERO WIDTH SPACE
+        0x200C, // ZERO WIDTH NON-JOINER
+        0x200D, // ZERO WIDTH JOINER
+        0x2060, // WORD JOINER
+        0xFEFF);// ZERO WIDTH NO-BREAK SPACE / BOM
 
     /// <summary>
     /// Bidirectional formatting characters. A right-to-left override makes a file
     /// named <c>invoice{U+202E}gnp.exe</c> display as <c>invoiceexe.png</c>.
     /// </summary>
-    private static readonly HashSet<char> BidiControls =
-    [
-        '\u202A', // LEFT-TO-RIGHT EMBEDDING
-        '\u202B', // RIGHT-TO-LEFT EMBEDDING
-        '\u202C', // POP DIRECTIONAL FORMATTING
-        '\u202D', // LEFT-TO-RIGHT OVERRIDE
-        '\u202E', // RIGHT-TO-LEFT OVERRIDE
-        '\u2066', // LEFT-TO-RIGHT ISOLATE
-        '\u2067', // RIGHT-TO-LEFT ISOLATE
-        '\u2068', // FIRST STRONG ISOLATE
-        '\u2069', // POP DIRECTIONAL ISOLATE
-    ];
+    private static readonly HashSet<char> BidiControls = ToCharSet(
+        0x202A, // LEFT-TO-RIGHT EMBEDDING
+        0x202B, // RIGHT-TO-LEFT EMBEDDING
+        0x202C, // POP DIRECTIONAL FORMATTING
+        0x202D, // LEFT-TO-RIGHT OVERRIDE
+        0x202E, // RIGHT-TO-LEFT OVERRIDE
+        0x2066, // LEFT-TO-RIGHT ISOLATE
+        0x2067, // RIGHT-TO-LEFT ISOLATE
+        0x2068, // FIRST STRONG ISOLATE
+        0x2069);// POP DIRECTIONAL ISOLATE
+
+    private static HashSet<char> ToCharSet(params int[] codePoints)
+    {
+        var set = new HashSet<char>(codePoints.Length);
+        foreach (var cp in codePoints) set.Add((char)cp);
+        return set;
+    }
 
     public static bool ContainsInvisibleSpace(string name) =>
         name.Any(InvisibleSpaces.Contains);
@@ -106,10 +110,12 @@ public static class SuspiciousNameRules
     /// Renders a name so an operator can see what it actually is, escaping every
     /// character that would otherwise be invisible or misleading.
     /// </summary>
-    /// <example>
-    /// <c>Describe("\u00A0")</c> returns <c>&lt;U+00A0&gt;</c>, and
-    /// <c>Describe("data ")</c> returns <c>data&lt;U+0020&gt;</c>.
-    /// </example>
+    /// <remarks>
+    /// A name of one U+00A0 renders as <c>&lt;U+00A0&gt;</c>; a name ending in a
+    /// plain space renders with a trailing <c>&lt;U+0020&gt;</c>. Without this the
+    /// UI shows an empty cell and the operator cannot tell what they are deciding
+    /// about.
+    /// </remarks>
     public static string Describe(string name)
     {
         if (name.Length == 0) return "<empty>";
