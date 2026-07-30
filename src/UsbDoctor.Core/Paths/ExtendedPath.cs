@@ -94,15 +94,32 @@ public readonly record struct ExtendedPath
         }
     }
 
+    /// <summary>True for a volume root such as <c>\\?\E:\</c>.</summary>
+    public bool IsDriveRoot =>
+        Value.Length == Prefix.Length + 3 && Value[^2] == ':' && Value[^1] == '\\';
+
     /// <summary>The parent path, or <c>null</c> at the root.</summary>
+    /// <remarks>
+    /// A volume root keeps its trailing separator, so that <c>From(@"E:\")</c> and
+    /// <c>From(@"E:\x").Parent</c> produce the same string. Without that rule the
+    /// same directory has two representations, and anything that compares or keys
+    /// on the path — a visited set, a destination lookup — silently treats them as
+    /// two different places.
+    /// </remarks>
     public ExtendedPath? Parent
     {
         get
         {
+            if (IsDriveRoot) return null;
+
             var v = Value;
             var idx = v.LastIndexOf('\\');
             if (idx <= Prefix.Length) return null;
-            return new ExtendedPath(v[..idx]);
+
+            var parent = v[..idx];
+            if (parent.Length == Prefix.Length + 2 && parent[^1] == ':') parent += '\\';
+
+            return new ExtendedPath(parent);
         }
     }
 
