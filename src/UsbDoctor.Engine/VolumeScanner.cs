@@ -25,7 +25,12 @@ public sealed record ScanOptions
     public static ScanOptions Default { get; } = new();
 }
 
-public sealed record ScanProgress(int DirectoriesVisited, int EntriesSeen, string CurrentPath);
+/// <param name="CurrentPath">The entry being inspected, for display.</param>
+/// <remarks>
+/// A struct because it is reported thousands of times during a scan; a class here
+/// would put one short-lived allocation per report on the heap for no benefit.
+/// </remarks>
+public readonly record struct ScanProgress(int DirectoriesVisited, int EntriesSeen, string CurrentPath);
 
 /// <summary>
 /// Walks a volume and produces a <see cref="RecoveryPlan"/>.
@@ -39,6 +44,16 @@ public sealed class VolumeScanner(
     IReadOnlyList<IAnomalyDetector> detectors,
     SignatureMatcher matcher)
 {
+    /// <summary>
+    /// How many entries pass between progress reports.
+    /// </summary>
+    /// <remarks>
+    /// Small enough that the reported path changes many times a second, which is
+    /// what makes a long scan look like work rather than a hang; large enough that
+    /// the reporting itself stays free.
+    /// </remarks>
+    private const int ReportEveryEntries = 12;
+
     public async Task<RecoveryPlan> ScanAsync(
         char driveLetter,
         ScanOptions? options = null,
@@ -60,6 +75,7 @@ public sealed class VolumeScanner(
 
         var directories = 0;
         var entries = 0;
+        var sinceReport = 0;
 
         while (queue.Count > 0)
         {
@@ -93,6 +109,17 @@ public sealed class VolumeScanner(
                         break;
 
                     case EnumEntry.Ok ok:
+                        // Sampled rather than reported for every entry. A caller
+                        // that writes to a console or marshals to a UI thread would
+                        // otherwise spend longer rendering the walk than walking it,
+                        // and at these rates nobody can read individual paths anyway.
+                        if (++sinceReport >= ReportEveryEntries)
+                        {
+                            sinceReport = 0;
+                            progress?.Report(
+                                new ScanProgress(directories, entries, ok.Entry.Path.ForDisplay()));
+                        }
+
                         Inspect(ok.Entry, context, options, anomalies, threats);
 
                         if (ok.Entry.IsDirectory &&

@@ -145,10 +145,73 @@
                         </Style>
                     </DockPanel.Style>
 
-                    <!-- headline -->
+                    <!-- headline; swaps to a live scan readout while work is in flight -->
                     <Border DockPanel.Dock="Top" Style="{StaticResource Card}" Padding="20"
                             Margin="0,0,0,14">
                         <Grid>
+                            <!-- ===== scanning readout ===== -->
+                            <Grid>
+                                <Grid.Style>
+                                    <Style TargetType="Grid">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsScanning}" Value="True">
+                                                <Setter Property="Visibility" Value="Visible" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Grid.Style>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+
+                                <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                    <TextBlock Text="Scanning" Style="{StaticResource DisplayText}" />
+
+                                    <!-- Trimmed at the head, not the tail: when a path is too
+                                         long the interesting part is the file at the end. -->
+                                    <TextBlock Text="{Binding ScanningPath}"
+                                               FontFamily="{StaticResource MonoFont}"
+                                               FontSize="11.5" Margin="0,6,0,0"
+                                               Foreground="{StaticResource AccentBrush}"
+                                               TextTrimming="WordEllipsis"
+                                               FlowDirection="RightToLeft" />
+                                </StackPanel>
+
+                                <StackPanel Grid.Column="1" Orientation="Horizontal"
+                                            VerticalAlignment="Center">
+                                    <StackPanel Margin="18,0" HorizontalAlignment="Center">
+                                        <TextBlock Text="{Binding ScanDirectories, StringFormat={}{0:N0}}"
+                                                   FontSize="22" FontWeight="SemiBold"
+                                                   HorizontalAlignment="Center"
+                                                   Foreground="{StaticResource TextPrimaryBrush}" />
+                                        <TextBlock Text="folders" Style="{StaticResource CaptionText}"
+                                                   HorizontalAlignment="Center" />
+                                    </StackPanel>
+                                    <StackPanel Margin="18,0" HorizontalAlignment="Center">
+                                        <TextBlock Text="{Binding ScanEntries, StringFormat={}{0:N0}}"
+                                                   FontSize="22" FontWeight="SemiBold"
+                                                   HorizontalAlignment="Center"
+                                                   Foreground="{StaticResource AccentBrush}" />
+                                        <TextBlock Text="entries" Style="{StaticResource CaptionText}"
+                                                   HorizontalAlignment="Center" />
+                                    </StackPanel>
+                                </StackPanel>
+                            </Grid>
+
+                            <!-- ===== idle / result readout ===== -->
+                            <Grid>
+                            <Grid.Style>
+                                <Style TargetType="Grid">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsScanning}" Value="True">
+                                            <Setter Property="Visibility" Value="Collapsed" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Grid.Style>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto" />
                                 <ColumnDefinition Width="*" />
@@ -200,6 +263,7 @@
                                 <Button Content="Scan" Style="{StaticResource PrimaryButton}"
                                         Command="{Binding ScanCommand}" Margin="14,0,0,0" />
                             </StackPanel>
+                            </Grid>
                         </Grid>
                     </Border>
 

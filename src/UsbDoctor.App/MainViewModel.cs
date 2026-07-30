@@ -98,6 +98,13 @@ public sealed partial class MainViewModel : ObservableObject
     [ObservableProperty] private int _anomalyCount;
     [ObservableProperty] private int _damagedCount;
 
+    /// <summary>The path currently under inspection, shown live during a scan.</summary>
+    [ObservableProperty] private string _scanningPath = string.Empty;
+
+    [ObservableProperty] private int _scanDirectories;
+    [ObservableProperty] private int _scanEntries;
+    [ObservableProperty] private bool _isScanning;
+
     public ObservableCollection<VolumeInfo> Drives { get; } = [];
     public ObservableCollection<ActionItemViewModel> Actions { get; } = [];
     public ObservableCollection<string> Findings { get; } = [];
@@ -247,6 +254,10 @@ public sealed partial class MainViewModel : ObservableObject
         if (SelectedDrive is not { } drive) return;
 
         IsBusy = true;
+        IsScanning = true;
+        ScanDirectories = 0;
+        ScanEntries = 0;
+        ScanningPath = drive.Root;
         Actions.Clear();
         Findings.Clear();
 
@@ -264,8 +275,22 @@ public sealed partial class MainViewModel : ObservableObject
                     : null,
             };
 
+            // Counters update on every report, the path text at most 25 times a
+            // second. Beyond that the text is a blur nobody can read, and each
+            // update is a layout pass competing with the scan for the UI thread.
+            var lastPathUpdate = 0L;
+
             var progress = new Progress<ScanProgress>(p =>
-                Status = $"Scanning... {p.DirectoriesVisited} dirs, {p.EntriesSeen} entries");
+            {
+                ScanDirectories = p.DirectoriesVisited;
+                ScanEntries = p.EntriesSeen;
+
+                var now = Environment.TickCount64;
+                if (now - lastPathUpdate < 40) return;
+
+                lastPathUpdate = now;
+                ScanningPath = p.CurrentPath;
+            });
 
             // Task.Run matters here. Win32VolumeReader.EnumerateAsync begins with
             // Task.Yield(), which under WPF resumes on the Dispatcher - so without
@@ -306,6 +331,8 @@ public sealed partial class MainViewModel : ObservableObject
         finally
         {
             IsBusy = false;
+            IsScanning = false;
+            ScanningPath = string.Empty;
         }
     }
 

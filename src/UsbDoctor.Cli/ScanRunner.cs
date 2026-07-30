@@ -23,10 +23,21 @@ public static class ScanRunner
     {
         var scanner = Create(reader);
 
+        // Throttled: the scanner reports every few entries, and a console rewrite
+        // per report would spend more time drawing than scanning.
+        var lastDraw = 0L;
+
         IProgress<ScanProgress>? progress = quiet
             ? null
-            : new Progress<ScanProgress>(p => Console.Write(
-                $"\r  scanning... {p.DirectoriesVisited} dirs, {p.EntriesSeen} entries".PadRight(78)));
+            : new Progress<ScanProgress>(p =>
+            {
+                var now = Environment.TickCount64;
+                if (now - lastDraw < 60) return;
+                lastDraw = now;
+
+                var line = $"  {p.EntriesSeen,7:N0} entries  {Shorten(p.CurrentPath, 58)}";
+                Console.Write("\r" + line.PadRight(Math.Min(Console.IsOutputRedirected ? 100 : Console.WindowWidth - 1, 100)));
+            });
 
         var scanOptions = new ScanOptions
         {
@@ -40,6 +51,19 @@ public static class ScanRunner
         if (!quiet) Console.Write("\r".PadRight(80) + "\r");
 
         return plan;
+    }
+
+    /// <summary>
+    /// Trims a path from the left so the file name stays visible.
+    /// </summary>
+    /// <remarks>
+    /// Truncating the tail would leave a column of near-identical directory
+    /// prefixes, which tells the operator nothing about progress.
+    /// </remarks>
+    private static string Shorten(string path, int max)
+    {
+        if (string.IsNullOrEmpty(path) || path.Length <= max) return path;
+        return "..." + path[^(max - 3)..];
     }
 
     public static void WriteJson(RecoveryPlan plan) =>
