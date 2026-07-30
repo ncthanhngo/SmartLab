@@ -3,6 +3,7 @@ using UsbDoctor.Core.Naming;
 using UsbDoctor.Engine;
 using UsbDoctor.Engine.Journal;
 using UsbDoctor.Fat;
+using UsbDoctor.Uninstall;
 using UsbDoctor.Win32.Io;
 
 namespace UsbDoctor.Cli;
@@ -36,6 +37,7 @@ internal static class Program
                 CliCommand.Scan => await RunScanAsync(options, cts.Token).ConfigureAwait(false),
                 CliCommand.Apply => await RunApplyAsync(options, cts.Token).ConfigureAwait(false),
                 CliCommand.Raw => RunRaw(options),
+                CliCommand.Uninstall => RunUninstallReport(),
                 _ => ExitUsage,
             };
         }
@@ -283,6 +285,70 @@ internal static class Program
             Console.Error.WriteLine($"        recovery failed: {ex.Message}");
             return false;
         }
+    }
+
+    /// <summary>
+    /// Reports what USB Doctor has left behind and what programs are installed.
+    /// </summary>
+    /// <remarks>
+    /// Read-only on purpose. Removal stays in the app, where the operator can see
+    /// the sizes and untick their own rescued data before anything goes. A headless
+    /// switch that deletes gigabytes on one command line is not a convenience.
+    /// </remarks>
+    private static int RunUninstallReport()
+    {
+        var probe = new Win32TraceProbe();
+        var paths = UninstallPaths.ForCurrentUser(AppContext.BaseDirectory);
+
+        Console.WriteLine("USB DOCTOR'S OWN TRACES");
+
+        var traces = new SelfTraceScanner(probe, paths).Scan();
+
+        if (traces.Count == 0)
+        {
+            Console.WriteLine("  (none - nothing has been left on this machine)");
+        }
+        else
+        {
+            foreach (var trace in traces)
+            {
+                var tag = trace.IsUserData ? "YOUR DATA" : "app state";
+                Console.WriteLine($"  [{trace.Kind,-13}] {trace.SizeText,-9} {tag,-9} {trace.Location}");
+            }
+
+            var userData = traces.Where(t => t.IsUserData).Sum(t => t.SizeBytes);
+            if (userData > 0)
+            {
+                Console.WriteLine();
+                Console.WriteLine(
+                    $"  {userData / 1024.0 / 1024 / 1024:F2} GB of that is data rescued off drives. " +
+                    "It is never removed unless explicitly ticked in the app.");
+            }
+        }
+
+        Console.WriteLine();
+        Console.WriteLine("INSTALLED PROGRAMS");
+
+        var programs = new InstalledProgramScanner().Scan();
+        var orphans = programs.Count(p => !p.HasUninstaller);
+
+        foreach (var program in programs.Take(15))
+        {
+            var bits = program.Is64Bit ? "x64" : "x86";
+            var scope = program.IsPerUser ? "user" : "machine";
+            Console.WriteLine(
+                $"  {program.DisplayName,-44} {program.Version,-14} {program.SizeText,-9} {bits} {scope}");
+        }
+
+        if (programs.Count > 15)
+            Console.WriteLine($"  ... and {programs.Count - 15} more");
+
+        Console.WriteLine();
+        Console.WriteLine(
+            $"{programs.Count} program(s); {orphans} registered no uninstaller. " +
+            "Windows components and updates are excluded.");
+
+        return ExitClean;
     }
 
     private static bool HasFindings(RecoveryPlan plan) =>

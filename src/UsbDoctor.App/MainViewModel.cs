@@ -76,13 +76,25 @@ public sealed partial class MainViewModel : ObservableObject
     public const string AppVersion = "0.1.0";
     public const string AppAuthor = "nc.thanhngo@gmail.com";
 
+    /// <remarks>
+    /// Glyphs are Segoe MDL2 Assets code points written as numbers, not pasted as
+    /// literal characters. They live in the Unicode private-use area, so pasted they
+    /// are unreadable in a diff, unmatchable by a text search, and silently mangled
+    /// by anything that re-encodes the file.
+    /// </remarks>
     public ObservableCollection<NavSection> Sections { get; } =
     [
-        new("repair", "Repair", "Find and undo hiding", ""),
-        new("deleted", "Deleted files", "Carve what was erased", ""),
-        new("settings", "Settings", "Watching and startup", ""),
-        new("about", "About", "Version and author", ""),
+        new("repair", "Repair", "Find and undo hiding", Glyph(0xE72E)),
+        new("deleted", "Deleted files", "Carve what was erased", Glyph(0xE74C)),
+        new("settings", "Settings", "Watching and startup", Glyph(0xE713)),
+        new("uninstall", "Uninstall", "Remove apps and leftovers", Glyph(0xE74D)),
+        new("about", "About", "Version and author", Glyph(0xE946)),
     ];
+
+    private static string Glyph(int codePoint) => ((char)codePoint).ToString();
+
+    /// <summary>Own view model: uninstall has nothing to do with volumes.</summary>
+    public UninstallViewModel Uninstall { get; } = new();
 
     [ObservableProperty] private NavSection? _selectedSection;
 

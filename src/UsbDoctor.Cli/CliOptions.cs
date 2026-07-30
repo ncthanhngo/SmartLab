@@ -2,7 +2,7 @@ using UsbDoctor.Core.Paths;
 
 namespace UsbDoctor.Cli;
 
-public enum CliCommand { None, Scan, Apply, Raw }
+public enum CliCommand { None, Scan, Apply, Raw, Uninstall }
 
 /// <summary>
 /// Parsed command line. Shared by every command so flag names cannot drift apart.
@@ -46,6 +46,7 @@ public sealed record CliOptions
             "scan" => CliCommand.Scan,
             "apply" => CliCommand.Apply,
             "raw" => CliCommand.Raw,
+            "uninstall" => CliCommand.Uninstall,
             _ => CliCommand.None,
         };
 
@@ -54,6 +55,10 @@ public sealed record CliOptions
             error = $"Unknown command '{args[0]}'.";
             return new CliOptions { Command = CliCommand.None };
         }
+
+        // uninstall works on the machine, not on a volume, so it takes no drive.
+        if (command == CliCommand.Uninstall)
+            return new CliOptions { Command = CliCommand.Uninstall };
 
         if (args.Length < 2)
         {
@@ -196,6 +201,7 @@ public sealed record CliOptions
                                   [--stop-on-error]
           usbdoctor raw   <drive> [--deleted-only] [--recover <dir>]
                                   [--recover-anyway]
+          usbdoctor uninstall
 
         scan   Read-only. Reports findings and the plan it would propose.
         apply  Runs the plan. Dry run unless --execute is given.
@@ -203,6 +209,10 @@ public sealed record CliOptions
                the mounted filesystem. Shows deleted directory entries that
                Explorer cannot see and that chkdsk /F discards, and can carve their
                data back out.
+        uninstall
+               Read-only. Lists what USB Doctor has left on this machine and the
+               installed programs it can see. Removal is in the app, where the
+               list can be reviewed before anything is deleted.
 
         Options
           --depth N        Limit directory recursion.

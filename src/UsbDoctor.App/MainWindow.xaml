@@ -500,6 +500,181 @@
                     </Border>
                 </StackPanel>
 
+                <!-- ===== Uninstall ===== -->
+                <DockPanel DataContext="{Binding Uninstall}">
+                    <DockPanel.Style>
+                        <Style TargetType="DockPanel">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding DataContext.SelectedSection.Key,
+                                                 RelativeSource={RelativeSource AncestorType=Window}}"
+                                             Value="uninstall">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </DockPanel.Style>
+
+                    <Border DockPanel.Dock="Bottom" Style="{StaticResource Card}"
+                            Background="{StaticResource SurfaceSunkenBrush}" Padding="14,10"
+                            Margin="0,14,0,0">
+                        <TextBlock Text="{Binding Status}" Style="{StaticResource BodyText}" />
+                    </Border>
+
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="14" />
+                            <ColumnDefinition Width="1.1*" />
+                        </Grid.ColumnDefinitions>
+
+                        <!-- remove USB Doctor itself -->
+                        <Border Grid.Column="0" Style="{StaticResource Card}" Padding="16">
+                            <DockPanel>
+                                <StackPanel DockPanel.Dock="Top">
+                                    <TextBlock Text="Remove USB Doctor"
+                                               Style="{StaticResource SectionTitle}" />
+                                    <TextBlock Style="{StaticResource CaptionText}" Margin="0,0,0,12"
+                                               Text="Everything this app has written. Your rescued data and quarantined samples are listed but start unticked - they may be the only copy left." />
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                        <Button Content="Find traces" Style="{StaticResource PrimaryButton}"
+                                                Command="{Binding ScanSelfCommand}" />
+                                        <Button Content="Remove ticked" Style="{StaticResource GhostButton}"
+                                                Command="{Binding RemoveSelfCommand}" Margin="10,0,0,0" />
+                                        <CheckBox Style="{StaticResource ToggleCheck}" Content="Dry run"
+                                                  IsChecked="{Binding DryRun}" Margin="14,0,0,0"
+                                                  FontWeight="SemiBold" />
+                                    </StackPanel>
+                                </StackPanel>
+
+                                <ListBox Style="{StaticResource PlainList}" ItemsSource="{Binding SelfTraces}">
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Background="{StaticResource SurfaceRaisedBrush}"
+                                                    CornerRadius="{StaticResource ControlRadius}"
+                                                    Padding="11,9" Margin="0,0,0,6">
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="Auto" />
+                                                        <ColumnDefinition Width="*" />
+                                                        <ColumnDefinition Width="Auto" />
+                                                    </Grid.ColumnDefinitions>
+
+                                                    <CheckBox Grid.Column="0" Style="{StaticResource RowCheck}"
+                                                              IsChecked="{Binding IsSelected}"
+                                                              VerticalAlignment="Top" Margin="0,2,11,0" />
+
+                                                    <StackPanel Grid.Column="1">
+                                                        <StackPanel Orientation="Horizontal">
+                                                            <TextBlock Text="{Binding Description}"
+                                                                       FontSize="12.5" FontWeight="SemiBold"
+                                                                       Foreground="{StaticResource TextPrimaryBrush}" />
+                                                            <TextBlock Text="your data" FontSize="10.5"
+                                                                       Margin="8,0,0,0" FontWeight="SemiBold"
+                                                                       VerticalAlignment="Center"
+                                                                       Foreground="{StaticResource WarningBrush}"
+                                                                       Visibility="{Binding IsUserData,
+                                                                           Converter={StaticResource BoolToVisibility}}" />
+                                                        </StackPanel>
+                                                        <TextBlock Text="{Binding Location}"
+                                                                   FontFamily="{StaticResource MonoFont}"
+                                                                   FontSize="11" Margin="0,3,0,0"
+                                                                   Foreground="{StaticResource TextMutedBrush}"
+                                                                   TextTrimming="CharacterEllipsis" />
+                                                    </StackPanel>
+
+                                                    <TextBlock Grid.Column="2" Text="{Binding SizeText}"
+                                                               Style="{StaticResource CaptionText}"
+                                                               VerticalAlignment="Center" Margin="10,0,0,0" />
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+                            </DockPanel>
+                        </Border>
+
+                        <!-- remove other programs -->
+                        <Border Grid.Column="2" Style="{StaticResource Card}" Padding="16">
+                            <DockPanel>
+                                <StackPanel DockPanel.Dock="Top">
+                                    <TextBlock Text="Installed programs"
+                                               Style="{StaticResource SectionTitle}" />
+                                    <TextBlock Style="{StaticResource CaptionText}" Margin="0,0,0,12"
+                                               Text="Runs the vendor's own uninstaller, then reports what it left behind. Windows components and updates are not listed." />
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                        <Button Content="List programs" Style="{StaticResource PrimaryButton}"
+                                                Command="{Binding ScanProgramsCommand}" />
+                                        <Button Content="Uninstall selected" Style="{StaticResource GhostButton}"
+                                                Command="{Binding UninstallProgramCommand}" Margin="10,0,0,0" />
+                                    </StackPanel>
+                                </StackPanel>
+
+                                <!-- leftovers appear under the list once an uninstall has run -->
+                                <StackPanel DockPanel.Dock="Bottom">
+                                    <StackPanel.Style>
+                                        <Style TargetType="StackPanel">
+                                            <Setter Property="Visibility" Value="Collapsed" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding Leftovers.Count}" Value="0">
+                                                    <Setter Property="Visibility" Value="Collapsed" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </StackPanel.Style>
+                                </StackPanel>
+
+                                <DockPanel>
+                                    <StackPanel DockPanel.Dock="Bottom" Margin="0,10,0,0">
+                                        <TextBlock Text="Leftovers" Style="{StaticResource SectionTitle}"
+                                                   Margin="0,0,0,6" />
+                                        <ListBox Style="{StaticResource PlainList}"
+                                                 ItemsSource="{Binding Leftovers}" MaxHeight="150">
+                                            <ListBox.ItemTemplate>
+                                                <DataTemplate>
+                                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                                        <CheckBox Style="{StaticResource RowCheck}"
+                                                                  IsChecked="{Binding IsSelected}"
+                                                                  Margin="0,0,10,0" />
+                                                        <TextBlock Text="{Binding Location}"
+                                                                   FontFamily="{StaticResource MonoFont}"
+                                                                   FontSize="11"
+                                                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                                                   TextTrimming="CharacterEllipsis"
+                                                                   MaxWidth="380" />
+                                                    </StackPanel>
+                                                </DataTemplate>
+                                            </ListBox.ItemTemplate>
+                                        </ListBox>
+                                        <Button Content="Clean ticked leftovers"
+                                                Style="{StaticResource GhostButton}"
+                                                Command="{Binding CleanLeftoversCommand}"
+                                                HorizontalAlignment="Left" Margin="0,8,0,0" />
+                                    </StackPanel>
+
+                                    <ListView ItemsSource="{Binding Programs}"
+                                              SelectedItem="{Binding SelectedProgram}"
+                                              Background="Transparent" BorderThickness="0"
+                                              Foreground="{StaticResource TextSecondaryBrush}">
+                                        <ListView.View>
+                                            <GridView>
+                                                <GridViewColumn Header="Program" Width="230"
+                                                                DisplayMemberBinding="{Binding DisplayName}" />
+                                                <GridViewColumn Header="Version" Width="90"
+                                                                DisplayMemberBinding="{Binding Version}" />
+                                                <GridViewColumn Header="Publisher" Width="150"
+                                                                DisplayMemberBinding="{Binding Publisher}" />
+                                                <GridViewColumn Header="Size" Width="70"
+                                                                DisplayMemberBinding="{Binding SizeText}" />
+                                            </GridView>
+                                        </ListView.View>
+                                    </ListView>
+                                </DockPanel>
+                            </DockPanel>
+                        </Border>
+                    </Grid>
+                </DockPanel>
+
                 <!-- ===== About ===== -->
                 <Grid>
                     <Grid.Style>

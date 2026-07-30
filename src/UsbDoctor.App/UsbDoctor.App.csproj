@@ -44,6 +44,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\UsbDoctor.Engine\UsbDoctor.Engine.csproj" />
+    <ProjectReference Include="..\UsbDoctor.Uninstall\UsbDoctor.Uninstall.csproj" />
   </ItemGroup>
 
 </Project>
