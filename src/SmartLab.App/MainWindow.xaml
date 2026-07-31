@@ -205,6 +205,7 @@
         <!-- ==================== command palette ====================
              Over everything, because it is reached from everywhere. -->
         <Grid x:Name="PaletteLayer" Background="#99000000"
+              MouseLeftButtonDown="OnPaletteBackdropClicked"
               Visibility="{Binding CommandPalette.IsOpen, Converter={StaticResource BoolToVisibility}}">
             <Border Width="560" VerticalAlignment="Top" Margin="0,110,0,0"
                     Background="{DynamicResource SurfaceBrush}"

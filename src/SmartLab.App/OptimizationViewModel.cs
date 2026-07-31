@@ -26,6 +26,19 @@ public sealed partial class StartupItemViewModel(StartupItem item) : ObservableO
             : "Needs administrator";
 
     /// <summary>
+    /// Sort key that puts the entries this process can actually change at the top.
+    /// </summary>
+    /// <remarks>
+    /// Groups in a WPF collection view appear in the order their first member does, so
+    /// this is what decides whether the list opens on what the operator can act on or
+    /// on what they cannot. Sorting by the group's name instead ordered them Needs
+    /// administrator, Windows' own, You can turn these off - alphabetical, and
+    /// backwards. The deleted-file list learned the same lesson through
+    /// <c>ConfidenceRank</c>.
+    /// </remarks>
+    public int ScopeRank => Item.IsWindowsOwned ? 2 : CanChange ? 0 : 1;
+
+    /// <summary>
     /// Nothing is ticked.
     /// </summary>
     /// <remarks>
@@ -44,7 +57,7 @@ public sealed partial class OptimizationViewModel : ObservableObject
         GroupedItems.Source = Items;
 
         GroupedItems.SortDescriptions.Add(new SortDescription(
-            nameof(StartupItemViewModel.Scope), ListSortDirection.Ascending));
+            nameof(StartupItemViewModel.ScopeRank), ListSortDirection.Ascending));
         GroupedItems.SortDescriptions.Add(new SortDescription(
             nameof(StartupItemViewModel.Name), ListSortDirection.Ascending));
 

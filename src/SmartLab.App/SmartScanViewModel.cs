@@ -270,13 +270,16 @@ public sealed partial class SmartScanViewModel(MainViewModel shell) : Observable
 
     private async Task<SectionOutcome> UpdaterPass(CancellationToken ct)
     {
-        await shell.Updater.CheckCommand.ExecuteAsync(null).ConfigureAwait(true);
-
+        // Asked before running rather than after. Checking first saves launching a
+        // process that can spend a minute refreshing sources before reporting the one
+        // thing already knowable without it.
         if (!SmartLab.Maintenance.WingetBridge.IsInstalled)
         {
             return new SectionOutcome("Updater", 0, "neutral",
                 "winget is not installed, so nothing was checked.", Skipped: true);
         }
+
+        await shell.Updater.CheckCommand.ExecuteAsync(null).ConfigureAwait(true);
 
         return new SectionOutcome("Updater", shell.Updater.PackageCount,
             shell.Updater.PackageCount > 0 ? "warning" : "good",

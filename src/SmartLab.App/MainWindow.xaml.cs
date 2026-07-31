@@ -120,6 +120,37 @@ public partial class MainWindow : Window
             ViewModel?.CommandPalette.InvokeCommand.Execute(entry);
     }
 
+    /// <summary>
+    /// Clicking the dimmed area outside the palette dismisses it.
+    /// </summary>
+    /// <remarks>
+    /// Only when the click landed on the backdrop itself. Without that test a click
+    /// anywhere inside the palette bubbles up to here and closes the thing the user
+    /// was aiming at.
+    /// </remarks>
+    private void OnPaletteBackdropClicked(object sender, MouseButtonEventArgs e)
+    {
+        if (ReferenceEquals(e.OriginalSource, sender))
+            ViewModel?.CommandPalette.CloseCommand.Execute(null);
+    }
+
+    /// <remarks>
+    /// Escape has to work from anywhere in the overlay, not only from the text box -
+    /// a click on a row moves focus, and the key would then reach nothing. Guarded on
+    /// the palette being open so it does not swallow Escape from a combo box.
+    /// </remarks>
+    protected override void OnPreviewKeyDown(KeyEventArgs e)
+    {
+        if (e.Key == Key.Escape && ViewModel?.CommandPalette is { IsOpen: true } palette)
+        {
+            palette.CloseCommand.Execute(null);
+            e.Handled = true;
+            return;
+        }
+
+        base.OnPreviewKeyDown(e);
+    }
+
     // ---- volume watching --------------------------------------------------------
 
     /// <summary>
@@ -398,6 +429,13 @@ public partial class MainWindow : Window
             _tray = null;
             _trayIcon?.Dispose();
             _trayIcon = null;
+
+            // The elevated worker must not outlive the window that asked for it.
+            // Leaving an Administrator process idle on a pipe is precisely what
+            // asking for one prompt instead of three was meant to avoid becoming
+            // permanent. Blocking here is deliberate: the process is exiting, and
+            // a fire-and-forget shutdown would race the shutdown it is racing.
+            ViewModel?.Maintenance.DisposeAsync().AsTask().Wait(TimeSpan.FromSeconds(2));
             return;
         }
 

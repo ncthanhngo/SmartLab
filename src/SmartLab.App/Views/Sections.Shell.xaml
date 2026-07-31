@@ -89,6 +89,16 @@
                                         Background="{DynamicResource SurfaceBrush}"
                                         BorderBrush="{DynamicResource HairlineBrush}"
                                         BorderThickness="1" Cursor="Hand">
+                                    <!-- A card is a door. It had the hover state and the hand
+                                         cursor of something clickable without being clickable,
+                                         which is worse than looking inert. -->
+                                    <Border.InputBindings>
+                                        <MouseBinding MouseAction="LeftClick"
+                                                      Command="{Binding DataContext.OpenCommand,
+                                                          RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                      CommandParameter="{Binding}" />
+                                    </Border.InputBindings>
+
                                     <StackPanel>
                                         <StackPanel Orientation="Horizontal">
                                             <Border Width="7" Height="7" CornerRadius="2.5"

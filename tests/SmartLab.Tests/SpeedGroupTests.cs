@@ -102,6 +102,39 @@ public sealed class StartupItemTests
     }
 
     [Fact]
+    public void TheEntriesYouCanChangeSortAboveTheRest()
+    {
+        // Groups appear in the order their first member does, so this decides whether
+        // the list opens on what the operator can act on. Sorting by the group's name
+        // put "You can turn these off" last, alphabetically and uselessly - the same
+        // mistake ConfidenceRank exists to prevent in the deleted-file list.
+        var windows = Environment.GetFolderPath(Environment.SpecialFolder.Windows);
+
+        var changeable = new StartupItemViewModel(Item()).ScopeRank;
+        var needsAdmin = new StartupItemViewModel(Item(perUser: false)).ScopeRank;
+        var windowsOwn = new StartupItemViewModel(
+            Item(command: Path.Combine(windows, "System32", "x.exe"))).ScopeRank;
+
+        Assert.True(changeable < needsAdmin);
+        Assert.True(needsAdmin < windowsOwn);
+    }
+
+    [Fact]
+    public void EveryScopeRanksDistinctly()
+    {
+        var windows = Environment.GetFolderPath(Environment.SpecialFolder.Windows);
+
+        var ranks = new[]
+        {
+            new StartupItemViewModel(Item()).ScopeRank,
+            new StartupItemViewModel(Item(perUser: false)).ScopeRank,
+            new StartupItemViewModel(Item(command: Path.Combine(windows, "x.exe"))).ScopeRank,
+        };
+
+        Assert.Equal(ranks.Length, ranks.Distinct().Count());
+    }
+
+    [Fact]
     public void TheHeadingSaysDisablingIsReversible()
     {
         var summary = OptimizationViewModel.Summarise(found: 20, ticked: 0, changeable: 8, disabled: 0);
