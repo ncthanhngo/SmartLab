@@ -84,14 +84,53 @@ if ($LASTEXITCODE -ne 0) { throw "worker publish failed with exit code $LASTEXIT
 Write-Host "Compressing..."
 Compress-Archive -Path $stage -DestinationPath $zip -CompressionLevel Optimal
 
-$hash = (Get-FileHash -Path $zip -Algorithm SHA256).Hash.ToLowerInvariant()
-"$hash  $(Split-Path $zip -Leaf)" | Set-Content -Path $sums -Encoding ascii
+# The installer, when Inno Setup is present. The zip is what the in-app updater
+# installs; this is what a person runs the first time. Optional on purpose - a
+# machine without the compiler still produces a complete, verifiable release.
+$setup = $null
+$iscc = @(
+    "$env:LOCALAPPDATA\Programs\Inno Setup 6\ISCC.exe",
+    "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe",
+    "$env:ProgramFiles\Inno Setup 6\ISCC.exe"
+) | Where-Object { Test-Path $_ } | Select-Object -First 1
+
+if ($iscc) {
+    Write-Host "Building the installer..."
+
+    $script = Join-Path $root 'installer\smart-lab.iss'
+
+    & $iscc "/DAppVersion=$Version" "/DSourceDir=$stage" "/DOutputDir=$OutputDirectory" $script | Out-Null
+
+    if ($LASTEXITCODE -ne 0) { throw "ISCC failed with exit code $LASTEXITCODE" }
+
+    $setup = Join-Path $OutputDirectory "SmartLabSetup-$Version.exe"
+
+    if (-not (Test-Path $setup)) { throw "ISCC reported success but produced no installer." }
+}
+else {
+    Write-Warning "Inno Setup not found - skipping the installer. winget install JRSoftware.InnoSetup"
+}
+
+# One list covering everything published, because a release where only some files can
+# be verified teaches people to skip the check.
+$lines = @()
+
+foreach ($file in @($zip, $setup) | Where-Object { $_ }) {
+    $hash = (Get-FileHash -Path $file -Algorithm SHA256).Hash.ToLowerInvariant()
+    $lines += "$hash  $(Split-Path $file -Leaf)"
+}
+
+$lines | Set-Content -Path $sums -Encoding ascii
 
 Remove-Item $stage -Recurse -Force
 
-$size = [Math]::Round((Get-Item $zip).Length / 1MB, 1)
-
 Write-Host ""
-Write-Host "  $zip  ($size MB)"
+
+foreach ($file in @($zip, $setup) | Where-Object { $_ }) {
+    $size = [Math]::Round((Get-Item $file).Length / 1MB, 1)
+    Write-Host "  $file  ($size MB)"
+}
+
 Write-Host "  $sums"
-Write-Host "  sha256 $hash"
+Write-Host ""
+$lines | ForEach-Object { Write-Host "  $_" }

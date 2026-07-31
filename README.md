@@ -491,6 +491,21 @@ It refuses to build a version that does not match `MainViewModel.AppVersion`, si
 package whose version disagrees with the build inside it would tell every installed
 copy it is out of date for ever.
 
+It also compiles `installer/smart-lab.iss` when Inno Setup is present, and skips it
+with a warning when it is not — a machine without the compiler still produces a
+complete, verifiable release. The installer is what a person runs the first time; the
+zip is what the updater installs afterwards, and both are listed in one
+`SHA256SUMS.txt`, because a release where only some files can be verified teaches
+people to skip the check.
+
+The install is per user, into `%LOCALAPPDATA%\Programs\Smart Lab`, and asks for no
+elevation. Two reasons, and the second is the one that matters: the app already
+elevates per operation, so a Program Files install would add a prompt for the parts
+that never needed one — and it has to be able to overwrite itself, which under Program
+Files needs an Administrator the app does not have. `App` holds a named mutex the
+installer checks for, so a setup cannot run over a copy that is still open and leave
+two versions mixed in one folder.
+
 The About page's feature list is derived from the rail rather than written a second
 time, and `AboutTests` asserts that the newest release note carries the version the
 app reports — a build that ships with the previous version's notes claims fixes it

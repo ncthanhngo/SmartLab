@@ -16,8 +16,39 @@ public partial class App : Application
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
         "SmartLab", "crash.log");
 
+    /// <summary>
+    /// Held for the life of the process so an installer can see it.
+    /// </summary>
+    /// <remarks>
+    /// The installer copies over this folder, and Windows holds a running executable
+    /// open: a setup that ran anyway would half-write the install and leave two
+    /// versions mixed in one directory. The name is checked by
+    /// <c>installer/smart-lab.iss</c> and must not change without changing it there.
+    /// It also stops a second window opening over the first, which for a tool that
+    /// writes to volumes is worth having on its own.
+    /// </remarks>
+    private const string SingletonMutexName = "SmartLab.App.Singleton";
+
+    private Mutex? _singleton;
+
     protected override void OnStartup(StartupEventArgs e)
     {
+        _singleton = new Mutex(initiallyOwned: true, SingletonMutexName, out var first);
+
+        if (!first)
+        {
+            // No dialog on a capture run, which starts, renders and exits on its own.
+            if (!e.Args.Contains("--screenshot", StringComparer.OrdinalIgnoreCase))
+            {
+                MessageBox.Show(
+                    "Smart Lab is already running. Look for it in the notification area.",
+                    "Smart Lab", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+
+            Shutdown();
+            return;
+        }
+
         // A recovery tool that vanishes without explanation is worse than useless:
         // the operator cannot tell a crash from a completed run, and the volume
         // they were working on may be mid-repair. Every unhandled failure is
@@ -32,6 +63,14 @@ public partial class App : Application
         ThemeManager.ApplyStartupTheme();
 
         base.OnStartup(e);
+    }
+
+    protected override void OnExit(ExitEventArgs e)
+    {
+        _singleton?.Dispose();
+        _singleton = null;
+
+        base.OnExit(e);
     }
 
     private void OnDispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
