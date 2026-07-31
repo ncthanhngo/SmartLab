@@ -2,6 +2,7 @@ using System.Net.Http;
 using System.Text.Json;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using SmartLab.Maintenance;
 
 namespace SmartLab.App;
 
@@ -89,7 +90,7 @@ public sealed partial class AboutViewModel(MainViewModel shell) : ObservableObje
     /// </remarks>
     public static IReadOnlyList<ReleaseNote> ReleaseNotes { get; } =
     [
-        new("0.1.0", "2026-07-31",
+        new("1.0.0", "2026-07-31",
             Added:
             [
                 "Repair: finds files hidden by attribute, by a pathological name, or inside a folder Win32 cannot open, and puts them back.",
@@ -103,6 +104,7 @@ public sealed partial class AboutViewModel(MainViewModel shell) : ObservableObje
                 "Startup, Repair OS: lists what runs at logon and runs the Windows repair tools as themselves.",
                 "Home: one pass over the machine that measures everything and changes nothing until you confirm.",
                 "Ctrl+K over every section and every action, a light and a dark theme, and a tray watcher that scans a USB stick on insert.",
+                "About checks GitHub for a newer release and can install it: the package is verified against the checksums published beside it, and nothing is downloaded until you ask.",
             ],
             Fixed: []),
     ];
@@ -138,7 +140,24 @@ public sealed partial class AboutViewModel(MainViewModel shell) : ObservableObje
 
     public bool HasNewerVersion => Verdict == UpdateVerdict.Available;
 
-    partial void OnVerdictChanged(UpdateVerdict value) => OnPropertyChanged(nameof(HasNewerVersion));
+    /// <summary>Whether the newer release carries a package this app can install.</summary>
+    public bool CanInstall => HasNewerVersion && _package is not null && !IsChecking;
+
+    private ReleaseAsset? _package;
+    private ReleaseAsset? _checksums;
+
+    partial void OnVerdictChanged(UpdateVerdict value)
+    {
+        OnPropertyChanged(nameof(HasNewerVersion));
+        OnPropertyChanged(nameof(CanInstall));
+        InstallUpdateCommand.NotifyCanExecuteChanged();
+    }
+
+    partial void OnIsCheckingChanged(bool value)
+    {
+        OnPropertyChanged(nameof(CanInstall));
+        InstallUpdateCommand.NotifyCanExecuteChanged();
+    }
 
     [RelayCommand]
     private async Task CheckForUpdateAsync()
@@ -146,17 +165,77 @@ public sealed partial class AboutViewModel(MainViewModel shell) : ObservableObje
         IsChecking = true;
         UpdateStatus = "Asking GitHub for the latest release...";
 
+        _package = null;
+        _checksums = null;
+
         try
         {
-            var tag = await Task.Run(FetchLatestTagAsync).ConfigureAwait(true);
+            var release = await Task.Run(FetchLatestReleaseAsync).ConfigureAwait(true);
 
-            (Verdict, UpdateStatus) = Compare(MainViewModel.AppVersion, tag);
-            LatestVersion = Normalise(tag) ?? string.Empty;
+            (Verdict, UpdateStatus) = Compare(MainViewModel.AppVersion, release?.Tag);
+            LatestVersion = Normalise(release?.Tag) ?? string.Empty;
+
+            if (Verdict != UpdateVerdict.Available || release is null) return;
+
+            _package = UpdatePackage.SelectPackage(release.Assets);
+            _checksums = UpdatePackage.SelectChecksums(release.Assets);
+
+            UpdateStatus = _package is null
+                ? $"Version {LatestVersion} is published, but without a Windows package this app can " +
+                  "install. Open the release page to see what it carries."
+                : _checksums is null
+                    ? $"Version {LatestVersion} is available, but the release publishes no " +
+                      $"{UpdatePackage.ChecksumAsset}, so the download could not be verified and will " +
+                      "not be installed from here."
+                    : $"Version {LatestVersion} is available. This is {MainViewModel.AppVersion}.";
         }
         catch (Exception ex)
         {
             Verdict = UpdateVerdict.Unknown;
             UpdateStatus = $"Could not reach the release feed: {ex.Message}";
+        }
+        finally
+        {
+            IsChecking = false;
+            OnPropertyChanged(nameof(CanInstall));
+            InstallUpdateCommand.NotifyCanExecuteChanged();
+        }
+    }
+
+    /// <summary>
+    /// Downloads the newer release, verifies it, and replaces this build with it.
+    /// </summary>
+    /// <remarks>
+    /// A second press, never the first. Checking is safe and says so; this one
+    /// overwrites the running application, so it appears only after a check has found
+    /// a release that actually carries a verifiable package.
+    /// </remarks>
+    [RelayCommand(CanExecute = nameof(CanInstall))]
+    private async Task InstallUpdateAsync()
+    {
+        if (_package is not { } package) return;
+
+        IsChecking = true;
+
+        try
+        {
+            var outcome = await UpdateInstaller.InstallAsync(
+                package, _checksums, AppContext.BaseDirectory,
+                message =>
+                {
+                    UpdateStatus = message;
+                    return Task.CompletedTask;
+                }).ConfigureAwait(true);
+
+            UpdateStatus = outcome.Message;
+
+            // The swap script is waiting on this process to exit. Closing is the last
+            // step of the install, not a side effect of it.
+            if (outcome.Restarting) shell.RequestShutdown();
+        }
+        catch (Exception ex)
+        {
+            UpdateStatus = $"Update failed: {ex.Message}";
         }
         finally
         {
@@ -207,12 +286,15 @@ public sealed partial class AboutViewModel(MainViewModel shell) : ObservableObje
         return trimmed.Length == 0 ? null : trimmed;
     }
 
+    /// <summary>A published release, reduced to what this page needs.</summary>
+    public sealed record LatestRelease(string? Tag, IReadOnlyList<ReleaseAsset> Assets);
+
     /// <remarks>
     /// GitHub rejects a request with no User-Agent, and answers 404 for a repository
     /// that has never published a release - which is a real answer, not a failure, and
     /// is reported as one.
     /// </remarks>
-    private static async Task<string?> FetchLatestTagAsync()
+    private static async Task<LatestRelease?> FetchLatestReleaseAsync()
     {
         using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(15) };
 
@@ -227,9 +309,27 @@ public sealed partial class AboutViewModel(MainViewModel shell) : ObservableObje
 
         using var document = JsonDocument.Parse(json);
 
-        return document.RootElement.TryGetProperty("tag_name", out var tag)
-            ? tag.GetString()
+        var tag = document.RootElement.TryGetProperty("tag_name", out var name)
+            ? name.GetString()
             : null;
+
+        var assets = new List<ReleaseAsset>();
+
+        if (document.RootElement.TryGetProperty("assets", out var list) &&
+            list.ValueKind == JsonValueKind.Array)
+        {
+            foreach (var asset in list.EnumerateArray())
+            {
+                var assetName = asset.TryGetProperty("name", out var n) ? n.GetString() : null;
+                var url = asset.TryGetProperty("browser_download_url", out var u) ? u.GetString() : null;
+                var size = asset.TryGetProperty("size", out var s) && s.TryGetInt64(out var bytes) ? bytes : 0;
+
+                if (assetName is { Length: > 0 } && url is { Length: > 0 })
+                    assets.Add(new ReleaseAsset(assetName, url, size));
+            }
+        }
+
+        return new LatestRelease(tag, assets);
     }
 
     private static void OpenBrowser(string url)

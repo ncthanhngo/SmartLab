@@ -510,7 +510,17 @@ public partial class MainWindow : Window
 
         _tray.DoubleClick += (_, _) => RestoreFromTray();
 
-        if (ViewModel is { } viewModel) viewModel.NotifyRequested += OnNotifyRequested;
+        if (ViewModel is not { } viewModel) return;
+
+        viewModel.NotifyRequested += OnNotifyRequested;
+
+        // An update swap waits on this process to exit, so this has to be the real
+        // exit rather than a close the tray would quietly turn into a hide.
+        viewModel.ShutdownRequested += () =>
+        {
+            _reallyExiting = true;
+            Close();
+        };
     }
 
     /// <summary>

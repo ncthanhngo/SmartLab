@@ -380,10 +380,18 @@
                             <TextBlock Style="{StaticResource CaptionText}" Margin="0,0,0,14"
                                        Text="{Binding UpdateStatus}" />
 
-                            <!-- Only appears once a newer version has actually been
-                                 found, and it opens the release page rather than
-                                 downloading anything: nothing on this machine is
-                                 replaced by a button in an About screen. -->
+                            <!-- Both appear only once a check has found a newer
+                                 release. Installing replaces the running application,
+                                 so it is never what the first press does - and it
+                                 stays hidden when the release carries no package this
+                                 app can verify. -->
+                            <Button Content="Download and install"
+                                    Style="{StaticResource PrimaryButton}"
+                                    HorizontalAlignment="Stretch" Margin="0,0,0,8"
+                                    Command="{Binding InstallUpdateCommand}"
+                                    Visibility="{Binding CanInstall,
+                                        Converter={StaticResource BoolToVisibility}}" />
+
                             <Button Content="Open the release page"
                                     Style="{StaticResource GhostButton}"
                                     HorizontalAlignment="Stretch" Margin="0,0,0,8"
@@ -392,7 +400,7 @@
                                         Converter={StaticResource BoolToVisibility}}" />
 
                             <Button Content="Check for updates"
-                                    Style="{StaticResource PrimaryButton}"
+                                    Style="{StaticResource GhostButton}"
                                     HorizontalAlignment="Stretch"
                                     Command="{Binding CheckForUpdateCommand}" />
                         </StackPanel>

@@ -463,13 +463,33 @@ and when that is refused the row carries what winget said rather than a generic
 failure.
 
 **About** asks GitHub for the latest published release when someone presses *Check for
-updates*. It sends the request and nothing else, and it downloads and installs
-nothing: a newer version reveals a button that opens the release page in a browser.
-A tag that cannot be read as a version — `nightly`, or a repository with no release at
-all — reports as unknown rather than as an update, because telling someone their build
-is out of date when it is not is the one failure this feature must not have. Nothing
-checks at startup; an app that reaches the network on its own to talk about itself has
-decided something on the operator's behalf.
+updates*. It sends the request and nothing else, and downloads nothing. A tag that
+cannot be read as a version — `nightly`, or a repository with no release at all —
+reports as unknown rather than as an update, because telling someone their build is out
+of date when it is not is the one failure this feature must not have. Nothing checks at
+startup; an app that reaches the network on its own to talk about itself has decided
+something on the operator's behalf.
+
+A newer release then reveals a second button, and only then. *Download and install*
+fetches the `win-x64` package, checks its SHA-256 against the `SHA256SUMS.txt` published
+beside it, and refuses to install anything that does not match or that the release did
+not publish a checksum for — an unsigned archive fetched over the network and unpacked
+over a running tool is the delivery route this app was written to clean up after. The
+package is chosen by name rather than by being the first zip, because GitHub attaches
+*Source code (zip)* to every release.
+
+Windows holds a running executable open, so the swap itself is a script: wait for this
+process to exit, `robocopy /E` the staged files over the installation, start the new
+build, delete the staging folder. It copies rather than mirrors — a mirror would delete
+whatever the operator keeps beside the app — and the wait is on the process id rather
+than a guessed number of seconds. Whether the installation can be written to at all is
+checked before anything is downloaded, not after 67 MB and a process exit.
+
+`tools/build-release.ps1` produces what that expects: a self-contained `win-x64`
+publish of the app and the elevated worker, zipped, with the checksum list beside it.
+It refuses to build a version that does not match `MainViewModel.AppVersion`, since a
+package whose version disagrees with the build inside it would tell every installed
+copy it is out of date for ever.
 
 The About page's feature list is derived from the rail rather than written a second
 time, and `AboutTests` asserts that the newest release note carries the version the

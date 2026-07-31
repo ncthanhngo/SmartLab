@@ -188,7 +188,16 @@ public sealed partial class MainViewModel : ObservableObject
     private readonly Win32VolumeReader _reader = new();
     private RecoveryPlan? _plan;
 
-    public const string AppVersion = "0.1.0";
+    /// <summary>
+    /// What this build calls itself.
+    /// </summary>
+    /// <remarks>
+    /// Compared against the tag of the newest published release, so it has to parse as
+    /// a <see cref="Version"/> and has to move whenever a release is cut. The release
+    /// notes at the head of <c>AboutViewModel.ReleaseNotes</c> must name this same
+    /// version - a test holds the two together.
+    /// </remarks>
+    public const string AppVersion = "1.0.0";
     public const string AppAuthor = "nc.thanhngo@gmail.com";
 
     /// <remarks>
@@ -299,6 +308,18 @@ public sealed partial class MainViewModel : ObservableObject
 
     /// <summary>Whether the selected stick will still start a PC. Part of Repair.</summary>
     public BootViewModel Boot { get; }
+
+    /// <summary>
+    /// Raised when something needs the whole application to exit.
+    /// </summary>
+    /// <remarks>
+    /// Closing the window is not enough: with tray watching on it hides instead, and
+    /// the update swap waits on this process to end before it replaces the files. This
+    /// is how a view model asks for the real thing without reaching for Application.
+    /// </remarks>
+    public event Action? ShutdownRequested;
+
+    public void RequestShutdown() => ShutdownRequested?.Invoke();
 
     /// <summary>Ctrl+K over every section and every action. Seventeen is too many to point at.</summary>
     public CommandPaletteViewModel CommandPalette { get; }
