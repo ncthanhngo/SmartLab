@@ -8,3 +8,11 @@ TestResults/
 .claude/settings.local.json
 *.vhd
 *.vhdx
+
+# Planning notes and session scratch. Local working material, not part of the
+# product: a clone needs the code, the tests and the README to build and to
+# understand why the code is the way it is.
+plans/
+
+# Agent and editor session state.
+.claude/
