@@ -96,9 +96,11 @@ public sealed class NavigationTests
     }
 
     [Fact]
-    public void SmartScanOpensTheAppAndAboutClosesIt()
+    public void HomeOpensTheAppAndAboutClosesIt()
     {
-        Assert.Equal("smart", Sections[0].Key);
+        // Home is the front door, not one of seventeen equal entries. Anything else
+        // first would mean the window opens on a room the operator has to leave.
+        Assert.Equal("home", Sections[0].Key);
         Assert.Equal("about", Sections[^1].Key);
     }
 

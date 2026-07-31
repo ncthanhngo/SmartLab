@@ -4,15 +4,15 @@
         xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
         xmlns:local="clr-namespace:SmartLab.App"
         xmlns:views="clr-namespace:SmartLab.App.Views"
-        Title="Smart Lab" Height="740" Width="1120"
-        MinHeight="600" MinWidth="900"
+        Title="Smart Lab" Height="760" Width="1180"
+        MinHeight="600" MinWidth="960"
         Icon="Assets/app.ico"
         WindowStyle="None" ResizeMode="CanResize"
         TextOptions.TextFormattingMode="Ideal"
         FontFamily="{StaticResource UiFont}">
 
     <shell:WindowChrome.WindowChrome>
-        <shell:WindowChrome CaptionHeight="46" ResizeBorderThickness="6"
+        <shell:WindowChrome CaptionHeight="40" ResizeBorderThickness="6"
                             GlassFrameThickness="0" UseAeroCaptionButtons="False" />
     </shell:WindowChrome.WindowChrome>
 
@@ -24,6 +24,12 @@
         <views:SectionTemplateSelector x:Key="SectionTemplates" />
     </Window.Resources>
 
+    <!-- Ctrl+K anywhere. Seventeen destinations need a keyboard, and the shortcut has
+         to work from inside a section rather than only from the chrome. -->
+    <Window.InputBindings>
+        <KeyBinding Key="K" Modifiers="Control" Command="{Binding OpenPaletteCommand}" />
+    </Window.InputBindings>
+
     <Window.Background>
         <LinearGradientBrush StartPoint="0,0" EndPoint="0.35,1">
             <GradientStop Color="{DynamicResource ShellTopColor}" Offset="0" />
@@ -32,128 +38,253 @@
     </Window.Background>
 
     <Grid>
-        <Grid.RowDefinitions>
-            <RowDefinition Height="46" />
-            <RowDefinition Height="*" />
-            <RowDefinition Height="Auto" />
-        </Grid.RowDefinitions>
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="40" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
 
-        <!-- ==================== title bar ==================== -->
-        <Grid Grid.Row="0">
-            <Control Style="{StaticResource LogoLockup}" HorizontalAlignment="Left"
-                     Margin="18,0,0,0" VerticalAlignment="Center" />
+            <!-- ==================== title bar ====================
+                 Carries the omnibar, because a search everything can reach belongs
+                 where everything can see it. -->
+            <Grid Grid.Row="0">
+                <Control Style="{StaticResource LogoLockup}" HorizontalAlignment="Left"
+                         Margin="16,0,0,0" VerticalAlignment="Center" />
 
-            <TextBlock Text="{Binding SelectedSection.Title}" VerticalAlignment="Center"
-                       HorizontalAlignment="Center" FontSize="12.5"
-                       Foreground="{DynamicResource TextMutedBrush}" />
+                <Border HorizontalAlignment="Center" VerticalAlignment="Center" Width="330"
+                        Background="{DynamicResource SurfaceBrush}"
+                        BorderBrush="{DynamicResource HairlineBrush}" BorderThickness="1"
+                        CornerRadius="8" Padding="10,4" Cursor="Hand"
+                        shell:WindowChrome.IsHitTestVisibleInChrome="True"
+                        MouseLeftButtonUp="OnOmnibarClicked">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
 
-            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right"
-                        VerticalAlignment="Center" Margin="0,0,6,0"
-                        shell:WindowChrome.IsHitTestVisibleInChrome="True">
-                <Button Style="{StaticResource WindowButton}" Content="&#xE921;"
-                        ToolTip="Minimise" Click="OnMinimise" />
-                <Button Style="{StaticResource WindowButton}" Content="&#xE922;"
-                        ToolTip="Maximise" Click="OnMaximise" />
-                <Button Style="{StaticResource CloseWindowButton}" Content="&#xE8BB;"
-                        ToolTip="Close to tray" Click="OnCloseClicked" />
-            </StackPanel>
+                        <TextBlock Grid.Column="0" Text="&#xE721;" FontFamily="Segoe MDL2 Assets"
+                                   FontSize="11" VerticalAlignment="Center" Margin="0,0,8,0"
+                                   Foreground="{DynamicResource TextMutedBrush}" />
+                        <TextBlock Grid.Column="1" Text="Search sections and actions" FontSize="11.5"
+                                   VerticalAlignment="Center"
+                                   Foreground="{DynamicResource TextMutedBrush}" />
+                        <Border Grid.Column="2" BorderBrush="{DynamicResource HairlineBrush}"
+                                BorderThickness="1" CornerRadius="4" Padding="5,0">
+                            <TextBlock Text="Ctrl K" FontFamily="{StaticResource MonoFont}"
+                                       FontSize="9.5"
+                                       Foreground="{DynamicResource TextMutedBrush}" />
+                        </Border>
+                    </Grid>
+                </Border>
+
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right"
+                            VerticalAlignment="Center" Margin="0,0,6,0"
+                            shell:WindowChrome.IsHitTestVisibleInChrome="True">
+                    <Button Style="{StaticResource WindowButton}" Content="&#xE921;"
+                            ToolTip="Minimise" Click="OnMinimise" />
+                    <Button Style="{StaticResource WindowButton}" Content="&#xE922;"
+                            ToolTip="Maximise" Click="OnMaximise" />
+                    <Button Style="{StaticResource CloseWindowButton}" Content="&#xE8BB;"
+                            ToolTip="Close to tray" Click="OnCloseClicked" />
+                </StackPanel>
+            </Grid>
+
+            <!-- ==================== body ==================== -->
+            <Grid Grid.Row="1">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="218" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <!-- ===== the rail =====
+                     Labelled and grouped. Seventeen glyphs at 46 px overflowed every
+                     window height, and navigation that scrolls cannot be remembered;
+                     at 28 px with names the whole list fits at the default size and
+                     only scrolls near the minimum. -->
+                <Border Grid.Column="0" Background="{DynamicResource SidebarBrush}"
+                        BorderBrush="{DynamicResource SidebarHairlineBrush}" BorderThickness="0,0,1,0">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto"
+                                  HorizontalScrollBarVisibility="Disabled">
+                        <ScrollViewer.Resources>
+                            <Style TargetType="ScrollBar" BasedOn="{StaticResource SlimScrollBar}" />
+                        </ScrollViewer.Resources>
+
+                        <ListBox x:Name="Rail" Style="{StaticResource RailList}"
+                                 ItemsSource="{Binding GroupedSections.View}"
+                                 SelectedItem="{Binding SelectedSection}"
+                                 SelectionChanged="OnSectionSelected"
+                                 VerticalAlignment="Top">
+                            <ListBox.GroupStyle>
+                                <StaticResource ResourceKey="RailGroups" />
+                            </ListBox.GroupStyle>
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <Border x:Name="Cell" Height="28" CornerRadius="7"
+                                            Background="Transparent" Padding="8,0"
+                                            ToolTip="{Binding Subtitle}">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+
+                                            <!-- A square of the section's own hue rather than a
+                                                 glyph: at this size a mark carries colour
+                                                 reliably and shape barely at all. -->
+                                            <Border Grid.Column="0" Width="7" Height="7" CornerRadius="2.5"
+                                                    VerticalAlignment="Center" Margin="3,0,10,0"
+                                                    Background="{Binding Accent}" />
+
+                                            <TextBlock x:Name="Label" Grid.Column="1"
+                                                       Text="{Binding Title}" FontSize="11.5"
+                                                       VerticalAlignment="Center"
+                                                       TextTrimming="CharacterEllipsis"
+                                                       Foreground="{DynamicResource TextSecondaryBrush}" />
+
+                                            <Border x:Name="Badge" Grid.Column="2" CornerRadius="4"
+                                                    Padding="5,0" VerticalAlignment="Center"
+                                                    Background="{DynamicResource SurfaceRaisedBrush}"
+                                                    Visibility="{Binding HasBadge,
+                                                        Converter={StaticResource BoolToVisibility}}">
+                                                <TextBlock x:Name="BadgeText" Text="{Binding Badge}"
+                                                           FontFamily="{StaticResource MonoFont}"
+                                                           FontSize="9.5" FontWeight="Bold"
+                                                           Foreground="{DynamicResource TextMutedBrush}" />
+                                            </Border>
+                                        </Grid>
+                                    </Border>
+
+                                    <DataTemplate.Triggers>
+                                        <DataTrigger Value="True"
+                                                     Binding="{Binding IsMouseOver,
+                                                         RelativeSource={RelativeSource AncestorType=ListBoxItem}}">
+                                            <Setter TargetName="Cell" Property="Background"
+                                                    Value="{DynamicResource SidebarHoverBrush}" />
+                                            <Setter TargetName="Label" Property="Foreground"
+                                                    Value="{DynamicResource TextPrimaryBrush}" />
+                                        </DataTrigger>
+                                        <DataTrigger Value="True"
+                                                     Binding="{Binding IsSelected,
+                                                         RelativeSource={RelativeSource AncestorType=ListBoxItem}}">
+                                            <Setter TargetName="Cell" Property="Background"
+                                                    Value="{Binding SelectedFill}" />
+                                            <Setter TargetName="Label" Property="Foreground"
+                                                    Value="{DynamicResource TextPrimaryBrush}" />
+                                            <Setter TargetName="Label" Property="FontWeight" Value="SemiBold" />
+                                        </DataTrigger>
+
+                                        <!-- Tone on the count, not on the label: a section is not
+                                             alarming, the number it is carrying is. -->
+                                        <DataTrigger Binding="{Binding BadgeTone}" Value="warn">
+                                            <Setter TargetName="BadgeText" Property="Foreground"
+                                                    Value="{DynamicResource WarningBrush}" />
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding BadgeTone}" Value="alert">
+                                            <Setter TargetName="BadgeText" Property="Foreground"
+                                                    Value="{DynamicResource DangerBrush}" />
+                                        </DataTrigger>
+                                    </DataTemplate.Triggers>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </ScrollViewer>
+                </Border>
+
+                <!-- ===== the stage =====
+                     One host. Only the selected section's template is built, so a
+                     stage costs nothing until someone navigates to it. -->
+                <ContentControl Grid.Column="1"
+                                Content="{Binding SelectedSection}"
+                                ContentTemplateSelector="{StaticResource SectionTemplates}" />
+            </Grid>
         </Grid>
 
-        <!-- ==================== body ==================== -->
-        <Grid Grid.Row="1">
-            <Grid.ColumnDefinitions>
-                <!-- Eight wider than it was: the rail now scrolls, and a scrollbar
-                     laid over the cells clips the longer labels. -->
-                <ColumnDefinition Width="84" />
-                <ColumnDefinition Width="*" />
-            </Grid.ColumnDefinitions>
+        <!-- ==================== command palette ====================
+             Over everything, because it is reached from everywhere. -->
+        <Grid x:Name="PaletteLayer" Background="#99000000"
+              Visibility="{Binding CommandPalette.IsOpen, Converter={StaticResource BoolToVisibility}}">
+            <Border Width="560" VerticalAlignment="Top" Margin="0,110,0,0"
+                    Background="{DynamicResource SurfaceBrush}"
+                    BorderBrush="{DynamicResource HairlineBrush}" BorderThickness="1"
+                    CornerRadius="13">
+                <DockPanel>
+                    <Border DockPanel.Dock="Top" BorderThickness="0,0,0,1"
+                            BorderBrush="{DynamicResource HairlineBrush}" Padding="15,12">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
 
-            <!-- ===== glyph rail =====
-                 Navigation shrinks to icons so the stage keeps the width. The
-                 subtitles that used to explain each section move into the stage
-                 heading, where there is room to say more than a rail ever had.
+                            <TextBlock Grid.Column="0" Text="&#xE721;" FontFamily="Segoe MDL2 Assets"
+                                       FontSize="13" VerticalAlignment="Center" Margin="0,0,10,0"
+                                       Foreground="{DynamicResource TextMutedBrush}" />
 
-                 Seventeen sections do not fit at any window height, so the rail
-                 scrolls and groups. Grouping turns off virtualisation, which at
-                 seventeen items costs nothing - but this rail must not later be
-                 pointed at a long list without turning it back on. -->
-            <Border Grid.Column="0" Background="{DynamicResource SidebarBrush}"
-                    BorderBrush="{DynamicResource SidebarHairlineBrush}" BorderThickness="0,0,1,0">
-                <ScrollViewer VerticalScrollBarVisibility="Auto"
-                              HorizontalScrollBarVisibility="Disabled">
-                    <ScrollViewer.Resources>
-                        <!-- Implicit, because a ScrollViewer builds its own scrollbars
-                             and there is no element here to hang a keyed style on. -->
-                        <Style TargetType="ScrollBar" BasedOn="{StaticResource SlimScrollBar}" />
-                    </ScrollViewer.Resources>
+                            <TextBox x:Name="PaletteQuery" Grid.Column="1" FontSize="14"
+                                     Background="Transparent" BorderThickness="0"
+                                     Foreground="{DynamicResource TextPrimaryBrush}"
+                                     CaretBrush="{DynamicResource AccentBrush}"
+                                     Text="{Binding CommandPalette.Query, UpdateSourceTrigger=PropertyChanged}"
+                                     PreviewKeyDown="OnPaletteKeyDown" />
+                        </Grid>
+                    </Border>
 
-                    <ListBox x:Name="Rail" Style="{StaticResource NavList}"
-                             ItemsSource="{Binding GroupedSections.View}"
-                             SelectedItem="{Binding SelectedSection}"
-                             SelectionChanged="OnSectionSelected"
-                             Margin="0,4,0,10" VerticalAlignment="Top">
-                        <ListBox.GroupStyle>
-                            <StaticResource ResourceKey="NavGroups" />
-                        </ListBox.GroupStyle>
-                        <ListBox.ItemTemplate>
+                    <ItemsControl ItemsSource="{Binding CommandPalette.Results}" Margin="0,6,0,8">
+                        <ItemsControl.ItemTemplate>
                             <DataTemplate>
-                                <Border x:Name="Cell" Width="66" Height="46" CornerRadius="11"
-                                        Background="Transparent" HorizontalAlignment="Center"
-                                        ToolTip="{Binding Subtitle}">
-                                    <StackPanel VerticalAlignment="Center">
-                                        <TextBlock x:Name="Glyph" Text="{Binding Glyph}"
-                                                   FontFamily="Segoe MDL2 Assets" FontSize="15"
-                                                   Foreground="{Binding Accent}"
-                                                   HorizontalAlignment="Center" />
-                                        <TextBlock x:Name="Label" Text="{Binding Title}"
-                                                   FontSize="8" Margin="0,3,0,0"
-                                                   HorizontalAlignment="Center"
-                                                   TextTrimming="CharacterEllipsis" MaxWidth="62"
+                                <Border x:Name="Row" Padding="15,7" Background="Transparent"
+                                        Cursor="Hand" MouseLeftButtonUp="OnPaletteRowClicked"
+                                        Tag="{Binding}">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+
+                                        <StackPanel Grid.Column="0" Orientation="Horizontal">
+                                            <TextBlock Text="{Binding Title}" FontSize="12.5"
+                                                       TextTrimming="CharacterEllipsis"
+                                                       Foreground="{DynamicResource TextPrimaryBrush}" />
+
+                                            <!-- Labelled inside the palette, so speed never
+                                                 hides consequence. -->
+                                            <Border Style="{StaticResource Chip}"
+                                                    Background="{DynamicResource SurfaceSunkenBrush}"
+                                                    Visibility="{Binding IsDestructive,
+                                                        Converter={StaticResource BoolToVisibility}}">
+                                                <TextBlock Text="irreversible"
+                                                           Style="{StaticResource ChipText}"
+                                                           Foreground="{DynamicResource DangerBrush}" />
+                                            </Border>
+                                        </StackPanel>
+
+                                        <TextBlock Grid.Column="1" Text="{Binding Context}"
+                                                   FontFamily="{StaticResource MonoFont}" FontSize="10"
+                                                   VerticalAlignment="Center" Margin="12,0,0,0"
                                                    Foreground="{DynamicResource TextMutedBrush}" />
-                                    </StackPanel>
+                                    </Grid>
                                 </Border>
 
                                 <DataTemplate.Triggers>
-                                    <DataTrigger Value="True"
-                                                 Binding="{Binding IsMouseOver,
-                                                     RelativeSource={RelativeSource AncestorType=ListBoxItem}}">
-                                        <Setter TargetName="Cell" Property="Background" Value="{DynamicResource SidebarHoverBrush}" />
-                                        <Setter TargetName="Label" Property="Foreground"
-                                                Value="{DynamicResource TextSecondaryBrush}" />
+                                    <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                        <Setter TargetName="Row" Property="Background"
+                                                Value="{DynamicResource AccentSoftBrush}" />
                                     </DataTrigger>
                                     <DataTrigger Value="True"
-                                                 Binding="{Binding IsSelected,
-                                                     RelativeSource={RelativeSource AncestorType=ListBoxItem}}">
-                                        <Setter TargetName="Cell" Property="Background"
-                                                Value="{Binding SelectedFill}" />
-                                        <Setter TargetName="Label" Property="Foreground"
-                                                Value="{DynamicResource TextPrimaryBrush}" />
+                                                 Binding="{Binding IsMouseOver,
+                                                     RelativeSource={RelativeSource Self}}">
+                                        <Setter TargetName="Row" Property="Background"
+                                                Value="{DynamicResource HoverBrush}" />
                                     </DataTrigger>
                                 </DataTemplate.Triggers>
                             </DataTemplate>
-                        </ListBox.ItemTemplate>
-                    </ListBox>
-                </ScrollViewer>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </DockPanel>
             </Border>
-
-            <!-- ===== stage =====
-                 One host rather than seventeen panels taking turns being visible.
-                 Only the selected section's template is built, so a stage costs
-                 nothing until someone navigates to it. -->
-            <ContentControl Grid.Column="1" Margin="26,10,26,8"
-                            Content="{Binding SelectedSection}"
-                            ContentTemplateSelector="{StaticResource SectionTemplates}" />
         </Grid>
-
-        <!-- ==================== status ==================== -->
-        <StackPanel Grid.Row="2">
-            <ProgressBar Style="{StaticResource SlimProgress}" IsIndeterminate="True"
-                         Visibility="{Binding IsBusy, Converter={StaticResource BoolToVisibility}}" />
-            <Border Background="{DynamicResource SurfaceSunkenBrush}" Padding="18,9"
-                    BorderBrush="{DynamicResource HairlineBrush}" BorderThickness="0,1,0,0">
-                <TextBlock Text="{Binding Status}" Style="{StaticResource BodyText}"
-                           TextTrimming="CharacterEllipsis" />
-            </Border>
-        </StackPanel>
     </Grid>
 </Window>

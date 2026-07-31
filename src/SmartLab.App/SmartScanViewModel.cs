@@ -40,6 +40,7 @@ public sealed partial class SectionResultViewModel(NavSection section) : Observa
     [ObservableProperty] private int _findings;
     [ObservableProperty] private string _summary = string.Empty;
     [ObservableProperty] private bool _skipped;
+    [ObservableProperty] private string _tone = "neutral";
 }
 
 /// <summary>
@@ -120,8 +121,10 @@ public sealed partial class SmartScanViewModel(MainViewModel shell) : Observable
                 row.Findings = outcome.Findings;
                 row.Summary = outcome.Summary;
                 row.Skipped = outcome.Skipped;
+                row.Tone = outcome.Tone;
                 row.State = outcome.Skipped ? "skipped" : $"{outcome.Findings} finding(s)";
 
+                Badge(section, outcome);
                 UpdateSummary();
             }
 
@@ -159,6 +162,40 @@ public sealed partial class SmartScanViewModel(MainViewModel shell) : Observable
     private void Open(SectionResultViewModel? row)
     {
         if (row is not null) shell.SelectedSection = row.Section;
+    }
+
+    /// <summary>
+    /// Writes a section's count onto its rail entry.
+    /// </summary>
+    /// <remarks>
+    /// This is what stops Home being a screen you must return to: once a check has run,
+    /// the navigation itself reports what each section found, so the state of the
+    /// machine is legible from wherever the operator happens to be standing.
+    /// </remarks>
+    private static void Badge(NavSection section, SectionOutcome outcome)
+    {
+        if (outcome.Skipped)
+        {
+            // A skipped section shows a mark rather than a zero. Zero is a finding;
+            // "could not look" is not, and the two must never share a glyph.
+            section.Badge = "?";
+            section.BadgeTone = "warn";
+            return;
+        }
+
+        if (outcome.Findings == 0)
+        {
+            section.ClearBadge();
+            return;
+        }
+
+        section.Badge = outcome.Findings > 99 ? "99+" : outcome.Findings.ToString();
+        section.BadgeTone = outcome.Tone switch
+        {
+            "danger" => "alert",
+            "warning" => "warn",
+            _ => string.Empty,
+        };
     }
 
     /// <summary>
@@ -250,17 +287,17 @@ public sealed partial class SmartScanViewModel(MainViewModel shell) : Observable
     {
         FindingCount = Results.Where(r => !r.Skipped).Sum(r => r.Findings);
 
-        var tones = Results.Where(r => !r.Skipped).Select(r => r.Section.Key).ToArray();
-
         (Headline, HeadlineDetail, HeadlineTone) = Summarise(
             FindingCount, Results.Count, Results.Count(r => r.Skipped), WorstTone(), HasRun);
     }
 
+    /// <remarks>
+    /// Worst wins. A machine with one worm and six tidy sections is not "mostly fine",
+    /// and an average would say it was.
+    /// </remarks>
     private string WorstTone()
     {
-        // Worst wins. A machine with one worm and six tidy sections is not "mostly
-        // fine", and an average would say it was.
-        var tones = Results.Where(r => !r.Skipped).Select(r => ToneOf(r)).ToArray();
+        var tones = Results.Where(r => !r.Skipped).Select(r => r.Tone).ToArray();
 
         if (tones.Contains("danger")) return "danger";
         if (tones.Contains("warning")) return "warning";
@@ -268,9 +305,6 @@ public sealed partial class SmartScanViewModel(MainViewModel shell) : Observable
 
         return "neutral";
     }
-
-    private static string ToneOf(SectionResultViewModel row) =>
-        row.Findings > 0 ? "warning" : "good";
 
     /// <summary>The heading above the dial.</summary>
     /// <remarks>

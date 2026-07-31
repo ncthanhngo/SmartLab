@@ -113,7 +113,7 @@ public sealed partial class DeletedEntryViewModel(
 /// their own. Empty rather than null so the heading template can suppress itself on
 /// a blank string instead of every ungrouped section needing a special case.
 /// </param>
-public sealed class NavSection(
+public sealed partial class NavSection(
     string key, string title, string subtitle, string glyph, string accentKey, string group = "")
     : ObservableObject
 {
@@ -123,6 +123,31 @@ public sealed class NavSection(
     public string Glyph { get; } = glyph;
     public string AccentKey { get; } = accentKey;
     public string Group { get; } = group;
+
+    /// <summary>
+    /// This section's own count, once something has measured it.
+    /// </summary>
+    /// <remarks>
+    /// Put here so the navigation becomes the summary. Before this, reading the state
+    /// of the machine meant visiting seventeen screens or returning to one that
+    /// aggregated them; now the rail carries it and Home stops being somewhere you
+    /// have to go back to.
+    /// </remarks>
+    [ObservableProperty] private string _badge = string.Empty;
+
+    /// <summary>Empty, "warn" or "alert" - what the badge deserves.</summary>
+    [ObservableProperty] private string _badgeTone = string.Empty;
+
+    public bool HasBadge => Badge.Length > 0;
+
+    partial void OnBadgeChanged(string value) => OnPropertyChanged(nameof(HasBadge));
+
+    /// <summary>Clears the count, for when the thing it described is no longer true.</summary>
+    public void ClearBadge()
+    {
+        Badge = string.Empty;
+        BadgeTone = string.Empty;
+    }
 
     /// <summary>Full-strength accent, for the glyph itself.</summary>
     public Brush Accent => Frozen(1.0);
@@ -179,7 +204,7 @@ public sealed partial class MainViewModel : ObservableObject
     /// </remarks>
     public ObservableCollection<NavSection> Sections { get; } =
     [
-        new("smart", "Smart Scan", "Everything, measured", Glyph(0xE9D9), "NavSmartHex"),
+        new("home", "Home", "Check everything, change nothing", Glyph(0xE80F), "NavSmartHex"),
 
         new("cleanup", "System Junk", "Reclaim disk space", Glyph(0xE74E), "NavCleanupHex", GroupCleanup),
         new("mail", "Mail", "Outlook attachment cache", Glyph(0xE715), "NavMailHex", GroupCleanup),
@@ -260,6 +285,9 @@ public sealed partial class MainViewModel : ObservableObject
     /// halves already live here.
     /// </remarks>
     public SmartScanViewModel SmartScan { get; }
+
+    /// <summary>Ctrl+K over every section and every action. Seventeen is too many to point at.</summary>
+    public CommandPaletteViewModel CommandPalette { get; }
 
     [ObservableProperty] private NavSection? _selectedSection;
 
@@ -370,6 +398,7 @@ public sealed partial class MainViewModel : ObservableObject
     public MainViewModel()
     {
         SmartScan = new SmartScanViewModel(this);
+        CommandPalette = new CommandPaletteViewModel(this);
 
         SelectedSection = Sections[0];
 
@@ -446,6 +475,16 @@ public sealed partial class MainViewModel : ObservableObject
         {
             Status = $"Auto-scan failed: {ex.Message}";
         }
+    }
+
+    /// <summary>
+    /// Bound to Ctrl+K. The window owns the focus half; this owns the state.
+    /// </summary>
+    [RelayCommand]
+    private void OpenPalette()
+    {
+        if (System.Windows.Application.Current?.MainWindow is MainWindow window) window.OpenPalette();
+        else CommandPalette.Open();
     }
 
     [RelayCommand]

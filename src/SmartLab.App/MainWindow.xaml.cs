@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
@@ -11,8 +12,10 @@ using Application = System.Windows.Application;
 using Drawing = System.Drawing;
 using Forms = System.Windows.Forms;
 
-// WinForms is referenced for the tray icon, which makes ListBox ambiguous.
+// WinForms is referenced for the tray icon, which makes these ambiguous.
 using ListBox = System.Windows.Controls.ListBox;
+using KeyEventArgs = System.Windows.Input.KeyEventArgs;
+using MouseButtonEventArgs = System.Windows.Input.MouseButtonEventArgs;
 
 namespace SmartLab.App;
 
@@ -53,6 +56,68 @@ public partial class MainWindow : Window
     {
         if (sender is ListBox rail && rail.SelectedItem is { } selected)
             rail.ScrollIntoView(selected);
+    }
+
+    // ---- command palette --------------------------------------------------------
+
+    private void OnOmnibarClicked(object sender, MouseButtonEventArgs e) => OpenPalette();
+
+    /// <summary>
+    /// Opens the palette and puts the caret in it.
+    /// </summary>
+    /// <remarks>
+    /// Focus has to be moved in code: the box is inside a collapsed element until the
+    /// moment it opens, and WPF will not focus something that was not there when the
+    /// command ran. The dispatcher call waits for the layout pass that reveals it.
+    /// </remarks>
+    public void OpenPalette()
+    {
+        ViewModel?.CommandPalette.Open();
+
+        Dispatcher.BeginInvoke(DispatcherPriority.Input, () =>
+        {
+            PaletteQuery.Focus();
+            PaletteQuery.SelectAll();
+        });
+    }
+
+    /// <remarks>
+    /// Handled on the text box rather than as window input bindings, because the arrow
+    /// keys have to move the palette's highlight rather than the caret, and Enter must
+    /// not reach whatever is behind the overlay.
+    /// </remarks>
+    private void OnPaletteKeyDown(object sender, KeyEventArgs e)
+    {
+        if (ViewModel?.CommandPalette is not { } palette) return;
+
+        switch (e.Key)
+        {
+            case Key.Down:
+                palette.Move(1);
+                e.Handled = true;
+                break;
+
+            case Key.Up:
+                palette.Move(-1);
+                e.Handled = true;
+                break;
+
+            case Key.Enter:
+                palette.InvokeCommand.Execute(null);
+                e.Handled = true;
+                break;
+
+            case Key.Escape:
+                palette.CloseCommand.Execute(null);
+                e.Handled = true;
+                break;
+        }
+    }
+
+    private void OnPaletteRowClicked(object sender, MouseButtonEventArgs e)
+    {
+        if (sender is FrameworkElement { DataContext: PaletteEntry entry })
+            ViewModel?.CommandPalette.InvokeCommand.Execute(entry);
     }
 
     // ---- volume watching --------------------------------------------------------
