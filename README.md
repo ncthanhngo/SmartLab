@@ -391,6 +391,32 @@ One smaller one. **Startup** disables by moving a Run value to a backup key rath
 than deleting it, because a Run value's quoting is load-bearing and a restore that
 loses a pair of quotes breaks the program it was meant to protect.
 
+### What reaches the network
+
+Two things, both on a button press and never on a timer.
+
+**Updater** shells out to `winget`, which downloads and installs the upgrade itself —
+one package at a time, each with its own result, because a batch that fails halfway
+leaves nobody able to say which packages actually changed. Packages winget merely
+recognises rather than installed arrive unticked: upgrading one of those replaces a
+hand-placed build with the store's. Machine-scope packages need an elevated winget,
+and when that is refused the row carries what winget said rather than a generic
+failure.
+
+**About** asks GitHub for the latest published release when someone presses *Check for
+updates*. It sends the request and nothing else, and it downloads and installs
+nothing: a newer version reveals a button that opens the release page in a browser.
+A tag that cannot be read as a version — `nightly`, or a repository with no release at
+all — reports as unknown rather than as an update, because telling someone their build
+is out of date when it is not is the one failure this feature must not have. Nothing
+checks at startup; an app that reaches the network on its own to talk about itself has
+decided something on the operator's behalf.
+
+The About page's feature list is derived from the rail rather than written a second
+time, and `AboutTests` asserts that the newest release note carries the version the
+app reports — a build that ships with the previous version's notes claims fixes it
+does not have.
+
 The window no longer has a Mail section or an Add-ons section. Both scanners are
 still in `SmartLab.Maintenance` and still tested — `scan` reports the Outlook
 attachment cache from the command line — but neither has a stage any more. The rules

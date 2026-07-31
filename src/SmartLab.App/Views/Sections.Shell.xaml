@@ -323,35 +323,205 @@
 
     <!-- ================= About ================= -->
 
+    <!--
+        Three questions, in the order someone asks them: what is this, what can it do,
+        and is there a newer one. Identity and the update check stay on the left where
+        they are always visible; the two lists scroll on the right, because between
+        them they are longer than any window.
+    -->
     <DataTemplate x:Key="section-about">
         <ctl:SectionFrame Title="About"
+                          Subtitle="What Smart Lab is, what each section does, and what every version changed."
+                          Status="{Binding About.UpdateStatus}"
                           DataContext="{Binding DataContext,
                               RelativeSource={RelativeSource AncestorType=Window}}">
-            <Border Style="{StaticResource Card}" Padding="34"
-                    HorizontalAlignment="Center" VerticalAlignment="Center" MaxWidth="520">
-                <StackPanel HorizontalAlignment="Center">
-                    <Control Style="{StaticResource LogoMark}" HorizontalAlignment="Center" />
-                    <TextBlock Text="Smart Lab" Style="{StaticResource DisplayText}"
-                               HorizontalAlignment="Center" Margin="0,14,0,0" />
-                    <Control Style="{StaticResource LogoLockup}" HorizontalAlignment="Center"
-                             Margin="0,8,0,0" />
-                    <TextBlock Style="{StaticResource BodyText}" TextAlignment="Center"
-                               Margin="0,18,0,0" MaxWidth="400"
-                               Text="Triage, recovery and maintenance for Windows machines and the drives they read. Built from a real worm infection: the data was not hidden, it was moved into a folder named with a single invisible character." />
-                    <Border Background="{DynamicResource SurfaceSunkenBrush}"
-                            CornerRadius="{StaticResource ControlRadius}"
-                            Padding="16,12" Margin="0,20,0,0">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="330" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <!-- ===== identity and the update check ===== -->
+                <StackPanel Grid.Column="0" Margin="0,0,20,0">
+                    <Border Style="{StaticResource Card}" Padding="24">
                         <StackPanel>
-                            <TextBlock Style="{StaticResource CaptionText}" HorizontalAlignment="Center"
-                                       Text="{Binding Source={x:Static local:MainViewModel.AppVersion},
-                                                      StringFormat='Version {0}'}" />
-                            <TextBlock HorizontalAlignment="Center" Margin="0,4,0,0" FontSize="13.5"
-                                       Foreground="{DynamicResource AccentBrush}"
-                                       Text="{Binding Source={x:Static local:MainViewModel.AppAuthor}}" />
+                            <Control Style="{StaticResource LogoMark}" HorizontalAlignment="Center" />
+                            <TextBlock Text="Smart Lab" Style="{StaticResource DisplayText}"
+                                       HorizontalAlignment="Center" Margin="0,12,0,0" />
+                            <Control Style="{StaticResource LogoLockup}" HorizontalAlignment="Center"
+                                     Margin="0,8,0,0" />
+
+                            <TextBlock Style="{StaticResource BodyText}" TextAlignment="Center"
+                                       Margin="0,16,0,0"
+                                       Text="Triage, recovery and maintenance for Windows machines and the drives they read. Built from a real worm infection: the data was not hidden, it was moved into a folder named with a single invisible character." />
+
+                            <Border Background="{DynamicResource SurfaceSunkenBrush}"
+                                    CornerRadius="{StaticResource ControlRadius}"
+                                    Padding="16,12" Margin="0,18,0,0">
+                                <StackPanel>
+                                    <TextBlock Style="{StaticResource CaptionText}"
+                                               HorizontalAlignment="Center"
+                                               Text="{Binding Source={x:Static local:MainViewModel.AppVersion},
+                                                              StringFormat='Version {0}'}" />
+                                    <TextBlock HorizontalAlignment="Center" Margin="0,4,0,0"
+                                               FontSize="13.5"
+                                               Foreground="{DynamicResource AccentBrush}"
+                                               Text="{Binding Source={x:Static local:MainViewModel.AppAuthor}}" />
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Style="{StaticResource Card}" Padding="20" Margin="0,12,0,0"
+                            DataContext="{Binding About}">
+                        <StackPanel>
+                            <TextBlock Text="Updates" Style="{StaticResource SectionTitle}" />
+
+                            <TextBlock Style="{StaticResource CaptionText}" Margin="0,0,0,14"
+                                       Text="{Binding UpdateStatus}" />
+
+                            <!-- Only appears once a newer version has actually been
+                                 found, and it opens the release page rather than
+                                 downloading anything: nothing on this machine is
+                                 replaced by a button in an About screen. -->
+                            <Button Content="Open the release page"
+                                    Style="{StaticResource GhostButton}"
+                                    HorizontalAlignment="Stretch" Margin="0,0,0,8"
+                                    Command="{Binding OpenReleasesCommand}"
+                                    Visibility="{Binding HasNewerVersion,
+                                        Converter={StaticResource BoolToVisibility}}" />
+
+                            <Button Content="Check for updates"
+                                    Style="{StaticResource PrimaryButton}"
+                                    HorizontalAlignment="Stretch"
+                                    Command="{Binding CheckForUpdateCommand}" />
                         </StackPanel>
                     </Border>
                 </StackPanel>
-            </Border>
+
+                <!-- ===== what it does, and what changed ===== -->
+                <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto"
+                              HorizontalScrollBarVisibility="Disabled">
+                    <StackPanel Margin="0,0,10,0">
+                        <Border Style="{StaticResource Card}" Padding="20">
+                            <StackPanel>
+                                <TextBlock Text="What it does" Style="{StaticResource SectionTitle}" />
+
+                                <ItemsControl ItemsSource="{Binding About.FeatureGroups}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <StackPanel>
+                                                <TextBlock Text="{Binding Name}"
+                                                           Style="{StaticResource GroupLabel}"
+                                                           Margin="0,10,0,5" />
+
+                                                <ItemsControl ItemsSource="{Binding Features}">
+                                                    <ItemsControl.ItemTemplate>
+                                                        <DataTemplate>
+                                                            <Grid Margin="0,0,0,7">
+                                                                <Grid.ColumnDefinitions>
+                                                                    <ColumnDefinition Width="120" />
+                                                                    <ColumnDefinition Width="*" />
+                                                                </Grid.ColumnDefinitions>
+
+                                                                <TextBlock Grid.Column="0" Text="{Binding Title}"
+                                                                           FontSize="13" FontWeight="SemiBold"
+                                                                           TextTrimming="CharacterEllipsis"
+                                                                           Foreground="{DynamicResource TextPrimaryBrush}" />
+                                                                <TextBlock Grid.Column="1" Text="{Binding Detail}"
+                                                                           FontSize="13" TextWrapping="Wrap"
+                                                                           Foreground="{DynamicResource TextSecondaryBrush}" />
+                                                            </Grid>
+                                                        </DataTemplate>
+                                                    </ItemsControl.ItemTemplate>
+                                                </ItemsControl>
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Style="{StaticResource Card}" Padding="20" Margin="0,12,0,0">
+                            <StackPanel>
+                                <TextBlock Text="Release notes" Style="{StaticResource SectionTitle}" />
+
+                                <ItemsControl ItemsSource="{Binding Source={x:Static local:AboutViewModel.ReleaseNotes}}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <StackPanel Margin="0,0,0,16">
+                                                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                                    <TextBlock Text="{Binding Version}"
+                                                               FontFamily="{StaticResource MonoFont}"
+                                                               FontSize="15" FontWeight="Bold"
+                                                               Foreground="{DynamicResource TextPrimaryBrush}" />
+                                                    <TextBlock Text="{Binding Date}"
+                                                               FontSize="12.5" VerticalAlignment="Center"
+                                                               Margin="10,0,0,0"
+                                                               Foreground="{DynamicResource TextMutedBrush}" />
+                                                </StackPanel>
+
+                                                <!-- Added and Fixed are separate lists, not one
+                                                     mixed one: a reader deciding whether to
+                                                     upgrade is asking a different question in
+                                                     each case. -->
+                                                <ItemsControl ItemsSource="{Binding Added}"
+                                                              Visibility="{Binding HasAdditions,
+                                                                  Converter={StaticResource BoolToVisibility}}">
+                                                    <ItemsControl.ItemTemplate>
+                                                        <DataTemplate>
+                                                            <Grid Margin="0,0,0,5">
+                                                                <Grid.ColumnDefinitions>
+                                                                    <ColumnDefinition Width="Auto" />
+                                                                    <ColumnDefinition Width="*" />
+                                                                </Grid.ColumnDefinitions>
+                                                                <Border Grid.Column="0" Width="6" Height="6"
+                                                                        CornerRadius="3" Margin="2,7,10,0"
+                                                                        VerticalAlignment="Top"
+                                                                        Background="{DynamicResource AccentBrush}" />
+                                                                <TextBlock Grid.Column="1" Text="{Binding}"
+                                                                           FontSize="13" TextWrapping="Wrap"
+                                                                           Foreground="{DynamicResource TextSecondaryBrush}" />
+                                                            </Grid>
+                                                        </DataTemplate>
+                                                    </ItemsControl.ItemTemplate>
+                                                </ItemsControl>
+
+                                                <TextBlock Text="Fixed" Style="{StaticResource GroupLabel}"
+                                                           Margin="0,10,0,4"
+                                                           Visibility="{Binding HasFixes,
+                                                               Converter={StaticResource BoolToVisibility}}" />
+
+                                                <ItemsControl ItemsSource="{Binding Fixed}"
+                                                              Visibility="{Binding HasFixes,
+                                                                  Converter={StaticResource BoolToVisibility}}">
+                                                    <ItemsControl.ItemTemplate>
+                                                        <DataTemplate>
+                                                            <Grid Margin="0,0,0,5">
+                                                                <Grid.ColumnDefinitions>
+                                                                    <ColumnDefinition Width="Auto" />
+                                                                    <ColumnDefinition Width="*" />
+                                                                </Grid.ColumnDefinitions>
+                                                                <Border Grid.Column="0" Width="6" Height="6"
+                                                                        CornerRadius="3" Margin="2,7,10,0"
+                                                                        VerticalAlignment="Top"
+                                                                        Background="{DynamicResource WarningBrush}" />
+                                                                <TextBlock Grid.Column="1" Text="{Binding}"
+                                                                           FontSize="13" TextWrapping="Wrap"
+                                                                           Foreground="{DynamicResource TextSecondaryBrush}" />
+                                                            </Grid>
+                                                        </DataTemplate>
+                                                    </ItemsControl.ItemTemplate>
+                                                </ItemsControl>
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+            </Grid>
         </ctl:SectionFrame>
     </DataTemplate>
 

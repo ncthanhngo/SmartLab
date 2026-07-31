@@ -289,6 +289,9 @@ public sealed partial class MainViewModel : ObservableObject
     /// </remarks>
     public SmartScanViewModel SmartScan { get; }
 
+    /// <summary>Version, release notes, and whether a newer build exists.</summary>
+    public AboutViewModel About { get; }
+
     /// <summary>Ctrl+K over every section and every action. Seventeen is too many to point at.</summary>
     public CommandPaletteViewModel CommandPalette { get; }
 
@@ -402,6 +405,7 @@ public sealed partial class MainViewModel : ObservableObject
     {
         SmartScan = new SmartScanViewModel(this);
         CommandPalette = new CommandPaletteViewModel(this);
+        About = new AboutViewModel(this);
 
         SelectedSection = Sections[0];
 
