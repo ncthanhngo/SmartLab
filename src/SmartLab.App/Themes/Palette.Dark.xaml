@@ -11,32 +11,30 @@
         shadows, which is what keeps a dark interface from looking like a stack of
         outlined boxes.
 
-        Blue-black rather than neutral black. A trace of hue in the darkest tones is
-        what stops a dark interface reading as switched off, and it gives the
-        coloured accents something to sit against instead of a void.
+        Grey, like the light theme, rather than the violet this carried for a while.
+        Two themes with different ideas of atmosphere read as two products. The blue
+        bias in the greys is what stops a neutral dark reading as switched off, and
+        it gives the coloured accents something to sit against instead of a void.
     -->
 
-    <!-- Violet rather than blue-black. The window is the big card and this pair is
-         its surface: a trace of hue in the darkest tones is what stops a dark
-         interface reading as switched off, and it gives the coloured accents
-         something to sit against instead of a void. -->
-    <Color x:Key="ShellTopColor">#332553</Color>
-    <Color x:Key="ShellBottomColor">#1D1435</Color>
+    <!-- The window is the big card, and this pair is its surface. -->
+    <Color x:Key="ShellTopColor">#2A2E36</Color>
+    <Color x:Key="ShellBottomColor">#161A20</Color>
 
-    <SolidColorBrush x:Key="SurfaceBrush" Color="#1E1733" />
-    <SolidColorBrush x:Key="SurfaceRaisedBrush" Color="#282040" />
-    <SolidColorBrush x:Key="SurfaceSunkenBrush" Color="#171029" />
+    <SolidColorBrush x:Key="SurfaceBrush" Color="#20252D" />
+    <SolidColorBrush x:Key="SurfaceRaisedBrush" Color="#2A3038" />
+    <SolidColorBrush x:Key="SurfaceSunkenBrush" Color="#181C23" />
 
     <!-- What the rail drops onto the card below it. Nearly black, since on a dark
          theme a shadow can only be read as an absence of the surface's light. -->
-    <Color x:Key="CardShadowColor">#0A0614</Color>
+    <Color x:Key="CardShadowColor">#05070A</Color>
 
-    <!-- The rail card. A lighter violet than the surface it is stacked on, so the
-         two pieces separate by tone alone and neither needs a border to be found. -->
+    <!-- The rail card. A lighter grey than the surface it is stacked on, so the two
+         pieces separate by tone alone and neither needs a border to be found. -->
     <LinearGradientBrush x:Key="SidebarBrush" StartPoint="0,0" EndPoint="0.6,1">
-        <GradientStop Color="#553A8A" Offset="0" />
-        <GradientStop Color="#3E2A6B" Offset="0.5" />
-        <GradientStop Color="#2C1D4E" Offset="1" />
+        <GradientStop Color="#39404A" Offset="0" />
+        <GradientStop Color="#30363F" Offset="0.5" />
+        <GradientStop Color="#272C34" Offset="1" />
     </LinearGradientBrush>
 
     <LinearGradientBrush x:Key="BrandBlockBrush" StartPoint="0,0" EndPoint="1,1">
@@ -44,13 +42,13 @@
         <GradientStop Color="#1E2A4C" Offset="1" />
     </LinearGradientBrush>
 
-    <SolidColorBrush x:Key="HairlineBrush" Color="#33294F" />
-    <SolidColorBrush x:Key="SidebarHairlineBrush" Color="#4A3477" />
+    <SolidColorBrush x:Key="HairlineBrush" Color="#2E343D" />
+    <SolidColorBrush x:Key="SidebarHairlineBrush" Color="#3F4650" />
 
-    <!-- Hover fills. The rail has its own because it sits on the violet sidebar
-         gradient, where the neutral one would read as a grey smudge. -->
-    <SolidColorBrush x:Key="HoverBrush" Color="#2A2245" />
-    <SolidColorBrush x:Key="SidebarHoverBrush" Color="#6A4BA5" />
+    <!-- Hover fills. The rail has its own because it sits a shade lighter than the
+         card below it, where the other one barely shows. -->
+    <SolidColorBrush x:Key="HoverBrush" Color="#2B3139" />
+    <SolidColorBrush x:Key="SidebarHoverBrush" Color="#3D4550" />
 
     <!-- ============================ the three pillars ============================
 
@@ -79,17 +77,16 @@
         <GradientStop Color="#16202A" Offset="1" />
     </LinearGradientBrush>
 
-    <!-- Warmed toward the violet ground and lifted. The blue-grey greys these replaced
-         were chosen against a blue-black surface; on violet they sat near 3:1, which
-         is not a colour a caption can be read in. -->
-    <SolidColorBrush x:Key="TextPrimaryBrush" Color="#F2EEFC" />
-    <SolidColorBrush x:Key="TextSecondaryBrush" Color="#C4B9DF" />
-    <SolidColorBrush x:Key="TextMutedBrush" Color="#9C90BE" />
+    <!-- Lifted well clear of the surfaces below. The greys these replaced sat near
+         3:1, which is not a colour a caption can be read in. -->
+    <SolidColorBrush x:Key="TextPrimaryBrush" Color="#F1F3F6" />
+    <SolidColorBrush x:Key="TextSecondaryBrush" Color="#BFC6D0" />
+    <SolidColorBrush x:Key="TextMutedBrush" Color="#98A1AD" />
 
-    <!-- The rail has its own pair. It sits on the lighter half of the violet gradient,
-         where the surface brushes above lose most of their separation. -->
-    <SolidColorBrush x:Key="SidebarTextBrush" Color="#F4EFFF" />
-    <SolidColorBrush x:Key="SidebarMutedBrush" Color="#C9BAEC" />
+    <!-- The rail has its own pair. It sits a shade lighter than the card below it,
+         where the brushes above lose most of their separation. -->
+    <SolidColorBrush x:Key="SidebarTextBrush" Color="#F4F6F9" />
+    <SolidColorBrush x:Key="SidebarMutedBrush" Color="#C3CAD4" />
 
     <!-- Accent taken from the EVSELab mark, so the brand reads as the app's. -->
     <Color x:Key="AccentColor">#2BD673</Color>

@@ -96,7 +96,7 @@ public sealed partial class AboutViewModel(MainViewModel shell) : ObservableObje
                 "Repair also says whether a PC will still start from the stick, and offers the two fixes Windows' own tools can make: marking the partition active, and rewriting the boot code.",
                 "Deleted: carves erased files off FAT32 and exFAT volumes and grades how much of each is likely intact.",
                 "Malware: hands naming and quarantine to Microsoft Defender rather than guessing at signatures.",
-                "System Junk, Trash Bins: measures what is disposable and removes only what is ticked.",
+                "Temp & Cache, Recycle Bins: measures what is disposable and removes only what is ticked.",
                 "Disk Map, Big & Stale: shows where the space went, and which large files nothing has written to in months.",
                 "Wipe: overwrites a file and says plainly when the drive makes that meaningless.",
                 "Uninstall, Updater: runs each program's own uninstaller, and upgrades through winget.",

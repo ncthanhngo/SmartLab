@@ -79,7 +79,7 @@
                         </Grid>
                     </Border>
 
-                    <TextBlock Text="Cleanup" Style="{StaticResource PillarName}" />
+                    <TextBlock Text="Reclaim" Style="{StaticResource PillarName}" />
                     <TextBlock Text="Space nothing is using" Style="{StaticResource PillarCaption}" />
                     <TextBlock Text="{Binding CleanupValue}" Style="{StaticResource PillarValue}"
                                Foreground="{DynamicResource PillarCleanupBrush}"
@@ -103,7 +103,7 @@
                         <TextBlock Text="&#xE72E;" Style="{StaticResource PillarGlyph}" />
                     </Border>
 
-                    <TextBlock Text="Protection" Style="{StaticResource PillarName}" />
+                    <TextBlock Text="Security" Style="{StaticResource PillarName}" />
                     <TextBlock Text="Hiding, and what Defender names" Style="{StaticResource PillarCaption}" />
                     <TextBlock Text="{Binding ProtectionValue}" Style="{StaticResource PillarValue}"
                                Foreground="{DynamicResource PillarProtectionBrush}"
@@ -127,7 +127,7 @@
                         <TextBlock Text="&#xEC4A;" Style="{StaticResource PillarGlyph}" />
                     </Border>
 
-                    <TextBlock Text="Speed" Style="{StaticResource PillarName}" />
+                    <TextBlock Text="Performance" Style="{StaticResource PillarName}" />
                     <TextBlock Text="Things to do, not things wrong" Style="{StaticResource PillarCaption}" />
                     <TextBlock Text="{Binding SpeedValue}" Style="{StaticResource PillarValue}"
                                Foreground="{DynamicResource PillarSpeedBrush}"

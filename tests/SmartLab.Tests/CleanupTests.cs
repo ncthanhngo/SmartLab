@@ -12,7 +12,7 @@ public class JunkCatalogueTests
     /// </summary>
     /// <remarks>
     /// Two screens proposing the same irreversible deletion is how one of them ends up
-    /// with the wrong default. Trash Bins owns it, per drive, every row unticked.
+    /// with the wrong default. Recycle Bins owns it, per drive, every row unticked.
     /// </remarks>
     [Fact]
     public void The_recycle_bin_is_not_a_junk_category()

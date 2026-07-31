@@ -8,10 +8,10 @@
         height underneath. The list is what an operator came to read.
     -->
 
-    <!-- ================= System Junk ================= -->
+    <!-- ================= Temp & Cache ================= -->
 
     <DataTemplate x:Key="section-cleanup">
-        <ctl:SectionFrame Title="System Junk" Status="{Binding Status}"
+        <ctl:SectionFrame Title="Temp &amp; Cache" Status="{Binding Status}"
                           Subtitle="Nine places whose entire purpose is holding disposable data. The Recycle Bin is not one of them - it has its own section."
                           DataContext="{Binding DataContext.Cleanup,
                               RelativeSource={RelativeSource AncestorType=Window}}">
@@ -112,10 +112,10 @@
         </ctl:SectionFrame>
     </DataTemplate>
 
-    <!-- ================= Trash Bins ================= -->
+    <!-- ================= Recycle Bins ================= -->
 
     <DataTemplate x:Key="section-trash">
-        <ctl:SectionFrame Title="Trash Bins" Status="{Binding Status}"
+        <ctl:SectionFrame Title="Recycle Bins" Status="{Binding Status}"
                           Subtitle="Every bin starts unticked, on every drive. This is the one place Windows already keeps deleted files intact, and Deleted files recovers from exactly here."
                           DataContext="{Binding DataContext.TrashBins,
                               RelativeSource={RelativeSource AncestorType=Window}}">

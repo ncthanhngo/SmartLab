@@ -170,11 +170,15 @@ locking need Administrator, but the UI must not run elevated.
 - A colour added to one palette must be added to the other. A missing key breaks
   in whichever theme nobody was working in, which is why `PaletteParityTests`
   compares the two key sets.
-- The two themes are chosen, not inverted, and they do not carry the same idea of
-  atmosphere. Dark takes its ground from a violet gradient, which is what keeps a
-  dark interface from reading as switched off. Light takes its from grey and white
-  alone: on a pale ground the same tint stains every white card it is meant to hold
-  up, so on light the colour comes from the sections themselves.
+- The two themes are chosen rather than inverted, but they share one idea of
+  atmosphere: grey and white, with the colour coming from the sections themselves.
+  Dark carried a violet ground for a while and it worked on its own — beside a
+  neutral light theme it read as a second product. The blue bias in the dark greys
+  is what stops a neutral dark reading as switched off.
+- A transparent window costs ClearType, and `RenderOptions.ClearTypeHint="Enabled"`
+  on both cards is what buys it back. WPF cannot subpixel-render onto a surface with
+  an alpha channel; a subtree that paints its own opaque background can be told it
+  is safe to do so anyway. Anything added outside those two cards renders greyscale.
 - Text sits on four grounds, not one, so the text brushes come in pairs.
   `SidebarText`/`SidebarMuted` are for the rail card, which is a different tone from
   the stage in both themes; using the stage's pair there costs about a stop of
@@ -222,13 +226,13 @@ succeeded" and "the volume is clean" are different claims.
 | Rescue copy | implemented, unit tested |
 | CLI `scan` / `apply` / `raw` | implemented, validated on live drives |
 | WPF UI | implemented, fifteen sections (see below) |
-| Trash Bins | implemented, unit tested |
+| Recycle Bins | implemented, unit tested |
 | Disk Map, Big & Stale, Wipe | implemented, unit tested |
 | Updater (winget) | implemented, unit tested |
 | Startup items, Windows repair tools | implemented, unit tested |
 | Malware Removal (Defender delegation) | implemented, unit tested |
 | Smart Scan | implemented, unit tested |
-| Boot repair (diskpart / bootsect) | implemented, unit tested; not yet run against a real stick |
+| Boot repair (diskpart / bootsect) | implemented, unit tested; the check runs in every capture, the two writes not yet run against a real stick |
 | Auto-scan on USB insert | implemented; decoding unit-tested, plug event not yet verified |
 | Raw FAT32 + exFAT sector readers | implemented, validated on live drives |
 | Deleted-file carving (`raw --recover`) | implemented, verified byte-for-byte |
@@ -297,6 +301,11 @@ because those areas were never asked to repaint. `RenderTargetBitmap` walks the
 visual tree instead, so it does not care whether the window is visible, obscured or
 on a locked session.
 
+The run is also the app's only end-to-end exercise of the two things unit tests
+cannot reach: it presses *Check for updates*, so the one network path is proven
+against the real feed rather than only mocked, and it runs the boot check, which is
+all the coverage that half gets on a machine with nothing removable plugged in.
+
 It renders in whichever theme is currently stored, so capturing both means running
 it twice. Wait for each run: `SmartLab.App.exe` is a GUI subsystem binary, so
 PowerShell's `&` returns immediately and two runs will overlap and capture the same
@@ -334,10 +343,10 @@ and leaves nothing behind.
 | Group | Sections |
 | --- | --- |
 | — | Smart Scan |
-| Cleanup | System Junk, Trash Bins |
-| Protection | Repair, Malware |
-| Speed | Startup, Repair OS |
-| Applications | Uninstall, Updater |
+| Reclaim | Temp & Cache, Recycle Bins |
+| Security | Repair, Malware |
+| Performance | Startup, Repair OS |
+| Programs | Uninstall, Updater |
 | Files | Disk Map, Big & Stale, Deleted, Wipe |
 | App | Settings, About |
 
@@ -357,7 +366,7 @@ here is consent to run that section's verb, not permission to override the guard
 section put in front of it.
 
 **Applying never re-scans.** Each apply works from the state its own measure left
-behind — Cleanup cleans the categories it measured, Trash Bins empties the bins it
+behind — Temp & Cache cleans the categories it measured, Recycle Bins empties the bins it
 counted, Repair applies the plan its scan produced. Re-walking the machine would not
 only be slower, it would act on a different machine than the one the operator
 reviewed.
@@ -455,14 +464,12 @@ time, and `AboutTests` asserts that the newest release note carries the version 
 app reports — a build that ships with the previous version's notes claims fixes it
 does not have.
 
-The window no longer has a Mail section or an Add-ons section. Both scanners are
-still in `SmartLab.Maintenance` and still tested — `scan` reports the Outlook
-attachment cache from the command line — but neither has a stage any more. The rules
-they were written under outlive the sections and still hold wherever they run:
-`.ost`, `.pst` and `.nst` are refused at the source, since an OST is a cache in
-Outlook's vocabulary but the mailbox in the user's; the extension scanners read a
-browser profile and never write to one, and the shell-extension scanner has no
-removal path at all.
+The window no longer has a Mail section or an Add-ons section. `OutlookCache` stays
+because the command line still reports it, and the rule it was written under outlives
+the section: `.ost`, `.pst` and `.nst` are refused at the source, since an OST is a
+cache in Outlook's vocabulary but the mailbox in the user's. The extension scanners
+went with their section — with no stage and no CLI command they were code nothing
+called, kept alive only by their own tests.
 
 ### Windows repair tools
 

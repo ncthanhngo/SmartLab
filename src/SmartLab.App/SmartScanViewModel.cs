@@ -44,7 +44,7 @@ public sealed partial class SectionResultViewModel(NavSection section, Pillar pi
     /// <remarks>
     /// Ticked by default only where the section's own defaults already are. Nothing
     /// here overrides a section's judgement about what is safe to tick - the Recycle
-    /// Bin still arrives unticked inside Trash Bins, and this list cannot tick it.
+    /// Bin still arrives unticked inside Recycle Bins, and this list cannot tick it.
     /// </remarks>
     [ObservableProperty] private bool _isSelected = true;
 }
@@ -80,7 +80,7 @@ public enum ScanPhase
 /// </para>
 /// <para>
 /// <b>Applying never re-scans.</b> Each section's apply works from the state its own
-/// measure left behind: Cleanup cleans the categories it measured, Trash Bins empties
+/// measure left behind: Cleanup cleans the categories it measured, Recycle Bins empties
 /// the bins it counted, Repair applies the plan its scan produced. Re-walking the
 /// machine would not only be slow, it would act on a different machine than the one
 /// the operator reviewed.
@@ -357,7 +357,7 @@ public sealed partial class SmartScanViewModel(MainViewModel shell) : Observable
         var bytes = shell.Cleanup.Categories.Where(c => c.IsSelected && c.Measured).Sum(c => c.Bytes);
         var measured = shell.Cleanup.Categories.Count(c => c.Measured && c.Bytes > 0);
 
-        return new SectionOutcome("System Junk", measured, measured > 0 ? "warning" : "good",
+        return new SectionOutcome("Temp & Cache", measured, measured > 0 ? "warning" : "good",
             $"{shell.Cleanup.TotalText} reclaimable from the ticked categories.")
         {
             Bytes = bytes,
@@ -375,7 +375,7 @@ public sealed partial class SmartScanViewModel(MainViewModel shell) : Observable
         // files are recovered from, so counting it as space this tool would free would
         // put the headline figure at odds with what an apply actually does - nothing,
         // because every bin arrives unticked.
-        return Task.FromResult(new SectionOutcome("Trash Bins", bins, "neutral",
+        return Task.FromResult(new SectionOutcome("Recycle Bins", bins, "neutral",
             $"{shell.TrashBins.ItemCount:N0} deleted item(s) still recoverable from Explorer.")
         {
             IsActionable = shell.TrashBins.Bins.Any(b => b.IsSelected),

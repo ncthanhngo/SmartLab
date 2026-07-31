@@ -148,7 +148,7 @@ public sealed partial class CommandPaletteViewModel(MainViewModel shell) : Obser
     /// <remarks>
     /// Deliberately simple: prefix beats word-start beats contains, and a section
     /// outranks an action at equal quality. Fuzzy subsequence matching would find more,
-    /// and would also surface "Empty ticked trash bins" for a query about traces.
+    /// and would also surface "Empty the ticked Recycle Bins" for a query about traces.
     /// </remarks>
     public static int Score(PaletteEntry entry, string query)
     {
@@ -196,11 +196,11 @@ public sealed partial class CommandPaletteViewModel(MainViewModel shell) : Obser
 
         yield return Action("Ask Defender about this path", "Malware", "malware", shell.Malware.ScanCommand);
 
-        yield return Action("Measure reclaimable space", "System Junk", "cleanup", shell.Cleanup.AnalyseCommand);
-        yield return Action("Clean the ticked categories", "System Junk", "cleanup", shell.Cleanup.CleanCommand, destructive: true);
+        yield return Action("Measure reclaimable space", "Temp & Cache", "cleanup", shell.Cleanup.AnalyseCommand);
+        yield return Action("Clean the ticked categories", "Temp & Cache", "cleanup", shell.Cleanup.CleanCommand, destructive: true);
 
-        yield return Action("Measure every drive's Recycle Bin", "Trash Bins", "trash", shell.TrashBins.MeasureCommand);
-        yield return Action("Empty the ticked Recycle Bins", "Trash Bins", "trash", shell.TrashBins.EmptyTickedCommand, destructive: true);
+        yield return Action("Measure every drive's Recycle Bin", "Recycle Bins", "trash", shell.TrashBins.MeasureCommand);
+        yield return Action("Empty the ticked Recycle Bins", "Recycle Bins", "trash", shell.TrashBins.EmptyTickedCommand, destructive: true);
 
         yield return Action("List what runs at logon", "Startup", "optimize", shell.Optimization.ScanCommand);
         yield return Action("Turn off the ticked startup entries", "Startup", "optimize", shell.Optimization.DisableTickedCommand);

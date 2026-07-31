@@ -1,4 +1,5 @@
 using System.Reflection;
+using System.Windows.Threading;
 using SmartLab.App;
 using Xunit;
 
@@ -42,6 +43,105 @@ public sealed class SmartScanTests
 
         Assert.Equal(ScanPhase.Ready, scan.Phase);
         Assert.False(scan.ApplyCommand.CanExecute(null));
+    }
+
+    [Fact]
+    public void ConfirmingActsOnTheScanAndDoesNotMeasureAgain()
+    {
+        // The second press, driven end to end - the one flow nobody had ever taken
+        // past the first button. Nothing on this machine is touched: every section's
+        // own dry run and unticked default still stands between this and a write.
+        // What is held here is the shape - a confirm works from the rows the scan
+        // produced, and never returns to Scanning on the way.
+        OnDispatcher(async () =>
+        {
+            var scan = new MainViewModel().SmartScan;
+
+            var phases = new List<ScanPhase>();
+            scan.PropertyChanged += (_, e) =>
+            {
+                if (e.PropertyName == nameof(SmartScanViewModel.Phase)) phases.Add(scan.Phase);
+            };
+
+            await scan.ScanCommand.ExecuteAsync(null);
+
+            Assert.True(scan.Phase == ScanPhase.Reviewing, scan.Status);
+            Assert.NotEmpty(scan.Results);
+
+            var reviewed = scan.Results.Select(r => r.Title).ToArray();
+
+            // Ticked by hand, standing in for the operator: this machine has nothing
+            // that needs repairing, so nothing arrives actionable on its own. Both
+            // flags, because apply acts on the intersection - a row that is actionable
+            // but unticked is one the operator looked at and left alone.
+            foreach (var row in scan.Results)
+            {
+                row.IsActionable = true;
+                row.IsSelected = true;
+            }
+
+            Assert.True(scan.ApplyCommand.CanExecute(null));
+
+            await scan.ApplyCommand.ExecuteAsync(null);
+
+            Assert.Equal(ScanPhase.Done, scan.Phase);
+            Assert.Equal(reviewed, scan.Results.Select(r => r.Title).ToArray());
+
+            // A re-scan would have to pass back through Scanning, and would replace
+            // the rows the operator reviewed with a freshly gathered set.
+            Assert.DoesNotContain(ScanPhase.Scanning, phases.SkipWhile(p => p != ScanPhase.Applying));
+            Assert.All(scan.Results, r => Assert.False(r.IsActionable));
+        });
+    }
+
+    /// <summary>
+    /// Runs async work on an STA thread with a real dispatcher, and rethrows what it
+    /// threw.
+    /// </summary>
+    /// <remarks>
+    /// The view models await with the calling context captured, which in the app is
+    /// the UI thread. A test host has no such context, so continuations land on the
+    /// thread pool and the first grouped collection view they touch throws - a
+    /// failure about threads, from code that is not threaded, in a flow that works.
+    /// The view model is built inside the thread too: a collection view belongs to
+    /// the thread that created it.
+    /// </remarks>
+    private static void OnDispatcher(Func<Task> work)
+    {
+        Exception? failure = null;
+
+        var thread = new Thread(() =>
+        {
+            var dispatcher = Dispatcher.CurrentDispatcher;
+            SynchronizationContext.SetSynchronizationContext(
+                new DispatcherSynchronizationContext(dispatcher));
+
+            _ = dispatcher.InvokeAsync(async () =>
+            {
+                try
+                {
+                    await work();
+                }
+                catch (Exception ex)
+                {
+                    failure = ex;
+                }
+                finally
+                {
+                    dispatcher.InvokeShutdown();
+                }
+            });
+
+            Dispatcher.Run();
+        });
+
+        thread.SetApartmentState(ApartmentState.STA);
+        thread.Start();
+
+        // Generous: the scan runs winget, which talks to a package source.
+        Assert.True(thread.Join(TimeSpan.FromMinutes(5)), "The scan did not finish.");
+
+        if (failure is not null) throw failure;
     }
 
     [Fact]

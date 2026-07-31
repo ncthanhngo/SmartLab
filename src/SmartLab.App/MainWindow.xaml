@@ -43,13 +43,16 @@
          margins around the big card are not padding - they are where the shadows
          land and where the resize grip lives.
 
-         The cost of a transparent window is ClearType: WPF renders text on a
-         layered window with greyscale antialiasing instead. It is the only way to
-         give the app a shape of its own rather than a rectangle. -->
+         A transparent window normally costs ClearType - WPF cannot subpixel-render
+         onto a surface with an alpha channel, and falls back to greyscale. Both
+         cards carry ClearTypeHint.Enabled, which is the documented way back: each
+         paints an opaque background of its own, so the text on it has real pixels
+         underneath and can be rendered as if the window were not layered. -->
     <Grid x:Name="Root">
 
         <!-- ===== the big card ===== -->
-        <Border x:Name="Shell" Margin="30,16,22,26" CornerRadius="18">
+        <Border x:Name="Shell" Margin="30,16,22,26" CornerRadius="18"
+                RenderOptions.ClearTypeHint="Enabled">
             <Border.Background>
                 <LinearGradientBrush StartPoint="0,0" EndPoint="0.35,1">
                     <GradientStop Color="{DynamicResource ShellTopColor}" Offset="0" />
@@ -149,6 +152,7 @@
         <Border x:Name="RailCard" Width="204" HorizontalAlignment="Left"
                 Margin="6,56,0,66"
                 CornerRadius="{StaticResource CardRadius}"
+                RenderOptions.ClearTypeHint="Enabled"
                 Background="{DynamicResource SidebarBrush}">
             <Border.Effect>
                 <DropShadowEffect Color="{DynamicResource CardShadowColor}"

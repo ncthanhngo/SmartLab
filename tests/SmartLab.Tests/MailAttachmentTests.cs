@@ -46,7 +46,7 @@ public sealed class MailAttachmentTests
 }
 
 /// <summary>
-/// Trash Bins, where the app's purpose and a cleaner's instincts disagree.
+/// Recycle Bins, where the app's purpose and a cleaner's instincts disagree.
 /// </summary>
 public sealed class TrashBinTests
 {

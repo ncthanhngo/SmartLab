@@ -213,8 +213,8 @@ public sealed partial class MainViewModel : ObservableObject
     [
         new("home", "Home", "Check everything, change nothing", Glyph(0xE80F), "NavSmartHex"),
 
-        new("cleanup", "System Junk", "Reclaim disk space", Glyph(0xE74E), "NavCleanupHex", GroupCleanup),
-        new("trash", "Trash Bins", "Per-drive recycle bins", Glyph(0xE74D), "NavTrashHex", GroupCleanup),
+        new("cleanup", "Temp & Cache", "Reclaim disk space", Glyph(0xE74E), "NavCleanupHex", GroupCleanup),
+        new("trash", "Recycle Bins", "Per-drive recycle bins", Glyph(0xE74D), "NavTrashHex", GroupCleanup),
 
         new("repair", "Repair", "Find and undo hiding", Glyph(0xE72E), "NavRepairHex", GroupProtection),
         new("malware", "Malware", "Signatures and Defender", Glyph(0xE730), "NavMalwareHex", GroupProtection),
@@ -235,10 +235,15 @@ public sealed partial class MainViewModel : ObservableObject
     ];
 
     // Written once so a typo cannot silently split one group into two.
-    public const string GroupCleanup = "Cleanup";
-    public const string GroupProtection = "Protection";
-    public const string GroupSpeed = "Speed";
-    public const string GroupApplications = "Applications";
+    //
+    // Named for what the sections under them do rather than borrowed from the Mac
+    // tool that inspired the layout - which is where Cleanup, Protection, Speed and
+    // Applications came from. The constant names keep their old spelling: they are
+    // identifiers, and renaming them changes nothing anyone can see.
+    public const string GroupCleanup = "Reclaim";
+    public const string GroupProtection = "Security";
+    public const string GroupSpeed = "Performance";
+    public const string GroupApplications = "Programs";
     public const string GroupFiles = "Files";
 
     /// <summary>

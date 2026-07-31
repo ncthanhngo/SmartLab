@@ -320,6 +320,17 @@ public partial class MainWindow : Window
                     case "trash":
                         viewModel.TrashBins.MeasureCommand.Execute(null);
                         break;
+                    case "repair":
+                        // Read-only, and the only automated exercise the boot check
+                        // gets on a machine with nothing removable plugged in.
+                        await viewModel.Boot.CheckCommand.ExecuteAsync(null).ConfigureAwait(true);
+                        break;
+                    case "about":
+                        // The one place the app reaches the network. Run here so the
+                        // path is exercised for real rather than only unit-tested,
+                        // and so the capture shows what it actually answered.
+                        await viewModel.About.CheckForUpdateCommand.ExecuteAsync(null).ConfigureAwait(true);
+                        break;
                     case "spacelens":
                         // A shallow folder, because a capture must not spend minutes
                         // walking a whole profile before it can render.

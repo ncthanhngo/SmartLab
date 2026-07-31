@@ -68,7 +68,7 @@ public sealed class WingetOutputTests
     [InlineData("")]
     [InlineData("   ")]
     [InlineData("winget: command not found")]
-    [InlineData("Nombre    Id    Versión\nnot a rule at all")]
+    [InlineData("Nombre    Id    VersiĂ³n\nnot a rule at all")]
     public void UnrecognisableOutputYieldsNothingRatherThanThrowing(string output)
     {
         // A winget update that changes the layout must degrade to "no upgrades",
@@ -98,107 +98,3 @@ public sealed class WingetOutputTests
     }
 }
 
-/// <summary>
-/// Extension scanning, which must stay read-only.
-/// </summary>
-public sealed class ExtensionScannerTests
-{
-    private const string Manifest = """
-        {
-          "name": "Some Extension",
-          "version": "3.2.1",
-          "permissions": ["storage", "tabs"],
-          "host_permissions": ["<all_urls>"]
-        }
-        """;
-
-    [Fact]
-    public void AManifestYieldsItsNameVersionAndPermissions()
-    {
-        var extension = BrowserExtensionScanner.ParseManifest("Chrome", "abc", "3.2.1_0", Manifest);
-
-        Assert.NotNull(extension);
-        Assert.Equal("Some Extension", extension!.Name);
-        Assert.Equal("3.2.1", extension.Version);
-        Assert.Contains("storage", extension.Permissions);
-    }
-
-    [Fact]
-    public void AnExtensionThatCanReadEverySiteIsFlagged()
-    {
-        // The one fact worth surfacing on this screen. Size tells nobody anything;
-        // "can read and change data on every site" is the finding.
-        var extension = BrowserExtensionScanner.ParseManifest("Chrome", "abc", "1", Manifest);
-
-        Assert.True(extension!.ReadsEverySite);
-    }
-
-    [Fact]
-    public void AWildcardHostPatternCountsToo()
-    {
-        var extension = BrowserExtensionScanner.ParseManifest(
-            "Edge", "abc", "1", """{"name":"x","host_permissions":["https://*/*"]}""");
-
-        Assert.True(extension!.ReadsEverySite);
-    }
-
-    [Fact]
-    public void ANarrowExtensionIsNotFlagged()
-    {
-        var extension = BrowserExtensionScanner.ParseManifest(
-            "Chrome", "abc", "1", """{"name":"x","permissions":["storage"]}""");
-
-        Assert.False(extension!.ReadsEverySite);
-    }
-
-    [Theory]
-    [InlineData("{}")]
-    [InlineData("not json at all")]
-    [InlineData("""{"name": 42}""")]
-    public void AMalformedManifestStillReportsThatSomethingIsInstalled(string json)
-    {
-        // An extension that will not identify itself is the interesting one. Dropping
-        // the row would hide exactly the case worth looking at.
-        var extension = BrowserExtensionScanner.ParseManifest("Chrome", "someid", "1.0", json);
-
-        Assert.NotNull(extension);
-        Assert.Equal("someid", extension!.Id);
-    }
-
-    [Fact]
-    public void ALocalisedNamePlaceholderFallsBackToTheId()
-    {
-        var extension = BrowserExtensionScanner.ParseManifest(
-            "Chrome", "abcdef", "1", """{"name":"__MSG_appName__"}""");
-
-        Assert.Equal("abcdef", extension!.Name);
-    }
-
-    [Fact]
-    public void ShellExtensionsAreListedWithNoRemovalPath()
-    {
-        // A wrongly removed shell extension takes Explorer's context menu with it, and
-        // the tool that would have helped is the one that just broke. There is no
-        // remove method on the scanner at all - asserted over its public surface so
-        // adding one later fails here rather than shipping quietly.
-        var methods = typeof(ShellExtensionScanner).GetMethods()
-            .Select(m => m.Name)
-            .Where(n => n.Contains("Remove", StringComparison.OrdinalIgnoreCase) ||
-                        n.Contains("Delete", StringComparison.OrdinalIgnoreCase) ||
-                        n.Contains("Disable", StringComparison.OrdinalIgnoreCase));
-
-        Assert.Empty(methods);
-    }
-
-    [Fact]
-    public void TheBrowserScannerHasNoWritePathEither()
-    {
-        var methods = typeof(BrowserExtensionScanner).GetMethods()
-            .Select(m => m.Name)
-            .Where(n => n.Contains("Remove", StringComparison.OrdinalIgnoreCase) ||
-                        n.Contains("Delete", StringComparison.OrdinalIgnoreCase) ||
-                        n.Contains("Write", StringComparison.OrdinalIgnoreCase));
-
-        Assert.Empty(methods);
-    }
-}

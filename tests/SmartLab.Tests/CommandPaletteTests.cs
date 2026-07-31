@@ -24,8 +24,8 @@ public sealed class CommandPaletteTests
     {
         // Navigation cannot change anything, so at equal textual quality it is what
         // the first keystroke should reach.
-        var section = CommandPaletteViewModel.Score(Section("Trash Bins"), "trash");
-        var action = CommandPaletteViewModel.Score(Action("Trash something"), "trash");
+        var section = CommandPaletteViewModel.Score(Section("Recycle Bins"), "recycle");
+        var action = CommandPaletteViewModel.Score(Action("Recycle something"), "recycle");
 
         Assert.True(section > action);
     }
@@ -63,7 +63,7 @@ public sealed class CommandPaletteTests
         // itself above them.
         var byTitle = CommandPaletteViewModel.Score(Action("Empty the ticked Recycle Bins"), "empty");
         var byContext = CommandPaletteViewModel.Score(
-            new PaletteEntry("Empty the ticked Recycle Bins", "Trash Bins", isSection: false), "Trash");
+            new PaletteEntry("Empty the ticked Recycle Bins", "Recycle Bins", isSection: false), "Bins");
 
         Assert.True(byTitle > byContext);
         Assert.NotEqual(int.MinValue, byContext);
@@ -264,7 +264,7 @@ public sealed class CommandPaletteKeyboardTests
 public sealed class RailBadgeTests
 {
     private static NavSection Section() =>
-        new("trash", "Trash Bins", "Per-drive recycle bins", "T", "NavTrashHex", MainViewModel.GroupCleanup);
+        new("trash", "Recycle Bins", "Per-drive recycle bins", "T", "NavTrashHex", MainViewModel.GroupCleanup);
 
     [Fact]
     public void ASectionStartsWithNoBadge()
