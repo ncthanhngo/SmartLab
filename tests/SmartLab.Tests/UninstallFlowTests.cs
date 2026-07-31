@@ -81,6 +81,70 @@ public sealed class UninstallFlowTests
         });
     }
 
+    /// <summary>
+    /// The runner against a real process, which is the half no parser test reaches.
+    /// </summary>
+    /// <remarks>
+    /// Stands in for uninstalling something. The registered command is a harmless one
+    /// that exits with a known code, so this exercises parse, launch, wait and exit
+    /// code without removing anything from the machine running the tests - which is
+    /// the only reason this path had never been driven.
+    /// </remarks>
+    [Fact]
+    public async Task TheRegisteredCommandIsActuallyRunAndItsExitCodeReported()
+    {
+        var program = new InstalledProgram("Stub", @"HKCU\Software\Stub")
+        {
+            UninstallString = "cmd.exe /c exit 3",
+        };
+
+        var result = await new ProgramUninstaller(new NullTraceProbe())
+            .RunAsync(program, quiet: false);
+
+        Assert.Equal(UninstallOutcome.Completed, result.Outcome);
+        Assert.Equal(3, result.ExitCode);
+    }
+
+    [Fact]
+    public async Task TheQuietCommandIsPreferredWhenTheVendorRegisteredOne()
+    {
+        var program = new InstalledProgram("Stub", @"HKCU\Software\Stub")
+        {
+            UninstallString = "cmd.exe /c exit 1",
+            QuietUninstallString = "cmd.exe /c exit 7",
+        };
+
+        var result = await new ProgramUninstaller(new NullTraceProbe())
+            .RunAsync(program, quiet: true);
+
+        Assert.Equal(7, result.ExitCode);
+    }
+
+    [Fact]
+    public async Task AProgramWithNoCommandIsReportedRatherThanLaunched()
+    {
+        var program = new InstalledProgram("Stub", @"HKCU\Software\Stub");
+
+        var result = await new ProgramUninstaller(new NullTraceProbe())
+            .RunAsync(program, quiet: true);
+
+        Assert.Equal(UninstallOutcome.NoUninstaller, result.Outcome);
+        Assert.Null(result.ExitCode);
+    }
+
+    /// <summary>A probe that finds nothing, for tests about running rather than leftovers.</summary>
+    private sealed class NullTraceProbe : ITraceProbe
+    {
+        public bool FileExists(string path) => false;
+        public bool DirectoryExists(string path) => false;
+        public long DirectorySize(string path) => 0;
+        public (long Bytes, int Files) DirectoryStats(string path) => (0, 0);
+        public long FileSize(string path) => 0;
+        public long RecycleBinSize() => 0;
+        public bool RegistryValueExists(string keyPath, string valueName) => false;
+        public bool RegistryKeyExists(string keyPath) => false;
+    }
+
     [Fact]
     public void NoProgramOnThisMachineWouldBeAskedToRepairInsteadOfUninstall()
     {

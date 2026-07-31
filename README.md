@@ -498,6 +498,16 @@ zip is what the updater installs afterwards, and both are listed in one
 `SHA256SUMS.txt`, because a release where only some files can be verified teaches
 people to skip the check.
 
+Nothing is code-signed, and that is a stated position rather than an omission: this
+project has no certificate, and a self-signed one buys nothing — SmartScreen does not
+ask who signed a binary, it asks what reputation the signature has. The checksum list
+is what a person can actually verify. The signing is wired and waiting: pass
+`-CertificateThumbprint`, or set `SMARTLAB_SIGN_THUMBPRINT`, and the two executables
+are signed before the zip is made and the installer signed after it is built, each
+with an RFC 3161 timestamp so the signature outlives the certificate. Asking for
+signing and not getting it is a hard failure — a release that quietly ships unsigned
+after somebody asked for signing is worse than one that never claimed to be signed.
+
 The install is per user, into `%LOCALAPPDATA%\Programs\Smart Lab`, and asks for no
 elevation. Two reasons, and the second is the one that matters: the app already
 elevates per operation, so a Program Files install would add a prompt for the parts

@@ -21,7 +21,21 @@ param(
     [Parameter(Mandatory = $true)]
     [string] $Version,
 
-    [string] $OutputDirectory
+    [string] $OutputDirectory,
+
+    <#
+    .PARAMETER CertificateThumbprint
+        Signs the executables and the installer with a certificate from the current
+        user's store. Defaults to $env:SMARTLAB_SIGN_THUMBPRINT.
+
+        Unsigned is the honest default: this project has no certificate, and a
+        self-signed one buys nothing - SmartScreen does not care who signed, it cares
+        about reputation. When a real one exists, set the thumbprint and every build
+        is signed from then on. Configured but unusable is a hard failure rather than
+        a warning, since a release that quietly ships unsigned after somebody asked
+        for signing is worse than one that never claimed to be signed.
+    #>
+    [string] $CertificateThumbprint = $env:SMARTLAB_SIGN_THUMBPRINT
 )
 
 $ErrorActionPreference = 'Stop'
@@ -81,6 +95,42 @@ dotnet publish $worker `
 
 if ($LASTEXITCODE -ne 0) { throw "worker publish failed with exit code $LASTEXITCODE" }
 
+function Find-SignTool {
+    $candidates = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin" -Filter 'signtool.exe' `
+        -Recurse -ErrorAction SilentlyContinue |
+        Where-Object { $_.FullName -match '\\x64\\' } |
+        Sort-Object FullName -Descending
+
+    return $candidates | Select-Object -First 1 -ExpandProperty FullName
+}
+
+function Invoke-Sign {
+    param([string[]] $Paths)
+
+    if (-not $CertificateThumbprint) { return }
+
+    $signtool = Find-SignTool
+    if (-not $signtool) {
+        throw "Signing was requested but signtool.exe was not found. Install the Windows SDK."
+    }
+
+    foreach ($path in $Paths) {
+        # RFC 3161 timestamp, so the signature outlives the certificate: without one
+        # every copy stops validating the day the certificate expires.
+        & $signtool sign /sha1 $CertificateThumbprint /fd SHA256 `
+            /tr http://timestamp.digicert.com /td SHA256 $path | Out-Null
+
+        if ($LASTEXITCODE -ne 0) { throw "signtool failed on $path with exit code $LASTEXITCODE" }
+    }
+}
+
+# Signed before the zip is made and before the installer wraps them, or the copies
+# inside would be the unsigned ones.
+Invoke-Sign @(
+    (Join-Path $stage 'SmartLab.App.exe'),
+    (Join-Path $stage 'SmartLab.Worker.exe')
+)
+
 Write-Host "Compressing..."
 Compress-Archive -Path $stage -DestinationPath $zip -CompressionLevel Optimal
 
@@ -106,6 +156,10 @@ if ($iscc) {
     $setup = Join-Path $OutputDirectory "SmartLabSetup-$Version.exe"
 
     if (-not (Test-Path $setup)) { throw "ISCC reported success but produced no installer." }
+
+    # The installer is signed last: it is what a person downloads and what
+    # SmartScreen judges first.
+    Invoke-Sign @($setup)
 }
 else {
     Write-Warning "Inno Setup not found - skipping the installer. winget install JRSoftware.InnoSetup"
