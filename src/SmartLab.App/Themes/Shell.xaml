@@ -92,11 +92,29 @@
                             <StackPanel>
                                 <Grid>
                                     <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
                                         <ColumnDefinition Width="*" />
                                         <ColumnDefinition Width="Auto" />
                                     </Grid.ColumnDefinitions>
 
-                                    <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                    <!-- The section's own hue, as a filled tile.
+                                         Bound to the window rather than passed in by each
+                                         template: the rail already knows which section is
+                                         showing, and asking seventeen templates to repeat
+                                         it is seventeen chances to disagree. -->
+                                    <Border Grid.Column="0" Width="42" Height="42" CornerRadius="13"
+                                            Margin="0,0,15,0" VerticalAlignment="Center"
+                                            Background="{Binding DataContext.SelectedSection.SelectedFill,
+                                                RelativeSource={RelativeSource AncestorType=Window}}">
+                                        <TextBlock FontFamily="Segoe MDL2 Assets" FontSize="18"
+                                                   HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                   Text="{Binding DataContext.SelectedSection.Glyph,
+                                                       RelativeSource={RelativeSource AncestorType=Window}}"
+                                                   Foreground="{Binding DataContext.SelectedSection.Accent,
+                                                       RelativeSource={RelativeSource AncestorType=Window}}" />
+                                    </Border>
+
+                                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                         <TextBlock Text="{TemplateBinding Title}" FontSize="19"
                                                    FontWeight="Bold"
                                                    Foreground="{DynamicResource TextPrimaryBrush}" />
@@ -108,7 +126,7 @@
 
                                     <!-- The verbs. In the header so a Dry run toggle is read
                                          before the button it guards, not beside it. -->
-                                    <ContentPresenter Grid.Column="1" ContentSource="Actions"
+                                    <ContentPresenter Grid.Column="2" ContentSource="Actions"
                                                       VerticalAlignment="Center" Margin="16,0,0,0" />
                                 </Grid>
 

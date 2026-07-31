@@ -88,11 +88,23 @@ public static class ThemeManager
         ThemeChanged?.Invoke();
     }
 
-    private static AppTheme? Stored()
+    /// <summary>
+    /// Where the preference lived before the product was renamed.
+    /// </summary>
+    /// <remarks>
+    /// Read, never written. The rename moved this key, which would otherwise greet
+    /// anyone who had already chosen a theme with the opposite one - a small thing,
+    /// but the kind a person reads as the app having forgotten them.
+    /// </remarks>
+    private const string LegacySettingsKey = @"Software\USB Doctor";
+
+    private static AppTheme? Stored() => Read(SettingsKey) ?? Read(LegacySettingsKey);
+
+    private static AppTheme? Read(string path)
     {
         try
         {
-            using var key = Registry.CurrentUser.OpenSubKey(SettingsKey);
+            using var key = Registry.CurrentUser.OpenSubKey(path);
 
             return (key?.GetValue(ValueName) as string) switch
             {

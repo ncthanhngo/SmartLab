@@ -66,7 +66,17 @@
                                 <GradientStop Color="{DynamicResource PillarCleanupBottom}" Offset="1" />
                             </LinearGradientBrush>
                         </Border.Background>
-                        <TextBlock Text="&#xEDA2;" Style="{StaticResource PillarGlyph}" />
+                        <!-- Drawn rather than a font glyph. Every MDL2 drive is a thin
+                             outline that turns to wire at this size, next to two solid
+                             neighbours; a platter and a spindle read as storage and hold
+                             their weight. -->
+                        <Grid Width="62" Height="62" HorizontalAlignment="Center"
+                              VerticalAlignment="Center">
+                            <Ellipse Stroke="#FFFFFF" StrokeThickness="5" Opacity="0.94" />
+                            <Ellipse Width="16" Height="16" Fill="#FFFFFF" Opacity="0.94" />
+                            <Path Data="M 31,31 L 50,17" Stroke="#FFFFFF" StrokeThickness="5"
+                                  StrokeStartLineCap="Round" StrokeEndLineCap="Round" Opacity="0.94" />
+                        </Grid>
                     </Border>
 
                     <TextBlock Text="Cleanup" Style="{StaticResource PillarName}" />

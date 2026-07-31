@@ -35,9 +35,12 @@
 
     <!-- ============================ surfaces ============================ -->
 
+    <!-- Rounder than the radius token, and deliberately so: this is the shape the
+         whole window is made of, and a softer corner is most of what separates a
+         surface that reads as a panel from one that reads as a card. -->
     <Style x:Key="Card" TargetType="Border">
         <Setter Property="Background" Value="{DynamicResource SurfaceBrush}" />
-        <Setter Property="CornerRadius" Value="{StaticResource CardRadius}" />
+        <Setter Property="CornerRadius" Value="14" />
         <Setter Property="BorderBrush" Value="{DynamicResource HairlineBrush}" />
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="Padding" Value="16" />

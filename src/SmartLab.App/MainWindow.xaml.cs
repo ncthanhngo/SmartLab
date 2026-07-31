@@ -299,6 +299,7 @@ public partial class MainWindow : Window
             }
 
             await CapturePaletteAsync(directory).ConfigureAwait(true);
+            await CaptureHomeFlowAsync(directory).ConfigureAwait(true);
         }
         catch (Exception ex)
         {
@@ -344,6 +345,50 @@ public partial class MainWindow : Window
         Save("palette", directory);
 
         viewModel.CommandPalette.CloseCommand.Execute(null);
+    }
+
+    /// <summary>
+    /// Runs Home's first press and captures the state it leaves behind.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The scan half only. Confirming would clean, disable and upgrade the machine
+    /// this is running on, which is not something a screenshot run may decide - so
+    /// what is verified here is that Run reaches the review state with the button
+    /// showing Confirm, and the capture stops one press short of acting.
+    /// </para>
+    /// <para>
+    /// It is also the only exercise the two-step flow gets outside unit tests: the
+    /// phases, the pillar totals and the review list all have to survive a real scan
+    /// against a real machine to produce this picture.
+    /// </para>
+    /// </remarks>
+    private async Task CaptureHomeFlowAsync(string directory)
+    {
+        if (ViewModel is not { } viewModel) return;
+
+        viewModel.SelectedSection = viewModel.Sections[0];
+
+        await Dispatcher.Yield(DispatcherPriority.ContextIdle);
+        await viewModel.SmartScan.ScanCommand.ExecuteAsync(null).ConfigureAwait(true);
+
+        await Dispatcher.Yield(DispatcherPriority.ContextIdle);
+        UpdateLayout();
+        await Dispatcher.Yield(DispatcherPriority.ContextIdle);
+        await Task.Delay(400).ConfigureAwait(true);
+
+        Save("home-reviewing", directory);
+
+        // Recorded rather than asserted: a capture run cannot fail a build, but it can
+        // leave evidence that the flow reached the state it claims to.
+        File.WriteAllText(
+            Path.Combine(directory, "home-flow.txt"),
+            $"phase after Run: {viewModel.SmartScan.Phase}{Environment.NewLine}" +
+            $"apply offered: {viewModel.SmartScan.ApplyCommand.CanExecute(null)}{Environment.NewLine}" +
+            $"cleanup: {viewModel.SmartScan.CleanupValue}{Environment.NewLine}" +
+            $"protection: {viewModel.SmartScan.ProtectionValue}{Environment.NewLine}" +
+            $"speed: {viewModel.SmartScan.SpeedValue}{Environment.NewLine}" +
+            $"rows: {viewModel.SmartScan.Results.Count}");
     }
 
     private void Save(string key, string directory)
