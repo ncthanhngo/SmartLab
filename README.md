@@ -121,6 +121,10 @@ locking need Administrator, but the UI must not run elevated.
 - Every section sits in a `SectionFrame` — header band, content, status strip — so a
   section's own template contains only its subject. The verbs live in the header, and
   a Dry run toggle sits before the button it guards rather than beside it.
+- A Dry run is for a verb that would otherwise act without asking. Uninstall has none,
+  because the thing it starts asks for itself: msiexec confirms, and so does almost
+  every vendor's uninstaller. Two prompts in a row do not make an operator twice as
+  careful — they teach them to click through both.
 - A `Reading` gets a proportion bar only when `ShowProportion` is set, and that is
   explicit rather than inferred from a non-zero value: a genuine 0% deserves its
   empty bar, and a figure with no denominator must never grow one by accident.
@@ -594,22 +598,40 @@ than assumed empty.
 
 ## Uninstalling
 
-Two separate jobs, both under `Uninstall` in the app and readable from
-`smartlab uninstall`.
+**Removing Smart Lab** lives on the command line: `smartlab uninstall`. The trace list
+is written out explicitly in `SelfTraceScanner` rather than discovered by searching for
+the app's name. A search would be incomplete — it cannot know a `Run` value is ours —
+and dangerous, since anything else on the machine with `SmartLab` in its path would be
+swept up too. Rescued data, quarantined samples and carved files are listed with their
+sizes but **start unticked**: that data may be the only copy left of a drive that has
+since been formatted. The application folder cannot delete itself while running, so
+that one is handed to a detached script that waits for the process to exit — reported
+as deferred rather than silently failing.
 
-**Removing Smart Lab.** The trace list is written out explicitly in
-`SelfTraceScanner` rather than discovered by searching for the app's name. A search
-would be incomplete — it cannot know a `Run` value is ours — and dangerous, since
-anything else on the machine with `SmartLab` in its path would be swept up too.
+It is not in the window. Sharing a screen with *remove another program* put two
+unrelated questions side by side, and the panel answering the one nobody had asked was
+the one that opened first.
 
-Rescued data, quarantined samples and carved files are listed with their sizes but
-**start unticked**. Someone clicking Uninstall is asking to remove a program, not to
-discard the gigabytes it recovered for them, and that data may be the only copy left
-of a drive that has since been formatted. The application folder cannot delete
-itself while running, so that one is handed to a detached script that waits for the
-process to exit — reported as deferred rather than silently failing.
+**Removing other programs** is what the section is. The list fills itself in when the
+section opens — reading three registry hives changes nothing, and a screen whose only
+content is a button that fills it in has asked the operator to do the one thing it
+could have done itself. Sections that walk a disk or shell out to winget still wait for
+a press: opening a screen is not consent to spend a minute of the machine's time.
 
-**Removing other programs.** Entries come from all three uninstall locations: the
+Each row carries the program's own icon, read from the `DisplayIcon` it registered and
+falling back to its uninstaller's executable. Resolving that means loading a Win32
+resource, so it is a converter in the window rather than a property on the record —
+`SmartLab.Maintenance` has no window to draw in. Every lookup is cached including the
+failures, since half the registered icon paths on a mature machine point at files that
+were uninstalled years ago.
+
+This section has **no dry run**, which is the one place in the app that does not. What
+stands between the click and the removal is the uninstaller's own confirmation —
+msiexec asks, and so does almost every vendor — and a second prompt of ours in front of
+it would only teach people to click through both. The button says what it will do, and
+says why it is disabled when nothing is picked.
+
+Entries come from all three uninstall locations: the
 64-bit and 32-bit machine views and the per-user hive. Reading only the default view
 is the classic mistake — a 64-bit process silently misses every 32-bit application.
 

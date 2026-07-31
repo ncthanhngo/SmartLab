@@ -326,6 +326,21 @@ public sealed partial class MainViewModel : ObservableObject
 
     [ObservableProperty] private NavSection? _selectedSection;
 
+    /// <summary>
+    /// Sections that fill themselves in the first time they are opened.
+    /// </summary>
+    /// <remarks>
+    /// Only where the reading is free of consequence and the screen would otherwise
+    /// be a button that fills itself in. Uninstall reads three registry hives and
+    /// changes nothing; the sections that walk a disk or shell out to winget stay
+    /// on a press, because opening a screen is not consent to spend a minute of the
+    /// machine's time.
+    /// </remarks>
+    partial void OnSelectedSectionChanged(NavSection? value)
+    {
+        if (value?.Key == "uninstall") _ = Uninstall.EnsureLoadedAsync();
+    }
+
     /// <summary>Large headline for the current volume, in the manner of a health panel.</summary>
     [ObservableProperty] private string _headline = "No drive selected";
 

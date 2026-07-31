@@ -206,8 +206,8 @@ public sealed partial class CommandPaletteViewModel(MainViewModel shell) : Obser
         yield return Action("Turn off the ticked startup entries", "Startup", "optimize", shell.Optimization.DisableTickedCommand);
         yield return Action("Put the disabled startup entries back", "Startup", "optimize", shell.Optimization.RestoreAllCommand);
 
-        yield return Action("Find traces Smart Lab left on this machine", "Uninstall", "uninstall", shell.Uninstall.ScanSelfCommand);
-        yield return Action("List installed programs", "Uninstall", "uninstall", shell.Uninstall.ScanProgramsCommand);
+        yield return Action("Refresh the list of installed programs", "Uninstall", "uninstall", shell.Uninstall.ScanProgramsCommand);
+        yield return Action("Uninstall the selected program", "Uninstall", "uninstall", shell.Uninstall.UninstallProgramCommand, destructive: true);
 
         yield return Action("Check for package upgrades", "Updater", "updater", shell.Updater.CheckCommand);
         yield return Action("Upgrade the ticked packages", "Updater", "updater", shell.Updater.UpgradeTickedCommand);

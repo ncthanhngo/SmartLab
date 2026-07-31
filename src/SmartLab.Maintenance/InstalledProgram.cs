@@ -16,6 +16,17 @@ public sealed record InstalledProgram(string DisplayName, string RegistryKeyPath
     /// <summary>Vendor-reported size in bytes, converted from the registry's KB.</summary>
     public long EstimatedSizeBytes { get; init; }
 
+    /// <summary>
+    /// Where the program's icon lives, as the vendor wrote it.
+    /// </summary>
+    /// <remarks>
+    /// Usually an executable or .ico path, optionally followed by a comma and an
+    /// index into its icon resources. Kept verbatim, including the index: resolving
+    /// it means loading a Win32 resource, which is the window's job rather than a
+    /// scanner's.
+    /// </remarks>
+    public string? DisplayIcon { get; init; }
+
     public bool Is64Bit { get; init; }
     public bool IsPerUser { get; init; }
 
@@ -96,6 +107,7 @@ public static class InstalledProgramParser
             InstallLocation = AsString(values, "InstallLocation")?.Trim().Trim('"'),
             UninstallString = AsString(values, "UninstallString"),
             QuietUninstallString = AsString(values, "QuietUninstallString"),
+            DisplayIcon = AsString(values, "DisplayIcon")?.Trim(),
             EstimatedSizeBytes = sizeBytes,
             Is64Bit = is64Bit,
             IsPerUser = isPerUser,

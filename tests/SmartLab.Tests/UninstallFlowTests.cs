@@ -59,25 +59,22 @@ public sealed class UninstallFlowTests
     }
 
     [Fact]
-    public void ADryRunSaysWhatItWouldDoAndRunsNoUninstaller()
+    public void OpeningTheSectionFillsTheListWithoutAnyonePressingAnything()
     {
+        // The screen used to open on an empty panel with a button that filled it in.
         OnDispatcher(async () =>
         {
-            var uninstall = new MainViewModel().Uninstall;
+            var shell = new MainViewModel();
 
-            await uninstall.ScanProgramsCommand.ExecuteAsync(null);
+            Assert.Empty(shell.Uninstall.Programs);
 
-            var removable = uninstall.Programs.FirstOrDefault(p => p.HasUninstaller);
-            Assert.NotNull(removable);
+            shell.SelectedSection = shell.Sections.Single(s => s.Key == "uninstall");
 
-            uninstall.SelectedProgram = removable;
+            // The selection starts the load; awaiting the same entry point is how a
+            // test waits for it without reaching into the command.
+            await shell.Uninstall.EnsureLoadedAsync();
 
-            Assert.True(uninstall.DryRun);
-
-            await uninstall.UninstallProgramCommand.ExecuteAsync(null);
-
-            // If this ever stops being true, the test has just uninstalled something.
-            Assert.StartsWith("Dry run:", uninstall.Status, StringComparison.Ordinal);
+            Assert.NotEmpty(shell.Uninstall.Programs);
         });
     }
 

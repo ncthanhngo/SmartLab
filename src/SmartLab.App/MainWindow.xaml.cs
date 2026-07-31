@@ -314,8 +314,9 @@ public partial class MainWindow : Window
                         await viewModel.Cleanup.AnalyseCommand.ExecuteAsync(null).ConfigureAwait(true);
                         break;
                     case "uninstall":
-                        viewModel.Uninstall.ScanSelfCommand.Execute(null);
-                        await viewModel.Uninstall.ScanProgramsCommand.ExecuteAsync(null).ConfigureAwait(true);
+                        // Fills itself in on arrival now, so this only has to wait
+                        // for the load the selection above already started.
+                        await viewModel.Uninstall.EnsureLoadedAsync().ConfigureAwait(true);
                         break;
                     case "trash":
                         viewModel.TrashBins.MeasureCommand.Execute(null);

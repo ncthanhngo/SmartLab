@@ -1,205 +1,168 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-                    xmlns:ctl="clr-namespace:SmartLab.App.Controls">
+                    xmlns:ctl="clr-namespace:SmartLab.App.Controls"
+                    xmlns:conv="clr-namespace:SmartLab.App.Converters">
 
     <!--
-        Uninstall and Add-ons take the console shape - two lists side by side, no
-        figure worth enlarging. Updater takes reading-and-list, because ticked over
+        Uninstall is one list, filled in on arrival: it answers a single question -
+        which program is going - and a second panel beside it was one more thing to
+        read before answering it. Updater takes reading-and-list, because ticked over
         upgradable is a real proportion.
     -->
+
+    <conv:ProgramIconConverter x:Key="ProgramIcon" />
 
     <!-- ================= Uninstall ================= -->
 
     <DataTemplate x:Key="section-uninstall">
         <ctl:SectionFrame Title="Uninstall" Status="{Binding Status}"
-                          Subtitle="Removing Smart Lab, and removing anything else. Rescued data is listed but never ticked - it may be the only copy left."
+                          Subtitle="Runs each program's own uninstaller, then reports what it left behind. The list fills itself in when you open this."
                           DataContext="{Binding DataContext.Uninstall,
                               RelativeSource={RelativeSource AncestorType=Window}}">
 
+            <!-- No dry run in front of this verb. What stands between a click and a
+                 removal is the uninstaller's own confirmation - msiexec asks, and so
+                 does almost every vendor - and a second one of ours in front of it
+                 would only teach people to click through both. -->
             <ctl:SectionFrame.Actions>
                 <StackPanel Orientation="Horizontal">
-                    <CheckBox Style="{StaticResource ToggleCheck}" Content="Dry run"
-                              IsChecked="{Binding DryRun}" Margin="0,0,16,0" FontWeight="SemiBold" />
-                    <Button Content="Remove ticked" Style="{StaticResource GhostButton}"
-                            Command="{Binding RemoveSelfCommand}" Margin="0,0,8,0" />
-                    <Button Content="Find traces" Style="{StaticResource PrimaryButton}"
-                            Command="{Binding ScanSelfCommand}" />
+                    <Button Content="Refresh" Style="{StaticResource GhostButton}"
+                            Command="{Binding ScanProgramsCommand}" Margin="0,0,8,0" />
+
+                    <!-- Says why it is dead. A disabled button with no explanation is
+                         indistinguishable from a broken one, and this one is dead
+                         until a row is picked. -->
+                    <Button Content="Uninstall selected" Style="{StaticResource PrimaryButton}"
+                            Command="{Binding UninstallProgramCommand}"
+                            ToolTipService.ShowOnDisabled="True"
+                            ToolTip="{Binding UninstallHint}" />
                 </StackPanel>
             </ctl:SectionFrame.Actions>
 
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="14" />
-                    <ColumnDefinition Width="1.1*" />
-                </Grid.ColumnDefinitions>
+            <DockPanel>
+                <!-- Only present after an uninstall has actually found something the
+                     vendor left. Ticking a row is the deliberate act here. -->
+                <Border DockPanel.Dock="Bottom" Padding="15" Margin="0,12,0,0">
+                    <Border.Style>
+                        <Style TargetType="Border" BasedOn="{StaticResource Card}">
+                            <Setter Property="Visibility" Value="Visible" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding Leftovers.Count}" Value="0">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Border.Style>
 
-                <Border Grid.Column="0" Style="{StaticResource Card}" Padding="15">
                     <DockPanel>
-                        <TextBlock DockPanel.Dock="Top" Text="What Smart Lab left here"
-                                   Style="{StaticResource SectionTitle}" />
-                        <ListBox Style="{StaticResource PlainList}" ItemsSource="{Binding SelfTraces}">
-                            <ListBox.ItemTemplate>
-                                <DataTemplate>
-                                    <Border Background="{DynamicResource SurfaceRaisedBrush}"
-                                            CornerRadius="{StaticResource ControlRadius}"
-                                            Padding="11,9" Margin="0,0,0,5">
-                                        <Grid>
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="Auto" />
-                                                <ColumnDefinition Width="*" />
-                                                <ColumnDefinition Width="Auto" />
-                                            </Grid.ColumnDefinitions>
-
-                                            <CheckBox Grid.Column="0" Style="{StaticResource RowCheck}"
-                                                      IsChecked="{Binding IsSelected}"
-                                                      VerticalAlignment="Top" Margin="0,2,11,0" />
-
-                                            <StackPanel Grid.Column="1">
-                                                <StackPanel Orientation="Horizontal">
-                                                    <TextBlock Text="{Binding Description}" FontSize="13"
-                                                               FontWeight="SemiBold"
-                                                               Foreground="{DynamicResource TextPrimaryBrush}" />
-                                                    <Border Style="{StaticResource Chip}"
-                                                            Visibility="{Binding IsUserData,
-                                                                Converter={StaticResource BoolToVisibility}}">
-                                                        <TextBlock Text="your data"
-                                                                   Style="{StaticResource ChipText}"
-                                                                   Foreground="{DynamicResource WarningBrush}" />
-                                                    </Border>
-                                                </StackPanel>
-                                                <TextBlock Text="{Binding Location}" FontSize="11.5"
-                                                           FontFamily="{StaticResource MonoFont}"
-                                                           Margin="0,3,0,0" TextTrimming="CharacterEllipsis"
-                                                           Foreground="{DynamicResource TextMutedBrush}" />
-                                            </StackPanel>
-
-                                            <TextBlock Grid.Column="2" Text="{Binding SizeText}"
-                                                       FontSize="12.5" VerticalAlignment="Center"
-                                                       Margin="10,0,0,0"
-                                                       FontFamily="{StaticResource MonoFont}"
-                                                       Foreground="{DynamicResource TextMutedBrush}" />
-                                        </Grid>
-                                    </Border>
-                                </DataTemplate>
-                            </ListBox.ItemTemplate>
-                        </ListBox>
-                    </DockPanel>
-                </Border>
-
-                <Border Grid.Column="2" Style="{StaticResource Card}" Padding="15">
-                    <DockPanel>
-                        <!-- Removing another program is its own job with its own verbs,
-                             so they stay on this card rather than joining the header's. -->
-                        <Grid DockPanel.Dock="Top" Margin="0,0,0,10">
-                            <TextBlock Text="Installed programs" VerticalAlignment="Center"
-                                       Style="{StaticResource SectionTitle}" Margin="0" />
-                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                                <Button Content="List" Style="{StaticResource GhostButton}"
-                                        Command="{Binding ScanProgramsCommand}" />
-
-                                <!-- Says why it is dead. A disabled button with no
-                                     explanation is indistinguishable from a broken
-                                     one, and this one is dead until a row is picked. -->
-                                <Button Content="Uninstall selected" Style="{StaticResource GhostButton}"
-                                        Command="{Binding UninstallProgramCommand}" Margin="8,0,0,0"
-                                        ToolTipService.ShowOnDisabled="True"
-                                        ToolTip="{Binding UninstallHint}" />
-                            </StackPanel>
+                        <Grid DockPanel.Dock="Top" Margin="0,0,0,8">
+                            <TextBlock Text="Left behind" Style="{StaticResource SectionTitle}"
+                                       Margin="0" VerticalAlignment="Center" />
+                            <Button Content="Remove ticked" Style="{StaticResource GhostButton}"
+                                    HorizontalAlignment="Right"
+                                    Command="{Binding CleanLeftoversCommand}" />
                         </Grid>
 
-                        <StackPanel DockPanel.Dock="Bottom" Margin="0,10,0,0">
-                            <StackPanel.Style>
-                                <Style TargetType="StackPanel">
-                                    <Setter Property="Visibility" Value="Visible" />
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding Leftovers.Count}" Value="0">
-                                            <Setter Property="Visibility" Value="Collapsed" />
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </StackPanel.Style>
-
-                            <TextBlock Text="Leftovers" Style="{StaticResource SectionTitle}"
-                                       Margin="0,0,0,6" />
-                            <ListBox Style="{StaticResource PlainList}"
-                                     ItemsSource="{Binding Leftovers}" MaxHeight="80">
-                                <ListBox.ItemTemplate>
-                                    <DataTemplate>
-                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
-                                            <CheckBox Style="{StaticResource RowCheck}"
-                                                      IsChecked="{Binding IsSelected}" Margin="0,0,10,0" />
-                                            <TextBlock Text="{Binding Location}" FontSize="11.5"
-                                                       FontFamily="{StaticResource MonoFont}"
-                                                       TextTrimming="CharacterEllipsis" MaxWidth="360"
-                                                       Foreground="{DynamicResource TextSecondaryBrush}" />
-                                        </StackPanel>
-                                    </DataTemplate>
-                                </ListBox.ItemTemplate>
-                            </ListBox>
-                            <Button Content="Clean ticked leftovers" Style="{StaticResource GhostButton}"
-                                    Command="{Binding CleanLeftoversCommand}"
-                                    HorizontalAlignment="Left" Margin="0,8,0,0" />
-                        </StackPanel>
-
-                        <!-- Grouped by who the program was installed for, because that is
-                             what decides whether removing it will be refused. -->
-                        <ListBox Style="{StaticResource InsetList}"
-                                 ItemsSource="{Binding GroupedPrograms.View}"
-                                 SelectedItem="{Binding SelectedProgram}">
-                            <ListBox.GroupStyle>
-                                <StaticResource ResourceKey="InsetGroups" />
-                            </ListBox.GroupStyle>
+                        <ListBox Style="{StaticResource PlainList}"
+                                 ItemsSource="{Binding Leftovers}" MaxHeight="96">
                             <ListBox.ItemTemplate>
                                 <DataTemplate>
-                                    <Border x:Name="Row" Style="{StaticResource InsetRow}">
-                                        <Grid>
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="*" />
-                                                <ColumnDefinition Width="Auto" />
-                                                <ColumnDefinition Width="Auto" />
-                                            </Grid.ColumnDefinitions>
-
-                                            <TextBlock x:Name="Name" Grid.Column="0"
-                                                       Text="{Binding DisplayName}" FontSize="13"
-                                                       VerticalAlignment="Center"
-                                                       TextTrimming="CharacterEllipsis"
-                                                       Foreground="{DynamicResource TextSecondaryBrush}" />
-                                            <TextBlock Grid.Column="1" Text="{Binding Version}"
-                                                       FontSize="11.5" Margin="12,0,0,0"
-                                                       VerticalAlignment="Center" MaxWidth="90"
-                                                       TextTrimming="CharacterEllipsis"
-                                                       Foreground="{DynamicResource TextMutedBrush}" />
-                                            <TextBlock Grid.Column="2" Text="{Binding SizeText}"
-                                                       FontSize="11.5" Margin="12,0,0,0" MinWidth="52"
-                                                       TextAlignment="Right" VerticalAlignment="Center"
-                                                       FontFamily="{StaticResource MonoFont}"
-                                                       Foreground="{DynamicResource TextMutedBrush}" />
-                                        </Grid>
-                                    </Border>
-
-                                    <DataTemplate.Triggers>
-                                        <DataTrigger Value="True"
-                                                     Binding="{Binding IsMouseOver,
-                                                         RelativeSource={RelativeSource AncestorType=ListBoxItem}}">
-                                            <Setter TargetName="Row" Property="Background"
-                                                    Value="{DynamicResource SurfaceRaisedBrush}" />
-                                        </DataTrigger>
-                                        <DataTrigger Value="True"
-                                                     Binding="{Binding IsSelected,
-                                                         RelativeSource={RelativeSource AncestorType=ListBoxItem}}">
-                                            <Setter TargetName="Row" Property="Background"
-                                                    Value="{DynamicResource AccentSoftBrush}" />
-                                            <Setter TargetName="Name" Property="Foreground"
-                                                    Value="{DynamicResource TextPrimaryBrush}" />
-                                        </DataTrigger>
-                                    </DataTemplate.Triggers>
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                        <CheckBox Style="{StaticResource RowCheck}"
+                                                  IsChecked="{Binding IsSelected}" Margin="0,0,10,0" />
+                                        <TextBlock Text="{Binding Location}" FontSize="11.5"
+                                                   FontFamily="{StaticResource MonoFont}"
+                                                   TextTrimming="CharacterEllipsis" MaxWidth="620"
+                                                   Foreground="{DynamicResource TextSecondaryBrush}" />
+                                    </StackPanel>
                                 </DataTemplate>
                             </ListBox.ItemTemplate>
                         </ListBox>
                     </DockPanel>
                 </Border>
-            </Grid>
+
+                <!-- Grouped by who the program was installed for, because that is
+                     what decides whether removing it will be refused. -->
+                <Border Style="{StaticResource Card}" Padding="15">
+                    <ListBox Style="{StaticResource InsetList}"
+                             ItemsSource="{Binding GroupedPrograms.View}"
+                             SelectedItem="{Binding SelectedProgram}">
+                        <ListBox.GroupStyle>
+                            <StaticResource ResourceKey="InsetGroups" />
+                        </ListBox.GroupStyle>
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <Border x:Name="Row" Style="{StaticResource InsetRow}">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+
+                                        <!-- The program's own icon, read from what it
+                                             registered. A row of names is a registry
+                                             dump; a row of icons is the list people
+                                             already know from the Start menu. -->
+                                        <Grid Grid.Column="0" Width="20" Height="20"
+                                              Margin="0,0,12,0" VerticalAlignment="Center">
+                                            <TextBlock x:Name="Fallback" Text="&#xE977;"
+                                                       FontFamily="Segoe MDL2 Assets" FontSize="15"
+                                                       HorizontalAlignment="Center"
+                                                       VerticalAlignment="Center"
+                                                       Foreground="{DynamicResource TextMutedBrush}" />
+                                            <Image x:Name="Icon" Stretch="Uniform"
+                                                   RenderOptions.BitmapScalingMode="HighQuality"
+                                                   Source="{Binding Converter={StaticResource ProgramIcon}}" />
+                                        </Grid>
+
+                                        <TextBlock x:Name="Name" Grid.Column="1"
+                                                   Text="{Binding DisplayName}" FontSize="13"
+                                                   VerticalAlignment="Center"
+                                                   TextTrimming="CharacterEllipsis"
+                                                   Foreground="{DynamicResource TextSecondaryBrush}" />
+                                        <TextBlock Grid.Column="2" Text="{Binding Version}"
+                                                   FontSize="11.5" Margin="12,0,0,0"
+                                                   VerticalAlignment="Center" MaxWidth="90"
+                                                   TextTrimming="CharacterEllipsis"
+                                                   Foreground="{DynamicResource TextMutedBrush}" />
+                                        <TextBlock Grid.Column="3" Text="{Binding SizeText}"
+                                                   FontSize="11.5" Margin="12,0,0,0" MinWidth="52"
+                                                   TextAlignment="Right" VerticalAlignment="Center"
+                                                   FontFamily="{StaticResource MonoFont}"
+                                                   Foreground="{DynamicResource TextMutedBrush}" />
+                                    </Grid>
+                                </Border>
+
+                                <DataTemplate.Triggers>
+                                    <!-- The placeholder shows only where there is no
+                                         icon to draw, rather than behind every one. -->
+                                    <DataTrigger Value="{x:Null}"
+                                                 Binding="{Binding Converter={StaticResource ProgramIcon}}">
+                                        <Setter TargetName="Icon" Property="Visibility" Value="Collapsed" />
+                                    </DataTrigger>
+
+                                    <DataTrigger Value="True"
+                                                 Binding="{Binding IsMouseOver,
+                                                     RelativeSource={RelativeSource AncestorType=ListBoxItem}}">
+                                        <Setter TargetName="Row" Property="Background"
+                                                Value="{DynamicResource SurfaceRaisedBrush}" />
+                                    </DataTrigger>
+                                    <DataTrigger Value="True"
+                                                 Binding="{Binding IsSelected,
+                                                     RelativeSource={RelativeSource AncestorType=ListBoxItem}}">
+                                        <Setter TargetName="Row" Property="Background"
+                                                Value="{DynamicResource AccentSoftBrush}" />
+                                        <Setter TargetName="Name" Property="Foreground"
+                                                Value="{DynamicResource TextPrimaryBrush}" />
+                                    </DataTrigger>
+                                </DataTemplate.Triggers>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </Border>
+            </DockPanel>
         </ctl:SectionFrame>
     </DataTemplate>
 
