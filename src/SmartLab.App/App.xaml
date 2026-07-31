@@ -16,6 +16,11 @@
                 <ResourceDictionary Source="Themes/Tokens.xaml" />
                 <ResourceDictionary Source="Themes/Palette.Dark.xaml" />
                 <ResourceDictionary Source="Themes/Controls.xaml" />
+
+                <!-- The layout the application is arranged in: the rail, the frame every
+                     section sits in, and the reading that replaced the dial wherever
+                     there was no honest proportion. Resolves widgets from Controls. -->
+                <ResourceDictionary Source="Themes/Shell.xaml" />
                 <ResourceDictionary Source="Themes/Logo.xaml" />
 
                 <!-- Section stages, one dictionary per rail group. They resolve

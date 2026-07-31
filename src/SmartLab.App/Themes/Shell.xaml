@@ -1,0 +1,279 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:ctl="clr-namespace:SmartLab.App.Controls">
+
+    <!--
+        The shell: the rail, the frame every section sits in, and the reading that
+        replaced the dial wherever there was no honest proportion to draw.
+
+        Split from Controls.xaml because that file is the widget vocabulary - buttons,
+        ticks, lists - while this one is the layout the application is arranged in.
+    -->
+
+    <!-- ============================ readings ============================
+
+         The number, its unit, what it counts, and a bar only when a denominator
+         exists. Five sections used to draw a ring pinned at full, which states a
+         fraction that is not there; a figure with no bar states only what it knows.
+    -->
+
+    <Style TargetType="ctl:Reading">
+        <Setter Property="Tint" Value="{DynamicResource AccentBrush}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ctl:Reading">
+                    <StackPanel MinWidth="86">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock x:Name="Figure" Text="{TemplateBinding Value}"
+                                       FontFamily="{StaticResource MonoFont}" FontSize="30"
+                                       FontWeight="Bold"
+                                       Foreground="{DynamicResource TextPrimaryBrush}">
+                                <TextBlock.LayoutTransform>
+                                    <ScaleTransform />
+                                </TextBlock.LayoutTransform>
+                            </TextBlock>
+                            <TextBlock x:Name="Unit" Text="{TemplateBinding Unit}"
+                                       FontSize="14" Margin="5,0,0,4" VerticalAlignment="Bottom"
+                                       Foreground="{DynamicResource TextMutedBrush}" />
+                        </StackPanel>
+
+                        <TextBlock x:Name="Caption" Text="{TemplateBinding Caption}"
+                                   FontSize="9.5" FontWeight="SemiBold" Margin="0,5,0,0"
+                                   Foreground="{DynamicResource TextMutedBrush}" />
+
+                        <ctl:ProportionBar x:Name="Bar" Height="5" Margin="0,9,0,0"
+                                           Visibility="Collapsed"
+                                           Value="{TemplateBinding Proportion}"
+                                           Fill="{TemplateBinding Tint}"
+                                           Track="{DynamicResource SurfaceSunkenBrush}" />
+                    </StackPanel>
+
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="ShowProportion" Value="True">
+                            <Setter TargetName="Bar" Property="Visibility" Value="Visible" />
+                        </Trigger>
+
+                        <!-- Context beside a headline figure. Smaller and greyer, so the
+                             eye cannot mistake supporting numbers for the answer. -->
+                        <Trigger Property="IsQuiet" Value="True">
+                            <Setter TargetName="Figure" Property="FontSize" Value="19" />
+                            <Setter TargetName="Figure" Property="Foreground"
+                                    Value="{DynamicResource TextSecondaryBrush}" />
+                            <Setter TargetName="Unit" Property="FontSize" Value="11" />
+                            <Setter TargetName="Unit" Property="Margin" Value="4,0,0,2" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Row of readings: one headline, then quiet context. -->
+    <Style x:Key="ReadingRow" TargetType="StackPanel">
+        <Setter Property="Orientation" Value="Horizontal" />
+        <Setter Property="VerticalAlignment" Value="Bottom" />
+    </Style>
+
+    <!-- ============================ section frame ============================
+
+         Header band, content, status strip. One control rather than the same forty
+         lines of DockPanel seventeen times - and it is what makes four content
+         shapes possible, since a section's template now holds only its subject.
+    -->
+
+    <Style TargetType="ctl:SectionFrame">
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ctl:SectionFrame">
+                    <DockPanel>
+                        <!-- header band -->
+                        <Border DockPanel.Dock="Top" BorderThickness="0,0,0,1"
+                                BorderBrush="{DynamicResource HairlineBrush}" Padding="24,16,24,14">
+                            <StackPanel>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                        <TextBlock Text="{TemplateBinding Title}" FontSize="19"
+                                                   FontWeight="Bold"
+                                                   Foreground="{DynamicResource TextPrimaryBrush}" />
+                                        <TextBlock x:Name="Sub" Text="{TemplateBinding Subtitle}"
+                                                   FontSize="11.5" Margin="0,3,0,0" TextWrapping="Wrap"
+                                                   MaxWidth="560" HorizontalAlignment="Left"
+                                                   Foreground="{DynamicResource TextMutedBrush}" />
+                                    </StackPanel>
+
+                                    <!-- The verbs. In the header so a Dry run toggle is read
+                                         before the button it guards, not beside it. -->
+                                    <ContentPresenter Grid.Column="1" ContentSource="Actions"
+                                                      VerticalAlignment="Center" Margin="16,0,0,0" />
+                                </Grid>
+
+                                <ContentPresenter x:Name="Settings" ContentSource="Settings"
+                                                  Margin="0,12,0,0" />
+                            </StackPanel>
+                        </Border>
+
+                        <!-- status strip -->
+                        <Border x:Name="Strip" DockPanel.Dock="Bottom" Padding="24,8"
+                                Background="{DynamicResource SurfaceSunkenBrush}"
+                                BorderThickness="0,1,0,0"
+                                BorderBrush="{DynamicResource HairlineBrush}">
+                            <StackPanel Orientation="Horizontal">
+                                <Ellipse Width="6" Height="6" Margin="0,0,9,0"
+                                         VerticalAlignment="Center"
+                                         Fill="{DynamicResource AccentBrush}" />
+                                <TextBlock Text="{TemplateBinding Status}" FontSize="11"
+                                           TextTrimming="CharacterEllipsis"
+                                           Foreground="{DynamicResource TextSecondaryBrush}" />
+                            </StackPanel>
+                        </Border>
+
+                        <!-- the section's own subject -->
+                        <Border x:Name="Body" Padding="24,18">
+                            <ContentPresenter />
+                        </Border>
+                    </DockPanel>
+
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="Subtitle" Value="">
+                            <Setter TargetName="Sub" Property="Visibility" Value="Collapsed" />
+                        </Trigger>
+                        <Trigger Property="Settings" Value="{x:Null}">
+                            <Setter TargetName="Settings" Property="Visibility" Value="Collapsed" />
+                        </Trigger>
+                        <Trigger Property="Status" Value="">
+                            <Setter TargetName="Strip" Property="Visibility" Value="Collapsed" />
+                        </Trigger>
+
+                        <!-- A treemap inset by 24 px on every side reads as a picture of a
+                             treemap rather than as the map. -->
+                        <Trigger Property="IsCanvas" Value="True">
+                            <Setter TargetName="Body" Property="Padding" Value="0" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ============================ verdict band ============================
+
+         For sections whose answer is a state rather than a fraction. The lamp
+         carries the tone in shape as well as colour, so severity survives a
+         monochrome screen.
+    -->
+
+    <Style x:Key="VerdictBand" TargetType="Border">
+        <Setter Property="Background" Value="{DynamicResource SurfaceSunkenBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource HairlineBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="12" />
+        <Setter Property="Padding" Value="16,14" />
+    </Style>
+
+    <Style x:Key="VerdictLamp" TargetType="Border">
+        <Setter Property="Width" Value="38" />
+        <Setter Property="Height" Value="38" />
+        <Setter Property="CornerRadius" Value="11" />
+        <Setter Property="Margin" Value="0,0,14,0" />
+        <Setter Property="VerticalAlignment" Value="Top" />
+    </Style>
+
+    <Style x:Key="VerdictHeadline" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="15.5" />
+        <Setter Property="FontWeight" Value="Bold" />
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+    </Style>
+
+    <Style x:Key="VerdictDetail" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="11.5" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+        <Setter Property="Margin" Value="0,3,0,0" />
+        <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+    </Style>
+
+    <!-- ============================ chips ============================
+
+         State in form as well as colour: a reader who cannot separate amber from
+         red still reads the word.
+    -->
+
+    <Style x:Key="Chip" TargetType="Border">
+        <Setter Property="CornerRadius" Value="4" />
+        <Setter Property="Padding" Value="6,1" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="Margin" Value="8,0,0,0" />
+        <Setter Property="Background" Value="{DynamicResource SurfaceSunkenBrush}" />
+    </Style>
+
+    <Style x:Key="ChipText" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="9.5" />
+        <Setter Property="FontWeight" Value="Bold" />
+    </Style>
+
+    <!-- ============================ the rail ============================
+
+         Labelled, grouped, and short enough to fit without moving. Seventeen
+         glyphs at 46 px overflowed every window height, and navigation that
+         scrolls cannot be remembered.
+    -->
+
+    <Style x:Key="RailList" TargetType="ListBox">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Padding" Value="8,4,8,10" />
+        <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled" />
+        <Setter Property="ItemContainerStyle">
+            <Setter.Value>
+                <Style TargetType="ListBoxItem">
+                    <Setter Property="Cursor" Value="Hand" />
+                    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate TargetType="ListBoxItem">
+                                <ContentPresenter />
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
+                </Style>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="RailGroupLabel" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="9" />
+        <Setter Property="FontWeight" Value="Bold" />
+        <Setter Property="Foreground" Value="{DynamicResource TextMutedBrush}" />
+        <Setter Property="Margin" Value="10,12,0,4" />
+        <Style.Triggers>
+            <!-- Home stands outside a group; an empty heading collapses rather than
+                 leaving a gap where a word should be. -->
+            <DataTrigger Binding="{Binding Name}" Value="">
+                <Setter Property="Visibility" Value="Collapsed" />
+                <Setter Property="Margin" Value="0,2,0,0" />
+            </DataTrigger>
+        </Style.Triggers>
+    </Style>
+
+    <GroupStyle x:Key="RailGroups">
+        <GroupStyle.ContainerStyle>
+            <Style TargetType="GroupItem">
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="GroupItem">
+                            <StackPanel>
+                                <TextBlock Text="{Binding Name}" Style="{StaticResource RailGroupLabel}" />
+                                <ItemsPresenter />
+                            </StackPanel>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+        </GroupStyle.ContainerStyle>
+    </GroupStyle>
+
+</ResourceDictionary>
