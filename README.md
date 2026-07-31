@@ -11,7 +11,7 @@ one definition serves the title bar and the About view at any size.
 
 The application icon is a flask on a rounded tile, with the EVSELab bolt added only
 at sizes where it still reads. It was a shield holding a USB stick, which described
-a tool that only triaged removable drives; seventeen sections later most of them are
+a tool that only triaged removable drives; fifteen sections later most of them are
 not about USB at all, and a shield reads as antivirus — a claim this app deliberately
 does not make, since naming malware is delegated to Defender. This one
 *must* be a real file: the Windows shell reads an executable's icon from an `.ico`
@@ -115,8 +115,8 @@ locking need Administrator, but the UI must not run elevated.
 - A section takes one of four shapes, chosen by what its data actually is:
   **reading and list** where a real denominator exists, **verdict and evidence**
   where the answer is a state rather than a fraction, **canvas** where the data is
-  spatial, **console** for a task list with output. One template for seventeen
-  sections is what produced five rings pinned at full, and a gauge that never moves
+  spatial, **console** for a task list with output. One template for every
+  section is what produced five rings pinned at full, and a gauge that never moves
   is not a reading.
 - Every section sits in a `SectionFrame` — header band, content, status strip — so a
   section's own template contains only its subject. The verbs live in the header, and
@@ -131,9 +131,11 @@ locking need Administrator, but the UI must not run elevated.
 - Sections that stand outside a group still need a group name. A collection view
   gathers every member of a group in one place, so leaving Settings and About blank
   like Home would put all three together and drag them to the top of the rail.
-- The rail is labelled, not glyphs. Seventeen icons at 46 px overflowed every window
+- The rail is labelled, not glyphs. Fifteen icons at 46 px overflowed every window
   height, and navigation that scrolls cannot be remembered — you cannot learn where
-  something is if it is somewhere else next time.
+  something is if it is somewhere else next time. At 32 px with names the whole list
+  fits at the default window size, which is the point: a rail that never scrolls is
+  the only kind whose positions can be learned.
 - Nothing is reachable only by pointing. Ctrl+K searches sections and actions; a
   section ranks above an action at equal quality because navigating cannot change
   anything, and anything irreversible is chipped so speed never hides consequence.
@@ -146,14 +148,13 @@ locking need Administrator, but the UI must not run elevated.
   proportional to the distance travelled. This is why `--screenshot` waits after
   layout settles: a capture taken the instant bindings resolve catches a
   half-drawn ring.
-- The shell is two cards stacked on the window's own ground, not one surface split
-  by a line: the rail overlaps the stage's left edge and is inset from its top and
-  foot, so the piece underneath shows on three sides. Each card is two borders —
-  the outer paints the fill and casts the shadow, the inner clips the contents.
-  They cannot be one: WPF applies `Clip` after `Effect`, so a card that clipped
-  itself would cut off its own shadow, and a rounded `Border` does not clip what it
-  contains, which is how a full-bleed treemap or the status strip squares the
-  corners off again.
+- The shell is two pieces, one stacked on the other, not one surface split by a
+  line. The window itself is the big card, so the stage needs no border of its own;
+  the rail is a smaller card laid on top, clear of every edge, with a shadow that
+  lands on the piece underneath. The rail is two borders — the outer paints the fill
+  and casts the shadow, the inner clips the contents. They cannot be one: WPF applies
+  `Clip` after `Effect`, so a card that clipped itself would cut off its own shadow,
+  and a rounded `Border` does not clip what it contains.
 - Reference every colour with `DynamicResource`, never `StaticResource`. The two
   palettes are swapped whole at runtime; a static reference is resolved once when
   the element is parsed and keeps the colour it was born with. Radii, typefaces
@@ -212,10 +213,10 @@ succeeded" and "the volume is clean" are different claims.
 | Executor (applying a plan) | implemented, unit tested |
 | Rescue copy | implemented, unit tested |
 | CLI `scan` / `apply` / `raw` | implemented, validated on live drives |
-| WPF UI | implemented, seventeen sections (see below) |
-| Trash Bins, Mail attachment cache | implemented, unit tested |
+| WPF UI | implemented, fifteen sections (see below) |
+| Trash Bins | implemented, unit tested |
 | Space Lens, Large & Old Files, Shredder | implemented, unit tested |
-| Updater (winget), Add-ons (list only) | implemented, unit tested |
+| Updater (winget) | implemented, unit tested |
 | Startup items, Windows repair tools | implemented, unit tested |
 | Malware Removal (Defender delegation) | implemented, unit tested |
 | Smart Scan | implemented, unit tested |
@@ -319,15 +320,15 @@ key: that needs Administrator and would launch for every account on a shared lab
 PC, which is not something a checkbox should decide. Unticking removes the value
 and leaves nothing behind.
 
-## The seventeen sections
+## The fifteen sections
 
 | Group | Sections |
 | --- | --- |
 | — | Smart Scan |
-| Cleanup | System Junk, Mail, Trash Bins |
+| Cleanup | System Junk, Trash Bins |
 | Protection | Repair, Malware |
 | Speed | Startup, Repair OS |
-| Applications | Uninstall, Updater, Add-ons |
+| Applications | Uninstall, Updater |
 | Files | Space Lens, Large & Old, Deleted, Shredder |
 | App | Settings, About |
 
@@ -365,13 +366,6 @@ file is Trojan:Win32/Something" are different claims. A scan that could not run 
 reported as its own state — a security screen that says "clean" because it could not
 look is worse than one that says nothing.
 
-**Add-ons lists and never writes.** An extension's stored state sits in the browser
-profile beside the cookies, saved logins and history this codebase has always refused
-to touch. It reports what is installed and what each one is allowed to see — the
-useful fact being permissions, not size — and leaves removal to the browser. Shell
-extensions are listed only: removing the wrong one takes Explorer's context menu with
-it, and the tool that would have helped is the one that just broke.
-
 **Shredder says what it cannot do.** On a solid-state drive, wear levelling writes the
 overwrite to a different physical block, so the original survives until the controller
 reuses it. The section detects the drive type and states this in its heading rather
@@ -379,12 +373,18 @@ than in a footnote, because a shredder that stays quiet about it is claiming som
 it cannot deliver. It refuses drive roots, the Windows folder, and any volume open in
 Deleted files — the mirror of the rule the recovery destination already carries.
 
-Two smaller ones. **Mail** reaches only the folder Outlook copies an attachment into
-when someone opens it; `.ost` and `.pst` are refused at the source, since an OST is a
-cache in Outlook's vocabulary but the mailbox in the user's. **Startup** disables by
-moving a Run value to a backup key rather than deleting it, because a Run value's
-quoting is load-bearing and a restore that loses a pair of quotes breaks the program
-it was meant to protect.
+One smaller one. **Startup** disables by moving a Run value to a backup key rather
+than deleting it, because a Run value's quoting is load-bearing and a restore that
+loses a pair of quotes breaks the program it was meant to protect.
+
+The window no longer has a Mail section or an Add-ons section. Both scanners are
+still in `SmartLab.Maintenance` and still tested — `scan` reports the Outlook
+attachment cache from the command line — but neither has a stage any more. The rules
+they were written under outlive the sections and still hold wherever they run:
+`.ost`, `.pst` and `.nst` are refused at the source, since an OST is a cache in
+Outlook's vocabulary but the mailbox in the user's; the extension scanners read a
+browser profile and never write to one, and the shell-extension scanner has no
+removal path at all.
 
 ### Windows repair tools
 

@@ -207,7 +207,6 @@ public sealed partial class MainViewModel : ObservableObject
         new("home", "Home", "Check everything, change nothing", Glyph(0xE80F), "NavSmartHex"),
 
         new("cleanup", "System Junk", "Reclaim disk space", Glyph(0xE74E), "NavCleanupHex", GroupCleanup),
-        new("mail", "Mail", "Outlook attachment cache", Glyph(0xE715), "NavMailHex", GroupCleanup),
         new("trash", "Trash Bins", "Per-drive recycle bins", Glyph(0xE74D), "NavTrashHex", GroupCleanup),
 
         new("repair", "Repair", "Find and undo hiding", Glyph(0xE72E), "NavRepairHex", GroupProtection),
@@ -218,7 +217,6 @@ public sealed partial class MainViewModel : ObservableObject
 
         new("uninstall", "Uninstall", "Apps and leftovers", Glyph(0xECC9), "NavUninstallHex", GroupApplications),
         new("updater", "Updater", "Upgrades through winget", Glyph(0xE777), "NavUpdaterHex", GroupApplications),
-        new("extensions", "Add-ons", "Browser and shell", Glyph(0xEA86), "NavExtensionsHex", GroupApplications),
 
         new("spacelens", "Space Lens", "Where the space went", Glyph(0xE9D2), "NavSpaceLensHex", GroupFiles),
         new("large", "Large & Old", "Big files nobody opens", Glyph(0xE8B7), "NavLargeHex", GroupFiles),
@@ -260,8 +258,6 @@ public sealed partial class MainViewModel : ObservableObject
 
     public TrashBinsViewModel TrashBins { get; } = new();
 
-    public MailAttachmentsViewModel Mail { get; } = new();
-
     public SpaceLensViewModel SpaceLens { get; } = new();
 
     public LargeOldFilesViewModel LargeFiles { get; } = new();
@@ -270,7 +266,7 @@ public sealed partial class MainViewModel : ObservableObject
 
     public UpdaterViewModel Updater { get; } = new();
 
-    public ExtensionsViewModel Extensions { get; } = new();        public OptimizationViewModel Optimization { get; } = new();
+    public OptimizationViewModel Optimization { get; } = new();
 
     public MaintenanceViewModel Maintenance { get; } = new();
 

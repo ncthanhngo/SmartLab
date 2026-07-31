@@ -5,13 +5,14 @@ using Xunit;
 namespace SmartLab.Tests;
 
 /// <summary>
-/// The one rule that matters in the Mail Attachments section.
+/// The one rule that matters when anything reads the Outlook cache.
 /// </summary>
 /// <remarks>
-/// "Mail attachments" reads to most people as their mail. The feature reaches exactly
-/// one folder - the copies Outlook makes when someone opens an attachment - and must
-/// never reach a mailbox. An OST is a cache in Outlook's vocabulary but the mailbox in
-/// the user's, and a PST is often the only copy of mail no server still has.
+/// The window no longer has a Mail section, but the command line still reports this
+/// folder, and the rule outlives the section: the scan reaches exactly one folder -
+/// the copies Outlook makes when someone opens an attachment - and must never reach a
+/// mailbox. An OST is a cache in Outlook's vocabulary but the mailbox in the user's,
+/// and a PST is often the only copy of mail no server still has.
 /// </remarks>
 public sealed class MailAttachmentTests
 {
@@ -41,22 +42,6 @@ public sealed class MailAttachmentTests
         // rather than something a future scan quietly starts deleting.
         Assert.Contains(".ost", OutlookCache.ProtectedExtensions);
         Assert.Contains(".pst", OutlookCache.ProtectedExtensions);
-    }
-
-    [Fact]
-    public void TheHeadingSaysWhatIsNotBeingTouched()
-    {
-        var summary = MailAttachmentsViewModel.Summarise(found: 40, ticked: 40);
-
-        Assert.Contains("mail itself is untouched", summary.Detail, StringComparison.OrdinalIgnoreCase);
-    }
-
-    [Fact]
-    public void BeforeScanningNothingIsClaimed()
-    {
-        var summary = MailAttachmentsViewModel.Summarise(found: 0, ticked: 0);
-
-        Assert.Equal("Not scanned yet", summary.Headline);
     }
 }
 

@@ -175,16 +175,6 @@ public sealed class ExtensionScannerTests
     }
 
     [Fact]
-    public void TheHeadingSaysNothingIsWrittenToAProfile()
-    {
-        // The rule this section exists under: cookies, logins, history and bookmarks
-        // live in that profile and are never touched.
-        var summary = ExtensionsViewModel.Summarise(found: 12, readsEverySite: 3, shell: 40);
-
-        Assert.Contains("never writes to a profile", summary.Detail, StringComparison.OrdinalIgnoreCase);
-    }
-
-    [Fact]
     public void ShellExtensionsAreListedWithNoRemovalPath()
     {
         // A wrongly removed shell extension takes Explorer's context menu with it, and

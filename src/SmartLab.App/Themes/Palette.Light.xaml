@@ -18,31 +18,28 @@
         like a gauge ring, keeps its saturation because area supplies the contrast
         that a caption cannot.
 
-        The ground is not white either. The two cards are white, so the surface they
-        sit on has to be a grey deep enough to let their edges and shadows show.
+        The window is the big card, so this pair is its surface rather than a ground
+        behind it: a wash a shade off white, dark enough that the white cards a
+        section lays on it still have an edge.
     -->
 
-    <Color x:Key="ShellTopColor">#DDE0E6</Color>
-    <Color x:Key="ShellBottomColor">#C6CAD2</Color>
+    <Color x:Key="ShellTopColor">#F7F8FA</Color>
+    <Color x:Key="ShellBottomColor">#EBEDF1</Color>
 
     <SolidColorBrush x:Key="SurfaceBrush" Color="#FFFFFF" />
     <SolidColorBrush x:Key="SurfaceRaisedBrush" Color="#FAFBFC" />
     <SolidColorBrush x:Key="SurfaceSunkenBrush" Color="#EDEFF3" />
 
-    <!-- The stage card. A shade below white on purpose: the cards a section lays on
-         it are white, and a white stage would swallow them. -->
-    <SolidColorBrush x:Key="StageBrush" Color="#F6F7F9" />
-
-    <!-- What the two cards drop onto the ground. Grey rather than black, so the
+    <!-- What the rail drops onto the card below it. Grey rather than black, so the
          shadow reads as depth instead of soot. -->
     <Color x:Key="CardShadowColor">#8A929E</Color>
 
-    <!-- The rail card. A shade below the stage, which is the whole of what separates
-         them now that neither has a border. -->
+    <!-- The rail card. Brighter than the surface it is stacked on, which with the
+         shadow is the whole of what separates them now that neither has a border. -->
     <LinearGradientBrush x:Key="SidebarBrush" StartPoint="0,0" EndPoint="0.6,1">
         <GradientStop Color="#FFFFFF" Offset="0" />
-        <GradientStop Color="#FAFBFC" Offset="0.55" />
-        <GradientStop Color="#F1F3F6" Offset="1" />
+        <GradientStop Color="#FDFDFE" Offset="0.55" />
+        <GradientStop Color="#F7F8FA" Offset="1" />
     </LinearGradientBrush>
 
     <LinearGradientBrush x:Key="BrandBlockBrush" StartPoint="0,0" EndPoint="1,1">
@@ -116,12 +113,10 @@
     <SolidColorBrush x:Key="AccentUninstallBrush" Color="#D8446A" />
     <SolidColorBrush x:Key="AccentAboutBrush" Color="#0F9086" />
     <SolidColorBrush x:Key="AccentTrashBrush" Color="#C4901F" />
-    <SolidColorBrush x:Key="AccentMailBrush" Color="#D18B14" />
     <SolidColorBrush x:Key="AccentSpaceLensBrush" Color="#2E7FE0" />
     <SolidColorBrush x:Key="AccentLargeBrush" Color="#2A72C4" />
     <SolidColorBrush x:Key="AccentShredderBrush" Color="#C62B2B" />
     <SolidColorBrush x:Key="AccentUpdaterBrush" Color="#BE3A80" />
-    <SolidColorBrush x:Key="AccentExtensionsBrush" Color="#A93A96" />
     <SolidColorBrush x:Key="AccentOptimizeBrush" Color="#4C57CC" />
     <SolidColorBrush x:Key="AccentMaintenanceBrush" Color="#3F63C4" />
     <SolidColorBrush x:Key="AccentMalwareBrush" Color="#C2500F" />
@@ -134,7 +129,6 @@
     <sys:String x:Key="NavSmartHex">#0E7490</sys:String>
 
     <sys:String x:Key="NavCleanupHex">#B3760A</sys:String>
-    <sys:String x:Key="NavMailHex">#A56A08</sys:String>
     <sys:String x:Key="NavTrashHex">#96610C</sys:String>
 
     <sys:String x:Key="NavRepairHex">#0E9E56</sys:String>
@@ -145,7 +139,6 @@
 
     <sys:String x:Key="NavUninstallHex">#C93A5E</sys:String>
     <sys:String x:Key="NavUpdaterHex">#BE3A80</sys:String>
-    <sys:String x:Key="NavExtensionsHex">#A93A96</sys:String>
 
     <sys:String x:Key="NavSpaceLensHex">#2166CC</sys:String>
     <sys:String x:Key="NavLargeHex">#1F6BB0</sys:String>

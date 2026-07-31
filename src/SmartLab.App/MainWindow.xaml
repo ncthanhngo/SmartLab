@@ -30,6 +30,9 @@
         <KeyBinding Key="K" Modifiers="Control" Command="{Binding OpenPaletteCommand}" />
     </Window.InputBindings>
 
+    <!-- The window is the big card. There is no ground behind it any more: a margin
+         all the way round left a frame nobody was using, so the card was widened to
+         the window's own edges and the rail is the only piece stacked on it. -->
     <Window.Background>
         <LinearGradientBrush StartPoint="0,0" EndPoint="0.35,1">
             <GradientStop Color="{DynamicResource ShellTopColor}" Offset="0" />
@@ -93,52 +96,31 @@
 
             <!-- ==================== body ====================
 
-                 Two cards laid on the window's own ground rather than one surface
-                 divided by a line. The rail overlaps the stage's left edge by a
-                 few pixels and carries its own shadow, so the two read as pieces
-                 stacked on the window instead of panes cut from it.
-
-                 Each card is two borders: the outer one paints the fill and casts
-                 the shadow, the inner one clips its contents to the same corner. It
-                 has to be split that way - WPF applies Clip after Effect, so a card
-                 that clipped itself would cut off its own shadow, and a rounded
-                 Border does not clip what it contains, which is how the status strip
-                 at the stage's foot squares the bottom corners off again. -->
-            <Grid Grid.Row="1" Margin="14,2,14,14">
+                 Two pieces, one stacked on the other. The window itself is the big
+                 card, so the stage needs no border of its own; the rail is a smaller
+                 card laid on top of it, clear of every edge, with a shadow that
+                 lands on the piece underneath. -->
+            <Grid Grid.Row="1">
 
                 <!-- ===== the stage =====
-                     Laid down first, and reaching left under the rail. One host:
-                     only the selected section's template is built, so a stage costs
-                     nothing until someone navigates to it. -->
-                <Border Margin="190,0,0,0"
-                        CornerRadius="{StaticResource CardRadius}"
-                        Background="{DynamicResource StageBrush}">
-                    <Border.Effect>
-                        <DropShadowEffect Color="{DynamicResource CardShadowColor}"
-                                          BlurRadius="34" ShadowDepth="8" Direction="270"
-                                          Opacity="0.45" RenderingBias="Performance" />
-                    </Border.Effect>
-
-                    <Border CornerRadius="{StaticResource CardRadius}"
-                            SizeChanged="OnCardSizeChanged">
-                        <!-- Inset past the overlap, so nothing a section draws hides
-                             behind the rail. -->
-                        <ContentControl Margin="28,0,0,0"
-                                        Content="{Binding SelectedSection}"
-                                        ContentTemplateSelector="{StaticResource SectionTemplates}" />
-                    </Border>
-                </Border>
+                     One host. Only the selected section's template is built, so a
+                     stage costs nothing until someone navigates to it. Inset past
+                     the rail, so nothing a section draws hides behind it. -->
+                <ContentControl Margin="230,0,0,0"
+                                Content="{Binding SelectedSection}"
+                                ContentTemplateSelector="{StaticResource SectionTemplates}" />
 
                 <!-- ===== the rail =====
-                     Stacked on the stage: it overlaps the stage's left edge and is
-                     inset from its top and foot, so the piece underneath shows on
-                     three sides and the two read as stacked rather than abutting.
+                     Two borders: the outer one paints the fill and casts the shadow,
+                     the inner one clips its contents to the same corner. It has to be
+                     split that way - WPF applies Clip after Effect, so a card that
+                     clipped itself would cut off its own shadow, and a rounded Border
+                     does not clip what it contains.
 
-                     Labelled and grouped. Seventeen glyphs at 46 px overflowed every
+                     Labelled and grouped. Fifteen glyphs at 46 px overflowed every
                      window height, and navigation that scrolls cannot be remembered;
-                     at 34 px with names the whole list fits at the default size and
-                     only scrolls near the minimum. -->
-                <Border Width="204" HorizontalAlignment="Left" Margin="0,12,0,12"
+                     at 32 px with names the whole list fits without a scrollbar. -->
+                <Border Width="204" HorizontalAlignment="Left" Margin="12,0,0,14"
                         CornerRadius="{StaticResource CardRadius}"
                         Background="{DynamicResource SidebarBrush}">
                     <Border.Effect>
@@ -165,7 +147,7 @@
                             </ListBox.GroupStyle>
                             <ListBox.ItemTemplate>
                                 <DataTemplate>
-                                    <Border x:Name="Cell" Height="34" CornerRadius="9"
+                                    <Border x:Name="Cell" Height="32" CornerRadius="9"
                                             Background="Transparent" Padding="9,0"
                                             ToolTip="{Binding Subtitle}">
                                         <Grid>

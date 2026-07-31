@@ -272,9 +272,6 @@ public partial class MainWindow : Window
                     case "trash":
                         viewModel.TrashBins.MeasureCommand.Execute(null);
                         break;
-                    case "mail":
-                        await viewModel.Mail.ScanCommand.ExecuteAsync(null).ConfigureAwait(true);
-                        break;
                     case "spacelens":
                         // A shallow folder, because a capture must not spend minutes
                         // walking a whole profile before it can render.
@@ -293,9 +290,6 @@ public partial class MainWindow : Window
                         break;
                     case "optimize":
                         viewModel.Optimization.ScanCommand.Execute(null);
-                        break;
-                    case "extensions":
-                        await viewModel.Extensions.ScanCommand.ExecuteAsync(null).ConfigureAwait(true);
                         break;
 
                     // Updater, Malware and Smart Scan are deliberately not populated.

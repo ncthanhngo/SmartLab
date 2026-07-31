@@ -199,7 +199,6 @@ public sealed partial class CommandPaletteViewModel(MainViewModel shell) : Obser
         yield return Action("Measure reclaimable space", "System Junk", "cleanup", shell.Cleanup.AnalyseCommand);
         yield return Action("Clean the ticked categories", "System Junk", "cleanup", shell.Cleanup.CleanCommand, destructive: true);
 
-        yield return Action("Scan the Outlook attachment cache", "Mail", "mail", shell.Mail.ScanCommand);
         yield return Action("Measure every drive's Recycle Bin", "Trash Bins", "trash", shell.TrashBins.MeasureCommand);
         yield return Action("Empty the ticked Recycle Bins", "Trash Bins", "trash", shell.TrashBins.EmptyTickedCommand, destructive: true);
 
@@ -212,8 +211,6 @@ public sealed partial class CommandPaletteViewModel(MainViewModel shell) : Obser
 
         yield return Action("Check for package upgrades", "Updater", "updater", shell.Updater.CheckCommand);
         yield return Action("Upgrade the ticked packages", "Updater", "updater", shell.Updater.UpgradeTickedCommand);
-
-        yield return Action("List browser and Explorer add-ons", "Add-ons", "extensions", shell.Extensions.ScanCommand);
 
         yield return Action("Measure where the space went", "Space Lens", "spacelens", shell.SpaceLens.MeasureCommand);
         yield return Action("Find large and old files", "Large & Old", "large", shell.LargeFiles.ScanCommand);

@@ -246,9 +246,6 @@ public sealed partial class SmartScanViewModel(MainViewModel shell) : Observable
             case "cleanup":
                 await shell.Cleanup.CleanCommand.ExecuteAsync(null).ConfigureAwait(true);
                 break;
-            case "mail":
-                await shell.Mail.CleanCommand.ExecuteAsync(null).ConfigureAwait(true);
-                break;
             case "trash":
                 shell.TrashBins.EmptyTickedCommand.Execute(null);
                 break;
@@ -322,16 +319,15 @@ public sealed partial class SmartScanViewModel(MainViewModel shell) : Observable
     /// The read-only passes, in order, each under the pillar it reports to.
     /// </summary>
     /// <remarks>
-    /// Space Lens, Shredder, Repair OS and Add-ons are absent on purpose. The first two
-    /// are exploratory rather than diagnostic, and the last two produce nothing a
-    /// number can carry without a person reading the output.
+    /// Space Lens, Shredder and Repair OS are absent on purpose. The first two are
+    /// exploratory rather than diagnostic, and the last produces nothing a number can
+    /// carry without a person reading the output.
     /// </remarks>
     private IEnumerable<(string Key, Pillar Pillar, Func<CancellationToken, Task<SectionOutcome>> Run)> Passes()
     {
         yield return ("repair", Pillar.Protection, RepairPass);
         yield return ("cleanup", Pillar.Cleanup, CleanupPass);
         yield return ("trash", Pillar.Cleanup, TrashPass);
-        yield return ("mail", Pillar.Cleanup, MailPass);
         yield return ("optimize", Pillar.Speed, StartupPass);
         yield return ("updater", Pillar.Speed, UpdaterPass);
     }
@@ -384,21 +380,6 @@ public sealed partial class SmartScanViewModel(MainViewModel shell) : Observable
         {
             IsActionable = shell.TrashBins.Bins.Any(b => b.IsSelected),
         });
-    }
-
-    private async Task<SectionOutcome> MailPass(CancellationToken ct)
-    {
-        await shell.Mail.ScanCommand.ExecuteAsync(null).ConfigureAwait(true);
-
-        var bytes = shell.Mail.Attachments.Where(a => a.IsSelected).Sum(a => a.SizeBytes);
-
-        return new SectionOutcome("Mail", shell.Mail.FileCount,
-            shell.Mail.FileCount > 0 ? "warning" : "good",
-            $"{shell.Mail.FileCount} cached attachment cop(ies), {shell.Mail.TotalText}.")
-        {
-            Bytes = bytes,
-            IsActionable = shell.Mail.FileCount > 0,
-        };
     }
 
     private Task<SectionOutcome> StartupPass(CancellationToken ct)
