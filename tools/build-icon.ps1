@@ -7,8 +7,14 @@
     .ico is a build product, and regenerating it is one command rather than a
     trip through an image editor.
 
-    Artwork: a shield holding a USB stick - the app protects removable drives -
-    with the EVSELab bolt added only at sizes where it still reads.
+    Artwork: a flask on a rounded tile, with the EVSELab bolt added only at sizes
+    where it still reads.
+
+    It was a shield holding a USB stick, which described a tool that only triaged
+    removable drives. Seventeen sections later most of them are not about USB at
+    all, and a shield reads as antivirus - a claim this app deliberately does not
+    make, since naming malware is delegated to Defender. A flask says instrument,
+    which is what the interface was rebuilt to be.
 
     Usage:  pwsh tools/build-icon.ps1
 #>
@@ -29,6 +35,25 @@ $greenLight = [System.Drawing.Color]::FromArgb(255, 0x3B, 0xE8, 0x86)
 $greenDark  = [System.Drawing.Color]::FromArgb(255, 0x1B, 0xA0, 0x55)
 $plateDark  = [System.Drawing.Color]::FromArgb(255, 0x0A, 0x0F, 0x15)
 $bolt       = [System.Drawing.Color]::FromArgb(255, 0xF5, 0xB9, 0x3B)
+
+function New-FlaskPath([single]$s) {
+    # A conical flask: a narrow neck that widens to a flat base. Drawn as one
+    # polygon because at 16 px anything more detailed - a lip, a meniscus, a
+    # rounded shoulder - turns into a smudge that reads as no shape at all.
+    $p = New-Object System.Drawing.Drawing2D.GraphicsPath
+    $x = { param($v) [single]($v * $s) }
+
+    $p.AddPolygon(@(
+        (New-Object System.Drawing.PointF((& $x 0.430), (& $x 0.235))),
+        (New-Object System.Drawing.PointF((& $x 0.570), (& $x 0.235))),
+        (New-Object System.Drawing.PointF((& $x 0.570), (& $x 0.430))),
+        (New-Object System.Drawing.PointF((& $x 0.800), (& $x 0.775))),
+        (New-Object System.Drawing.PointF((& $x 0.200), (& $x 0.775))),
+        (New-Object System.Drawing.PointF((& $x 0.430), (& $x 0.430)))
+    ))
+
+    return $p
+}
 
 function New-ShieldPath([single]$s) {
     # Normalised control points scaled to the requested size, so every size is
@@ -79,8 +104,13 @@ function New-IconBitmap([int]$size) {
 
     $s = [single]$size
 
-    # --- shield -------------------------------------------------------------
-    $shield = New-ShieldPath $s
+    # --- tile ---------------------------------------------------------------
+    # A rounded square rather than a shield. A shield reads as antivirus, which is
+    # a claim this app does not make: it identifies hiding behaviour and asks
+    # Defender to name anything.
+    $shield = New-RoundedRect ([single]($s * 0.055)) ([single]($s * 0.055)) `
+                              ([single]($s * 0.945)) ([single]($s * 0.945)) `
+                              ([single]($s * 0.225))
     $grad = New-Object System.Drawing.Drawing2D.LinearGradientBrush(
         (New-Object System.Drawing.PointF(0, 0)),
         (New-Object System.Drawing.PointF($s, $s)),
@@ -88,34 +118,25 @@ function New-IconBitmap([int]$size) {
     $g.FillPath($grad, $shield)
     $grad.Dispose()
 
-    # --- USB stick, cut out of the shield in the shell's dark ---------------
+    # --- flask, cut out of the tile in the shell's dark ---------------------
     $plate = New-Object System.Drawing.SolidBrush($plateDark)
 
-    # Connector tab, then the body. Two rectangles read as a USB stick even when
-    # the whole icon is 16 pixels across; the real USB trident does not.
-    $connector = New-RoundedRect ([single]($s * 0.435)) ([single]($s * 0.245)) `
-                                 ([single]($s * 0.565)) ([single]($s * 0.375)) `
-                                 ([single]($s * 0.03))
-    $g.FillPath($plate, $connector)
-    $connector.Dispose()
-
-    $body = New-RoundedRect ([single]($s * 0.355)) ([single]($s * 0.365)) `
-                            ([single]($s * 0.645)) ([single]($s * 0.745)) `
-                            ([single]($s * 0.055))
-    $g.FillPath($plate, $body)
-    $body.Dispose()
+    $flask = New-FlaskPath $s
+    $g.FillPath($plate, $flask)
+    $flask.Dispose()
 
     # --- bolt, only where it still reads ------------------------------------
-    # Below 48px the bolt collapses into an indistinct smudge that just muddies
-    # the USB silhouette, so small sizes are deliberately simpler.
+    # Below 48 px the bolt collapses into a smudge that muddies the flask's
+    # silhouette, so small sizes are deliberately simpler. Sits inside the body,
+    # where the contents of a flask would be.
     if ($size -ge 48) {
         $pts = @(
-            (New-Object System.Drawing.PointF([single]($s * 0.545), [single]($s * 0.425))),
-            (New-Object System.Drawing.PointF([single]($s * 0.445), [single]($s * 0.565))),
-            (New-Object System.Drawing.PointF([single]($s * 0.505), [single]($s * 0.565))),
-            (New-Object System.Drawing.PointF([single]($s * 0.455), [single]($s * 0.695))),
-            (New-Object System.Drawing.PointF([single]($s * 0.565), [single]($s * 0.535))),
-            (New-Object System.Drawing.PointF([single]($s * 0.500), [single]($s * 0.535)))
+            (New-Object System.Drawing.PointF([single]($s * 0.545), [single]($s * 0.485))),
+            (New-Object System.Drawing.PointF([single]($s * 0.445), [single]($s * 0.625))),
+            (New-Object System.Drawing.PointF([single]($s * 0.505), [single]($s * 0.625))),
+            (New-Object System.Drawing.PointF([single]($s * 0.455), [single]($s * 0.735))),
+            (New-Object System.Drawing.PointF([single]($s * 0.565), [single]($s * 0.595))),
+            (New-Object System.Drawing.PointF([single]($s * 0.500), [single]($s * 0.595)))
         )
         $boltBrush = New-Object System.Drawing.SolidBrush($bolt)
         $g.FillPolygon($boltBrush, $pts)

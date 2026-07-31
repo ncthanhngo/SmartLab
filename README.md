@@ -9,8 +9,11 @@ The EVSELab wordmark is drawn as vector geometry in `Themes/Logo.xaml` rather th
 shipped as an image, so the black background of the original is simply absent and
 one definition serves the title bar and the About view at any size.
 
-The application icon is a shield holding a USB stick — the tool protects removable
-drives — with the EVSELab bolt added only at sizes where it still reads. This one
+The application icon is a flask on a rounded tile, with the EVSELab bolt added only
+at sizes where it still reads. It was a shield holding a USB stick, which described
+a tool that only triaged removable drives; seventeen sections later most of them are
+not about USB at all, and a shield reads as antivirus — a claim this app deliberately
+does not make, since naming malware is delegated to Defender. This one
 *must* be a real file: the Windows shell reads an executable's icon from an `.ico`
 resource, so it cannot be resolved at runtime. `tools/build-icon.ps1` is the source
 of truth and regenerates `src/SmartLab.App/Assets/app.ico`; the `.ico` is
@@ -109,17 +112,31 @@ locking need Administrator, but the UI must not run elevated.
   editor, diff, or encoding conversion.
 - Do not reimplement antivirus. Signatures identify *hiding behaviour*; delegate
   malware removal to Defender via `MpCmdRun.exe`.
-- Every working section opens on one dial and one verb, with its lists demoted to
-  fixed-height cards below. The dial is the section's summary, so the list must
-  not grow into it: give the docked list a `Height` and let the stage absorb the
-  extra on a taller window, never the reverse.
+- A section takes one of four shapes, chosen by what its data actually is:
+  **reading and list** where a real denominator exists, **verdict and evidence**
+  where the answer is a state rather than a fraction, **canvas** where the data is
+  spatial, **console** for a task list with output. One template for seventeen
+  sections is what produced five rings pinned at full, and a gauge that never moves
+  is not a reading.
+- Every section sits in a `SectionFrame` — header band, content, status strip — so a
+  section's own template contains only its subject. The verbs live in the header, and
+  a Dry run toggle sits before the button it guards rather than beside it.
+- A `Reading` gets a proportion bar only when `ShowProportion` is set, and that is
+  explicit rather than inferred from a non-zero value: a genuine 0% deserves its
+  empty bar, and a figure with no denominator must never grow one by accident.
 - A section is declared in three places that cannot see each other: the rail lists
   it, both palettes give it a hue, and a dictionary under `Views/` draws its stage.
   Each failing alone is silent — a grey glyph, a blank stage, a section that never
   lights up — which is why `NavigationTests` covers the seams rather than the parts.
 - Sections that stand outside a group still need a group name. A collection view
   gathers every member of a group in one place, so leaving Settings and About blank
-  like Smart Scan would put all three together and drag them to the top of the rail.
+  like Home would put all three together and drag them to the top of the rail.
+- The rail is labelled, not glyphs. Seventeen icons at 46 px overflowed every window
+  height, and navigation that scrolls cannot be remembered — you cannot learn where
+  something is if it is somewhere else next time.
+- Nothing is reachable only by pointing. Ctrl+K searches sections and actions; a
+  section ranks above an action at equal quality because navigating cannot change
+  anything, and anything irreversible is chipped so speed never hides consequence.
 - The number in a dial and the ring around it answer different questions. The
   number is the count that matters; the ring is a proportion with a real
   denominator — recoverable out of found, ticked out of measured. Where there is
