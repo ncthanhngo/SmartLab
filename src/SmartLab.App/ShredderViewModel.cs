@@ -49,7 +49,7 @@ public sealed partial class ShredderViewModel : ObservableObject
     [ObservableProperty] private string _folder = string.Empty;
 
     [ObservableProperty] private string _status =
-        "Add a folder's files, then shred. This cannot be undone and there is no recovery afterwards.";
+        "Add a folder's files, then wipe. This cannot be undone and there is no recovery afterwards.";
 
     [ObservableProperty] private int _fileCount;
     [ObservableProperty] private string _totalText = "--";
@@ -97,7 +97,7 @@ public sealed partial class ShredderViewModel : ObservableObject
             UpdateSummary();
 
             Status = Targets.Count == 0
-                ? "Nothing in that folder can be shredded."
+                ? "Nothing in that folder can be wiped."
                 : $"{Targets.Count} file(s) queued. Nothing has been written yet.";
         }
         catch (Exception ex)
@@ -118,7 +118,7 @@ public sealed partial class ShredderViewModel : ObservableObject
 
         if (DryRun)
         {
-            foreach (var target in Targets) target.Outcome = "would shred";
+            foreach (var target in Targets) target.Outcome = "would wipe";
 
             Status = $"Dry run: {Targets.Count} file(s) would be overwritten {passes} time(s) " +
                      "and deleted. Untick 'Dry run' to apply.";
@@ -137,15 +137,15 @@ public sealed partial class ShredderViewModel : ObservableObject
                 .ToArray()).ConfigureAwait(true);
 
             foreach (var (target, result) in results)
-                target.Outcome = result.Deleted ? "shredded" : result.Error ?? "failed";
+                target.Outcome = result.Deleted ? "wiped" : result.Error ?? "failed";
 
             var done = results.Count(r => r.Result.Deleted);
 
-            Status = $"{done} of {results.Length} file(s) shredded. {DriveCaveat(confidence)}";
+            Status = $"{done} of {results.Length} file(s) wiped. {DriveCaveat(confidence)}";
         }
         catch (Exception ex)
         {
-            Status = $"Shred failed: {ex.Message}";
+            Status = $"Wipe failed: {ex.Message}";
         }
         finally
         {
@@ -173,7 +173,7 @@ public sealed partial class ShredderViewModel : ObservableObject
 
         var confidence = DetectConfidence(Folder);
 
-        Headline = FileCount == 0 ? "Nothing queued" : "Ready to shred";
+        Headline = FileCount == 0 ? "Nothing queued" : "Ready to wipe";
         HeadlineDetail = FileCount == 0
             ? DriveCaveat(ShredConfidence.Unknown)
             : $"{FileCount} file(s), {TotalText}. {DriveCaveat(confidence)}";
@@ -187,8 +187,8 @@ public sealed partial class ShredderViewModel : ObservableObject
     /// <remarks>
     /// This text is the feature. An overwrite on rotating media replaces the bytes; on
     /// an SSD, wear levelling puts the new data in a different physical block and the
-    /// original survives until the controller reuses it. A shredder that does not say
-    /// so is claiming something it cannot deliver.
+    /// original survives until the controller reuses it. A wipe that does not say so is
+    /// claiming something it cannot deliver.
     /// </remarks>
     public static string DriveCaveat(ShredConfidence confidence) => confidence switch
     {

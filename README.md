@@ -223,7 +223,7 @@ succeeded" and "the volume is clean" are different claims.
 | CLI `scan` / `apply` / `raw` | implemented, validated on live drives |
 | WPF UI | implemented, fifteen sections (see below) |
 | Trash Bins | implemented, unit tested |
-| Space Lens, Large & Old Files, Shredder | implemented, unit tested |
+| Disk Map, Big & Stale, Wipe | implemented, unit tested |
 | Updater (winget) | implemented, unit tested |
 | Startup items, Windows repair tools | implemented, unit tested |
 | Malware Removal (Defender delegation) | implemented, unit tested |
@@ -337,7 +337,7 @@ and leaves nothing behind.
 | Protection | Repair, Malware |
 | Speed | Startup, Repair OS |
 | Applications | Uninstall, Updater |
-| Files | Space Lens, Large & Old, Deleted, Shredder |
+| Files | Disk Map, Big & Stale, Deleted, Wipe |
 | App | Settings, About |
 
 Four of these carry rules worth stating outright, because in each case the obvious
@@ -374,12 +374,18 @@ file is Trojan:Win32/Something" are different claims. A scan that could not run 
 reported as its own state — a security screen that says "clean" because it could not
 look is worse than one that says nothing.
 
-**Shredder says what it cannot do.** On a solid-state drive, wear levelling writes the
+**Wipe says what it cannot do.** On a solid-state drive, wear levelling writes the
 overwrite to a different physical block, so the original survives until the controller
 reuses it. The section detects the drive type and states this in its heading rather
-than in a footnote, because a shredder that stays quiet about it is claiming something
+than in a footnote, because a wipe that stays quiet about it is claiming something
 it cannot deliver. It refuses drive roots, the Windows folder, and any volume open in
 Deleted files — the mirror of the rule the recovery destination already carries.
+
+The four sections under Files are named for what they do rather than for what the
+Mac tool that inspired this one calls them. The keys underneath them — `spacelens`,
+`large`, `shredder` — did not move: a key is spelt into template keys, palette
+entries, capture filenames and the Smart Scan passes, and renaming one to follow a
+display name buys nothing and risks a section that quietly stops resolving its stage.
 
 One smaller one. **Startup** disables by moving a Run value to a backup key rather
 than deleting it, because a Run value's quoting is load-bearing and a restore that

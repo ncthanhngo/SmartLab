@@ -319,7 +319,7 @@ public sealed partial class SmartScanViewModel(MainViewModel shell) : Observable
     /// The read-only passes, in order, each under the pillar it reports to.
     /// </summary>
     /// <remarks>
-    /// Space Lens, Shredder and Repair OS are absent on purpose. The first two are
+    /// Disk Map, Wipe and Repair OS are absent on purpose. The first two are
     /// exploratory rather than diagnostic, and the last produces nothing a number can
     /// carry without a person reading the output.
     /// </remarks>

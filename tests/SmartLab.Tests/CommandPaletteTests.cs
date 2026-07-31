@@ -53,7 +53,7 @@ public sealed class CommandPaletteTests
     [Fact]
     public void AnEntryThatDoesNotMatchIsExcluded()
     {
-        Assert.Equal(int.MinValue, CommandPaletteViewModel.Score(Action("Shred the queued files"), "outlook"));
+        Assert.Equal(int.MinValue, CommandPaletteViewModel.Score(Action("Wipe the queued files"), "outlook"));
     }
 
     [Fact]
@@ -84,8 +84,8 @@ public sealed class CommandPaletteTests
     public void MatchingIsCaseInsensitive()
     {
         Assert.Equal(
-            CommandPaletteViewModel.Score(Section("Space Lens"), "space"),
-            CommandPaletteViewModel.Score(Section("Space Lens"), "SPACE"));
+            CommandPaletteViewModel.Score(Section("Disk Map"), "disk"),
+            CommandPaletteViewModel.Score(Section("Disk Map"), "DISK"));
     }
 
     [Fact]
@@ -128,7 +128,7 @@ public sealed class CommandPaletteKeyboardTests
         // something the user typed a minute ago.
         var palette = Palette();
         palette.Open();
-        palette.Query = "shred";
+        palette.Query = "wipe";
 
         palette.Open();
 
@@ -168,13 +168,13 @@ public sealed class CommandPaletteKeyboardTests
     {
         var palette = Palette();
         palette.Open();
-        palette.Query = "shred";
+        palette.Query = "wipe";
 
         Assert.NotEmpty(palette.Results);
         Assert.All(palette.Results, r =>
             Assert.True(
-                r.Title.Contains("shred", StringComparison.OrdinalIgnoreCase) ||
-                r.Context.Contains("shred", StringComparison.OrdinalIgnoreCase)));
+                r.Title.Contains("wipe", StringComparison.OrdinalIgnoreCase) ||
+                r.Context.Contains("wipe", StringComparison.OrdinalIgnoreCase)));
 
         Assert.Same(palette.Results[0], palette.Selected);
     }
@@ -198,7 +198,7 @@ public sealed class CommandPaletteKeyboardTests
         var palette = shell.CommandPalette;
 
         palette.Open();
-        palette.Query = "Shredder";
+        palette.Query = "Wipe";
 
         var target = palette.Selected;
         Assert.NotNull(target);

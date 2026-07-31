@@ -3,16 +3,16 @@
                     xmlns:ctl="clr-namespace:SmartLab.App.Controls">
 
     <!--
-        Space Lens is the canvas: the map is the reading, so it takes the whole stage
-        and the numbers move into the header. Large & Old and Deleted are
-        reading-and-list. Shredder is a console whose warning is the loudest element,
+        Disk Map is the canvas: the map is the reading, so it takes the whole stage
+        and the numbers move into the header. Big & Stale and Deleted are
+        reading-and-list. Wipe is a console whose warning is the loudest element,
         because after it runs there is nothing left to inspect.
     -->
 
-    <!-- ================= Space Lens ================= -->
+    <!-- ================= Disk Map ================= -->
 
     <DataTemplate x:Key="section-spacelens">
-        <ctl:SectionFrame Title="Space Lens" Status="{Binding Status}" IsCanvas="True"
+        <ctl:SectionFrame Title="Disk Map" Status="{Binding Status}" IsCanvas="True"
                           Subtitle="Measures every folder underneath and draws them by size. Reads sizes only - nothing is opened or changed."
                           DataContext="{Binding DataContext.SpaceLens,
                               RelativeSource={RelativeSource AncestorType=Window}}">
@@ -50,10 +50,10 @@
         </ctl:SectionFrame>
     </DataTemplate>
 
-    <!-- ================= Large & Old ================= -->
+    <!-- ================= Big & Stale ================= -->
 
     <DataTemplate x:Key="section-large">
-        <ctl:SectionFrame Title="Large &amp; Old" Status="{Binding Status}"
+        <ctl:SectionFrame Title="Big &amp; Stale" Status="{Binding Status}"
                           Subtitle="Age is time since last written, not since last opened - Windows stops updating that clock by default. Ticked files go to the Recycle Bin, not straight out."
                           DataContext="{Binding DataContext.LargeFiles,
                               RelativeSource={RelativeSource AncestorType=Window}}">
@@ -243,10 +243,10 @@
         </ctl:SectionFrame>
     </DataTemplate>
 
-    <!-- ================= Shredder ================= -->
+    <!-- ================= Wipe ================= -->
 
     <DataTemplate x:Key="section-shredder">
-        <ctl:SectionFrame Title="Shredder" Status="{Binding Status}"
+        <ctl:SectionFrame Title="Wipe" Status="{Binding Status}"
                           Subtitle="Overwrites a file and deletes it. There is no recovery afterwards, from here or anywhere else."
                           DataContext="{Binding DataContext.Shredder,
                               RelativeSource={RelativeSource AncestorType=Window}}">
@@ -255,7 +255,7 @@
                 <StackPanel Orientation="Horizontal">
                     <CheckBox Style="{StaticResource ToggleCheck}" Content="Dry run"
                               IsChecked="{Binding DryRun}" Margin="0,0,16,0" FontWeight="SemiBold" />
-                    <Button Content="Shred" Style="{StaticResource PrimaryButton}"
+                    <Button Content="Wipe" Style="{StaticResource PrimaryButton}"
                             Command="{Binding ShredCommand}" />
                 </StackPanel>
             </ctl:SectionFrame.Actions>

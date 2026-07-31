@@ -202,6 +202,13 @@ public sealed partial class MainViewModel : ObservableObject
     /// so a section moved in this list moves on screen, and a group's position is
     /// decided by where its first member appears.
     /// </remarks>
+    /// <remarks>
+    /// The key is an identifier, not a name. Three of them - spacelens, large and
+    /// shredder - no longer read like the title beside them, and deliberately so: a
+    /// key is spelt into template keys, palette entries, capture filenames and the
+    /// Smart Scan passes, and renaming one to follow a display name buys nothing and
+    /// risks a section that silently stops resolving its stage.
+    /// </remarks>
     public ObservableCollection<NavSection> Sections { get; } =
     [
         new("home", "Home", "Check everything, change nothing", Glyph(0xE80F), "NavSmartHex"),
@@ -218,10 +225,10 @@ public sealed partial class MainViewModel : ObservableObject
         new("uninstall", "Uninstall", "Apps and leftovers", Glyph(0xECC9), "NavUninstallHex", GroupApplications),
         new("updater", "Updater", "Upgrades through winget", Glyph(0xE777), "NavUpdaterHex", GroupApplications),
 
-        new("spacelens", "Space Lens", "Where the space went", Glyph(0xE9D2), "NavSpaceLensHex", GroupFiles),
-        new("large", "Large & Old", "Big files nobody opens", Glyph(0xE8B7), "NavLargeHex", GroupFiles),
+        new("spacelens", "Disk Map", "Where the space went", Glyph(0xE9D2), "NavSpaceLensHex", GroupFiles),
+        new("large", "Big & Stale", "Big files nobody opens", Glyph(0xE8B7), "NavLargeHex", GroupFiles),
         new("deleted", "Deleted", "Carve what was erased", Glyph(0xE74C), "NavDeletedHex", GroupFiles),
-        new("shredder", "Shredder", "Overwrite beyond recovery", Glyph(0xE75C), "NavShredderHex", GroupFiles),
+        new("shredder", "Wipe", "Overwrite beyond recovery", Glyph(0xE75C), "NavShredderHex", GroupFiles),
 
         new("settings", "Settings", "Watching and startup", Glyph(0xE713), "NavSettingsHex", GroupApp),
         new("about", "About", "Version and author", Glyph(0xE946), "NavAboutHex", GroupApp),
@@ -983,8 +990,8 @@ public sealed partial class MainViewModel : ObservableObject
 
     partial void OnSelectedDriveChanged(VolumeInfo? value)
     {
-        // The Shredder must never destroy data on the volume this section is reading
-        // back, so it is told which one that is rather than left to guess.
+        // Wipe must never destroy data on the volume this section is reading back, so
+        // it is told which one that is rather than left to guess.
         Shredder.VolumeBeingRecovered = value?.Root;
 
         ScanCommand.NotifyCanExecuteChanged();

@@ -212,14 +212,14 @@ public sealed partial class CommandPaletteViewModel(MainViewModel shell) : Obser
         yield return Action("Check for package upgrades", "Updater", "updater", shell.Updater.CheckCommand);
         yield return Action("Upgrade the ticked packages", "Updater", "updater", shell.Updater.UpgradeTickedCommand);
 
-        yield return Action("Measure where the space went", "Space Lens", "spacelens", shell.SpaceLens.MeasureCommand);
-        yield return Action("Find large and old files", "Large & Old", "large", shell.LargeFiles.ScanCommand);
-        yield return Action("Send the ticked files to the Recycle Bin", "Large & Old", "large", shell.LargeFiles.RecycleTickedCommand);
+        yield return Action("Map where the space went", "Disk Map", "spacelens", shell.SpaceLens.MeasureCommand);
+        yield return Action("Find big files nobody opens", "Big & Stale", "large", shell.LargeFiles.ScanCommand);
+        yield return Action("Send the ticked files to the Recycle Bin", "Big & Stale", "large", shell.LargeFiles.RecycleTickedCommand);
 
         yield return Action("Read deleted entries off the drive", "Deleted", "deleted", shell.ReadDeletedCommand);
         yield return Action("Recover the ticked deleted files", "Deleted", "deleted", shell.RecoverDeletedCommand);
 
-        yield return Action("Shred the queued files", "Shredder", "shredder", shell.Shredder.ShredCommand, destructive: true);
+        yield return Action("Wipe the queued files", "Wipe", "shredder", shell.Shredder.ShredCommand, destructive: true);
     }
 
     private static PaletteEntry Action(

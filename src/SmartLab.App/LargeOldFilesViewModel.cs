@@ -157,7 +157,7 @@ public sealed partial class LargeOldFilesViewModel : ObservableObject
     /// <remarks>
     /// To the bin, not to oblivion. This app's other half exists to carve deleted files
     /// back off a volume, so its own deletions ought to be the kind it could undo. The
-    /// Shredder section is where deletion is meant to be final.
+    /// Wipe section is where deletion is meant to be final.
     /// </remarks>
     [RelayCommand(CanExecute = nameof(CanDelete))]
     private void RecycleTicked()
