@@ -292,6 +292,9 @@ public sealed partial class MainViewModel : ObservableObject
     /// <summary>Version, release notes, and whether a newer build exists.</summary>
     public AboutViewModel About { get; }
 
+    /// <summary>Whether the selected stick will still start a PC. Part of Repair.</summary>
+    public BootViewModel Boot { get; }
+
     /// <summary>Ctrl+K over every section and every action. Seventeen is too many to point at.</summary>
     public CommandPaletteViewModel CommandPalette { get; }
 
@@ -406,6 +409,7 @@ public sealed partial class MainViewModel : ObservableObject
         SmartScan = new SmartScanViewModel(this);
         CommandPalette = new CommandPaletteViewModel(this);
         About = new AboutViewModel(this);
+        Boot = new BootViewModel(this);
 
         SelectedSection = Sections[0];
 
@@ -997,6 +1001,11 @@ public sealed partial class MainViewModel : ObservableObject
         // Wipe must never destroy data on the volume this section is reading back, so
         // it is told which one that is rather than left to guess.
         Shredder.VolumeBeingRecovered = value?.Root;
+
+        // A boot verdict belongs to the drive it was read from. Carrying it across a
+        // selection change would offer to rewrite one stick's boot sector using what
+        // was true of another.
+        Boot.Reset();
 
         ScanCommand.NotifyCanExecuteChanged();
         ApplyCommand.NotifyCanExecuteChanged();

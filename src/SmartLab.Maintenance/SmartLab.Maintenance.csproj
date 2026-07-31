@@ -9,6 +9,19 @@
        Directory.EnumerateFileSystemEntries throw and lose every readable sibling. -->
   <ItemGroup>
     <ProjectReference Include="..\SmartLab.Core\SmartLab.Core.csproj" />
+
+    <!-- Boot repair reads a volume's first sector through the same opener the
+         recovery half uses, rather than a second FileStream that would drift from
+         it the first time the sharing flags need changing. -->
+    <ProjectReference Include="..\SmartLab.Win32\SmartLab.Win32.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Partition layout - the active flag and the disk number - is read from WMI.
+         The alternative is IOCTL_DISK_GET_DRIVE_LAYOUT_EX, which needs a handle to
+         the physical disk and therefore Administrator, for a reading that decides
+         whether to offer a fix. -->
+    <PackageReference Include="System.Management" Version="8.0.0" />
   </ItemGroup>
 
 </Project>

@@ -228,6 +228,7 @@ succeeded" and "the volume is clean" are different claims.
 | Startup items, Windows repair tools | implemented, unit tested |
 | Malware Removal (Defender delegation) | implemented, unit tested |
 | Smart Scan | implemented, unit tested |
+| Boot repair (diskpart / bootsect) | implemented, unit tested; not yet run against a real stick |
 | Auto-scan on USB insert | implemented; decoding unit-tested, plug event not yet verified |
 | Raw FAT32 + exFAT sector readers | implemented, validated on live drives |
 | Deleted-file carving (`raw --recover`) | implemented, verified byte-for-byte |
@@ -390,6 +391,43 @@ display name buys nothing and risks a section that quietly stops resolving its s
 One smaller one. **Startup** disables by moving a Run value to a backup key rather
 than deleting it, because a Run value's quoting is load-bearing and a restore that
 loses a pair of quotes breaks the program it was meant to protect.
+
+### Boot repair
+
+Repair asks two questions about the same stick: whether the files survived, and
+whether a PC will still start from it. A stick cleaned of a worm that no longer boots
+has been half repaired.
+
+Checking writes nothing. It reads three things, because no one of them answers the
+question: the filesystem says which loaders are present, WMI says how the partition is
+flagged and which disk it is on, and the volume's own first sector says whether there
+is boot code to run. The two boot paths are reported separately and never averaged — a
+stick that starts under UEFI but not legacy is not half broken, it is a stick that will
+not start on the machine somebody is standing in front of.
+
+Exactly two fixes are ever offered, both putting back something Windows itself writes:
+
+- **Mark the partition active** — `diskpart`, and only on MBR, where the flag exists.
+- **Rewrite the boot code** — `bootsect /nt60 X: /mbr`, and only when the loader is
+  still on the stick. `bootsect` is looked for on the stick itself first, since Windows
+  install media carries it under `\boot`, then on PATH where the ADK puts it. If it is
+  absent the section says so rather than writing boot code of its own: hand-written
+  boot code would mean shipping Microsoft's bytes, which is not ours to ship.
+
+Missing loaders are reported and never recreated. Rebuilding a BCD means inventing the
+contents of somebody's install media, and a stick that boots into a configuration this
+app guessed at is worse than one that does not boot.
+
+Neither fix goes through the elevated worker. That pipe carries a command id and never
+a target, deliberately, and both of these are aimed at one specific disk and partition —
+so each runs as its own elevated process behind a UAC prompt the operator sees and can
+refuse. One prompt per repair is the honest cost of rewriting a partition table.
+
+The refusals are the feature's safety and are covered by their own tests: removable
+drives only, never the volume Windows is installed on, and `C:` outright whatever
+Windows reports it as. The check is re-run against the live selection at the moment of
+writing, not only when the fixes were offered, because the drive dropdown can have
+moved in between. Nothing is pre-ticked.
 
 ### What reaches the network
 
