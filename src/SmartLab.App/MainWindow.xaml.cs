@@ -79,11 +79,14 @@ public partial class MainWindow : Window
         PaletteBounds.CornerRadius = corner;
 
         // The rail hangs off the card's left edge, so its own inset moves with it:
-        // against the screen edge that overhang would be cut in half. The stage
-        // follows, because what it has to clear is the rail's right edge.
+        // against the screen edge that overhang would be cut in half. Top and bottom
+        // stay equal either way - they are the card's own margin plus the same inset.
+        // The stage follows, because what it has to clear is the rail's right edge.
+        const double railInset = 40;
+
         RailCard.Margin = maximised
-            ? new Thickness(14, 48, 0, 18)
-            : new Thickness(6, 54, 0, 32);
+            ? new Thickness(14, railInset, 0, railInset)
+            : new Thickness(6, margin.Top + railInset, 0, margin.Bottom + railInset);
 
         Stage.Margin = new Thickness(
             RailCard.Margin.Left + RailCard.Width + 16 - margin.Left, 0, 0, 0);

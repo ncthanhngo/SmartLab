@@ -458,7 +458,7 @@
         <Setter Property="FontWeight" Value="Bold" />
         <Setter Property="Foreground" Value="{DynamicResource SidebarMutedBrush}" />
         <Setter Property="Opacity" Value="0.85" />
-        <Setter Property="Margin" Value="12,10,0,3" />
+        <Setter Property="Margin" Value="12,8,0,3" />
         <Style.Triggers>
             <!-- Home stands outside a group; an empty heading collapses rather than
                  leaving a gap where a word should be. -->

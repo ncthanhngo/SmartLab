@@ -141,8 +141,13 @@
              Labelled and grouped. Fifteen glyphs at 46 px overflowed every window
              height, and navigation that scrolls cannot be remembered; at 32 px with
              names the whole list fits without a scrollbar. -->
+        <!-- The inset above and below is the same 40 px, measured from the big card's
+             own edges rather than the window's: an overhang that is generous at one
+             end and a hairline at the other reads as a mistake rather than a stack.
+             Forty is not a free choice - it is the title bar's height, and the rail
+             cannot start above it without covering the wordmark. -->
         <Border x:Name="RailCard" Width="204" HorizontalAlignment="Left"
-                Margin="6,54,0,32"
+                Margin="6,56,0,66"
                 CornerRadius="{StaticResource CardRadius}"
                 Background="{DynamicResource SidebarBrush}">
             <Border.Effect>
@@ -169,7 +174,7 @@
                             </ListBox.GroupStyle>
                             <ListBox.ItemTemplate>
                                 <DataTemplate>
-                                    <Border x:Name="Cell" Height="32" CornerRadius="9"
+                                    <Border x:Name="Cell" Height="30" CornerRadius="9"
                                             Background="Transparent" Padding="9,0"
                                             ToolTip="{Binding Subtitle}">
                                         <Grid>
