@@ -109,6 +109,26 @@ locking need Administrator, but the UI must not run elevated.
   editor, diff, or encoding conversion.
 - Do not reimplement antivirus. Signatures identify *hiding behaviour*; delegate
   malware removal to Defender via `MpCmdRun.exe`.
+- Every working section opens on one dial and one verb, with its lists demoted to
+  fixed-height cards below. The dial is the section's summary, so the list must
+  not grow into it: give the docked list a `Height` and let the stage absorb the
+  extra on a taller window, never the reverse.
+- A section is declared in three places that cannot see each other: the rail lists
+  it, both palettes give it a hue, and a dictionary under `Views/` draws its stage.
+  Each failing alone is silent — a grey glyph, a blank stage, a section that never
+  lights up — which is why `NavigationTests` covers the seams rather than the parts.
+- Sections that stand outside a group still need a group name. A collection view
+  gathers every member of a group in one place, so leaving Settings and About blank
+  like Smart Scan would put all three together and drag them to the top of the rail.
+- The number in a dial and the ring around it answer different questions. The
+  number is the count that matters; the ring is a proportion with a real
+  denominator — recoverable out of found, ticked out of measured. Where there is
+  no honest denominator the ring stays full and the colour carries the verdict,
+  which is why `RepairGaugePercent` is a constant.
+- A dial sweeps to its value rather than snapping to it, and the sweep is
+  proportional to the distance travelled. This is why `--screenshot` waits after
+  layout settles: a capture taken the instant bindings resolve catches a
+  half-drawn ring.
 - Reference every colour with `DynamicResource`, never `StaticResource`. The two
   palettes are swapped whole at runtime; a static reference is resolved once when
   the element is parsed and keeps the colour it was born with. Radii, typefaces
@@ -158,7 +178,13 @@ succeeded" and "the volume is clean" are different claims.
 | Executor (applying a plan) | implemented, unit tested |
 | Rescue copy | implemented, unit tested |
 | CLI `scan` / `apply` / `raw` | implemented, validated on live drives |
-| WPF UI | implemented (scan, select, dry run, apply, deleted-file recovery) |
+| WPF UI | implemented, seventeen sections (see below) |
+| Trash Bins, Mail attachment cache | implemented, unit tested |
+| Space Lens, Large & Old Files, Shredder | implemented, unit tested |
+| Updater (winget), Add-ons (list only) | implemented, unit tested |
+| Startup items, Windows repair tools | implemented, unit tested |
+| Malware Removal (Defender delegation) | implemented, unit tested |
+| Smart Scan | implemented, unit tested |
 | Auto-scan on USB insert | implemented; decoding unit-tested, plug event not yet verified |
 | Raw FAT32 + exFAT sector readers | implemented, validated on live drives |
 | Deleted-file carving (`raw --recover`) | implemented, verified byte-for-byte |
@@ -219,7 +245,8 @@ automation can branch on the result. Add `--json` for machine-readable output,
 UsbDoctor.App.exe --screenshot <dir>
 ```
 
-Renders every section to PNG and exits. This exists because the machine is usually
+Renders every section to PNG and exits, pausing on each one long enough for its
+dial to finish sweeping. This exists because the machine is usually
 reached over a remote session where the console is locked: a screen grab then
 captures the lock screen, and `PrintWindow` leaves parts of a WPF window black
 because those areas were never asked to repaint. `RenderTargetBitmap` walks the
@@ -258,6 +285,75 @@ key: that needs Administrator and would launch for every account on a shared lab
 PC, which is not something a checkbox should decide. Unticking removes the value
 and leaves nothing behind.
 
+## The seventeen sections
+
+| Group | Sections |
+| --- | --- |
+| — | Smart Scan |
+| Cleanup | System Junk, Mail, Trash Bins |
+| Protection | Repair, Malware |
+| Speed | Startup, Repair OS |
+| Applications | Uninstall, Updater, Add-ons |
+| Files | Space Lens, Large & Old, Deleted, Shredder |
+| App | Settings, About |
+
+Four of these carry rules worth stating outright, because in each case the obvious
+implementation would have been the wrong one.
+
+**Smart Scan never applies anything.** It runs the read-only half of six sections and
+points at whichever one owns each finding. Not behind a confirmation, not behind the
+Dry run toggle — there is no write command on it at all, and a test over its public
+surface fails if one appears. A single button that cleans, disables, removes and
+upgrades across a whole machine is exactly what plan-then-approve exists to prevent.
+It also never sums bytes with package counts into one health score: a blended figure
+would let a worm hide behind a tidy temp folder. A section that could not run reports
+as skipped, never as clean.
+
+**Malware delegates.** The signature engine identifies *hiding behaviour* and nothing
+else; naming a program is Defender's job, asked through `MpCmdRun.exe`. The two halves
+stay visibly separate on screen because "this drive is hiding your files" and "this
+file is Trojan:Win32/Something" are different claims. A scan that could not run is
+reported as its own state — a security screen that says "clean" because it could not
+look is worse than one that says nothing.
+
+**Add-ons lists and never writes.** An extension's stored state sits in the browser
+profile beside the cookies, saved logins and history this codebase has always refused
+to touch. It reports what is installed and what each one is allowed to see — the
+useful fact being permissions, not size — and leaves removal to the browser. Shell
+extensions are listed only: removing the wrong one takes Explorer's context menu with
+it, and the tool that would have helped is the one that just broke.
+
+**Shredder says what it cannot do.** On a solid-state drive, wear levelling writes the
+overwrite to a different physical block, so the original survives until the controller
+reuses it. The section detects the drive type and states this in its heading rather
+than in a footnote, because a shredder that stays quiet about it is claiming something
+it cannot deliver. It refuses drive roots, the Windows folder, and any volume open in
+Deleted files — the mirror of the rule the recovery destination already carries.
+
+Two smaller ones. **Mail** reaches only the folder Outlook copies an attachment into
+when someone opens it; `.ost` and `.pst` are refused at the source, since an OST is a
+cache in Outlook's vocabulary but the mailbox in the user's. **Startup** disables by
+moving a Run value to a backup key rather than deleting it, because a Run value's
+quoting is load-bearing and a restore that loses a pair of quotes breaks the program
+it was meant to protect.
+
+### Windows repair tools
+
+`Repair OS` runs `sfc /scannow`, `DISM /RestoreHealth`, `ipconfig /flushdns` and
+`chkdsk /scan`. Every one is a Microsoft tool invoked as itself — nothing here
+reimplements a repair, in the same spirit as handing removal to the vendor's own
+uninstaller. `chkdsk` is `/scan` only: `/f` takes the volume offline and can demand a
+reboot, which is not something a button labelled "check" should decide. Output is
+shown verbatim, because these commands report findings this app has no business
+interpreting.
+
+Three of the four need Administrator, and the UI must never run elevated. Until the
+roadmap's elevated worker exists, each is launched separately through the shell's
+`runas` verb with its own UAC prompt, writing to a temp transcript this process reads
+back — output cannot be redirected across an elevation boundary. **This is interim.**
+When the elevated worker lands, `RepairCommandRunner` should route through it and lose
+the transcript entirely.
+
 ## Disk cleanup
 
 `Cleanup` in the app, `usbdoctor clean` for a read-only report.
@@ -273,11 +369,12 @@ bookmarks live in sibling files and never appear: signing a user out of everythi
 to reclaim disk space is not a trade anyone asked for. There is a test asserting
 those filenames are absent from every browser path.
 
-**The Recycle Bin is never ticked by default.** This tool exists to recover deleted
-files, so emptying the one place Windows keeps them for the user — by default —
-would contradict the whole thing. More generally, every category carrying a caution
-starts unticked, and a test enforces that: a warning next to a pre-ticked box is
-decoration, not a warning.
+**The Recycle Bin is not a junk category at all.** It has its own section, broken down
+per drive, every row unticked. Offering it here as well would mean two screens
+proposing the same irreversible deletion with two different defaults, which is how one
+of them ends up wrong. More generally, every category carrying a caution starts
+unticked, and a test enforces that: a warning next to a pre-ticked box is decoration,
+not a warning.
 
 Two other details. The headline total counts only ticked categories, because that is
 what pressing Clean would actually remove — a figure including unticked ones

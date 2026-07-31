@@ -389,10 +389,55 @@ internal static class Program
         Console.WriteLine();
         Console.WriteLine($"Ticked by default: {defaultTotal / 1024.0 / 1024:N0} MB");
         Console.WriteLine($"Every category:    {everything / 1024.0 / 1024:N0} MB");
+
+        ReportRecycleBins();
+        ReportMailCache();
+
         Console.WriteLine();
         Console.WriteLine("Read-only. Cleaning is in the app, where each category can be reviewed first.");
 
         return ExitClean;
+    }
+
+    /// <summary>
+    /// The bins, listed but never totalled into the reclaimable figure above.
+    /// </summary>
+    /// <remarks>
+    /// Kept out of that sum on purpose. The bin is where deleted files are recovered
+    /// from, so counting it as space this tool would reclaim would put the one number
+    /// a reader takes away at odds with what the app would actually do.
+    /// </remarks>
+    private static void ReportRecycleBins()
+    {
+        var bins = RecycleBin.Enumerate();
+        if (bins.Count == 0) return;
+
+        Console.WriteLine();
+        Console.WriteLine("RECYCLE BINS  (never ticked - this is where deleted files are recovered from)");
+        Console.WriteLine();
+
+        foreach (var bin in bins)
+        {
+            var removable = bin.IsRemovable ? " removable" : string.Empty;
+
+            Console.WriteLine(
+                $"  [ ] {bin.Root,-6} {bin.Label ?? "(no label)",-20} {bin.SizeText,10} " +
+                $"{bin.Items,8:N0} items{removable}");
+        }
+    }
+
+    private static void ReportMailCache()
+    {
+        var cached = OutlookCache.Scan();
+        if (cached.Count == 0) return;
+
+        var bytes = cached.Sum(a => a.SizeBytes);
+
+        Console.WriteLine();
+        Console.WriteLine("OUTLOOK ATTACHMENT CACHE  (copies made when an attachment was opened)");
+        Console.WriteLine();
+        Console.WriteLine($"  {cached.Count,8:N0} file(s)  {bytes / 1024.0 / 1024,10:N1} MB");
+        Console.WriteLine("  Mailbox files (.ost, .pst) are never counted or listed.");
     }
 
     private static bool HasFindings(RecoveryPlan plan) =>
