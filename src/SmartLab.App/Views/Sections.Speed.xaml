@@ -2,26 +2,43 @@
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     xmlns:ctl="clr-namespace:SmartLab.App.Controls">
 
+    <!--
+        Startup takes the reading-and-list shape; Repair OS takes the console shape -
+        a task list with output, because no number there is worth enlarging and the
+        transcript is the content.
+    -->
+
     <!-- ================= Startup ================= -->
 
     <DataTemplate x:Key="section-optimize">
-        <DockPanel DataContext="{Binding DataContext.Optimization,
-                       RelativeSource={RelativeSource AncestorType=Window}}">
+        <ctl:SectionFrame Title="Startup" Status="{Binding Status}"
+                          Subtitle="Run keys, RunOnce and both Startup folders. Turning one off moves the entry aside rather than deleting it, so it can be put back exactly."
+                          DataContext="{Binding DataContext.Optimization,
+                              RelativeSource={RelativeSource AncestorType=Window}}">
 
-            <Border DockPanel.Dock="Bottom" Style="{StaticResource Card}"
-                    Background="{DynamicResource SurfaceSunkenBrush}" Padding="14,10"
-                    Margin="0,12,0,0">
-                <TextBlock Text="{Binding Status}" Style="{StaticResource BodyText}" />
-            </Border>
+            <ctl:SectionFrame.Actions>
+                <StackPanel Orientation="Horizontal">
+                    <CheckBox Style="{StaticResource ToggleCheck}" Content="Dry run"
+                              IsChecked="{Binding DryRun}" Margin="0,0,16,0" FontWeight="SemiBold" />
+                    <Button Content="Put back all" Style="{StaticResource GhostButton}"
+                            Command="{Binding RestoreAllCommand}" Margin="0,0,8,0" />
+                    <Button Content="Turn ticked off" Style="{StaticResource GhostButton}"
+                            Command="{Binding DisableTickedCommand}" Margin="0,0,8,0" />
+                    <Button Content="Scan" Style="{StaticResource PrimaryButton}"
+                            Command="{Binding ScanCommand}" />
+                </StackPanel>
+            </ctl:SectionFrame.Actions>
 
-            <Grid DockPanel.Dock="Bottom" Height="215" Margin="0,14,0,0">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="1.7*" />
-                    <ColumnDefinition Width="14" />
-                    <ColumnDefinition Width="*" />
-                </Grid.ColumnDefinitions>
+            <DockPanel>
+                <StackPanel DockPanel.Dock="Top" Style="{StaticResource ReadingRow}" Margin="0,0,0,16">
+                    <ctl:Reading Value="{Binding ItemCount}" Caption="RUN AT LOGON"
+                                 Proportion="{Binding GaugePercent}" ShowProportion="True"
+                                 Tint="{DynamicResource AccentOptimizeBrush}" Width="180" />
+                    <ctl:Reading Value="{Binding Disabled.Count}" Caption="TURNED OFF BY SMART LAB"
+                                 IsQuiet="True" Margin="26,0,0,0" />
+                </StackPanel>
 
-                <Border Grid.Column="0" Style="{StaticResource Card}" Padding="14">
+                <Border Style="{StaticResource Card}" Padding="15">
                     <ScrollViewer VerticalScrollBarVisibility="Auto"
                                   HorizontalScrollBarVisibility="Disabled">
                         <ItemsControl ItemsSource="{Binding GroupedItems.View}">
@@ -41,7 +58,7 @@
                                             <CheckBox Grid.Column="0" Style="{StaticResource RowCheck}"
                                                       IsChecked="{Binding IsSelected}"
                                                       IsEnabled="{Binding CanChange}"
-                                                      VerticalAlignment="Center" Margin="0,0,12,0" />
+                                                      VerticalAlignment="Center" Margin="0,0,13,0" />
 
                                             <StackPanel Grid.Column="1">
                                                 <TextBlock Text="{Binding Name}" FontSize="11.5"
@@ -54,7 +71,7 @@
                                             </StackPanel>
 
                                             <TextBlock Grid.Column="2" Text="{Binding OriginText}"
-                                                       FontSize="10" Margin="12,0,0,0"
+                                                       FontSize="10" Margin="14,0,0,0"
                                                        VerticalAlignment="Center"
                                                        Foreground="{DynamicResource TextMutedBrush}" />
                                         </Grid>
@@ -64,93 +81,36 @@
                         </ItemsControl>
                     </ScrollViewer>
                 </Border>
-
-                <Border Grid.Column="2" Style="{StaticResource Card}" Padding="14">
-                    <DockPanel>
-                        <TextBlock DockPanel.Dock="Top" Text="Turned off by this app"
-                                   Style="{StaticResource SectionTitle}" />
-                        <Button DockPanel.Dock="Bottom" Content="Put them all back"
-                                Style="{StaticResource GhostButton}"
-                                Command="{Binding RestoreAllCommand}"
-                                HorizontalAlignment="Left" Margin="0,8,0,0" />
-                        <ListBox Style="{StaticResource PlainList}" ItemsSource="{Binding Disabled}">
-                            <ListBox.ItemTemplate>
-                                <DataTemplate>
-                                    <TextBlock Text="{Binding Name}" FontSize="10.5" Margin="0,0,0,3"
-                                               TextTrimming="CharacterEllipsis"
-                                               Foreground="{DynamicResource TextSecondaryBrush}" />
-                                </DataTemplate>
-                            </ListBox.ItemTemplate>
-                        </ListBox>
-                    </DockPanel>
-                </Border>
-            </Grid>
-
-            <!-- centre stage -->
-            <Border Style="{StaticResource Card}" Padding="18">
-                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
-                    <Grid Width="150" Height="150" HorizontalAlignment="Center">
-                        <ctl:RadialGauge Thickness="12" Percent="{Binding GaugePercent}"
-                                         TrackBrush="{DynamicResource GaugeTrackBrush}"
-                                         ValueBrush="{DynamicResource AccentOptimizeBrush}" />
-                        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
-                            <TextBlock Text="{Binding ItemCount}" FontSize="32"
-                                       FontWeight="SemiBold" HorizontalAlignment="Center"
-                                       Foreground="{DynamicResource TextPrimaryBrush}" />
-                            <TextBlock Text="run at logon" Style="{StaticResource CaptionText}"
-                                       HorizontalAlignment="Center" />
-                        </StackPanel>
-                    </Grid>
-
-                    <TextBlock Text="{Binding Headline}" Style="{StaticResource DisplayText}"
-                               FontSize="20" HorizontalAlignment="Center" Margin="0,12,0,0" />
-                    <TextBlock Text="{Binding HeadlineDetail}" Style="{StaticResource BodyText}"
-                               TextAlignment="Center" MaxWidth="490" Margin="0,6,0,0" />
-
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center"
-                                Margin="0,12,0,0">
-                        <Button Content="Scan" Style="{StaticResource PrimaryButton}"
-                                Command="{Binding ScanCommand}" Padding="32,9" />
-                        <Button Content="Turn ticked off" Style="{StaticResource GhostButton}"
-                                Command="{Binding DisableTickedCommand}" Margin="10,0,0,0" />
-                        <CheckBox Style="{StaticResource ToggleCheck}" Content="Dry run"
-                                  IsChecked="{Binding DryRun}" Margin="16,0,0,0"
-                                  FontWeight="SemiBold" />
-                    </StackPanel>
-                </StackPanel>
-            </Border>
-        </DockPanel>
+            </DockPanel>
+        </ctl:SectionFrame>
     </DataTemplate>
 
     <!-- ================= Repair OS ================= -->
 
     <DataTemplate x:Key="section-maintenance">
-        <DockPanel DataContext="{Binding DataContext.Maintenance,
-                       RelativeSource={RelativeSource AncestorType=Window}}">
+        <ctl:SectionFrame Title="Repair OS" Status="{Binding Status}"
+                          Subtitle="Four tools Windows ships with, run as themselves. Three need Administrator and share one elevated worker, so you are asked once."
+                          DataContext="{Binding DataContext.Maintenance,
+                              RelativeSource={RelativeSource AncestorType=Window}}">
 
-            <Border DockPanel.Dock="Bottom" Style="{StaticResource Card}"
-                    Background="{DynamicResource SurfaceSunkenBrush}" Padding="14,10"
-                    Margin="0,12,0,0">
-                <TextBlock Text="{Binding Status}" Style="{StaticResource BodyText}" />
-            </Border>
+            <ctl:SectionFrame.Actions>
+                <ctl:Reading Value="{Binding CompletedCount}" Caption="TOOLS RUN" IsQuiet="True" />
+            </ctl:SectionFrame.Actions>
 
-            <Grid DockPanel.Dock="Bottom" Height="235" Margin="0,14,0,0">
+            <Grid>
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="1.3*" />
+                    <ColumnDefinition Width="1.15*" />
                     <ColumnDefinition Width="14" />
                     <ColumnDefinition Width="*" />
                 </Grid.ColumnDefinitions>
 
-                <Border Grid.Column="0" Style="{StaticResource Card}" Padding="14">
-                    <DockPanel>
-                        <TextBlock DockPanel.Dock="Top" Text="Windows' own tools"
-                                   Style="{StaticResource SectionTitle}" />
-                        <ListBox Style="{StaticResource PlainList}" ItemsSource="{Binding Commands}">
-                            <ListBox.ItemTemplate>
+                <Border Grid.Column="0" Style="{StaticResource Card}" Padding="0">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto"
+                                  HorizontalScrollBarVisibility="Disabled">
+                        <ItemsControl ItemsSource="{Binding Commands}">
+                            <ItemsControl.ItemTemplate>
                                 <DataTemplate>
-                                    <Border Background="{DynamicResource SurfaceRaisedBrush}"
-                                            CornerRadius="{StaticResource ControlRadius}"
-                                            Padding="11,9" Margin="0,0,0,5">
+                                    <Border Style="{StaticResource InsetRow}" Padding="15,12">
                                         <Grid>
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="*" />
@@ -159,45 +119,48 @@
 
                                             <StackPanel Grid.Column="0">
                                                 <StackPanel Orientation="Horizontal">
-                                                    <TextBlock Text="{Binding Title}" FontSize="12"
+                                                    <TextBlock Text="{Binding Title}" FontSize="12.5"
                                                                FontWeight="SemiBold"
                                                                Foreground="{DynamicResource TextPrimaryBrush}" />
-                                                    <Border Background="{DynamicResource SurfaceSunkenBrush}"
-                                                            CornerRadius="4" Padding="6,1" Margin="8,0,0,0"
+                                                    <Border Style="{StaticResource Chip}"
                                                             Visibility="{Binding NeedsElevation,
                                                                 Converter={StaticResource BoolToVisibility}}">
-                                                        <TextBlock Text="admin" FontSize="10"
+                                                        <TextBlock Text="admin"
+                                                                   Style="{StaticResource ChipText}"
                                                                    Foreground="{DynamicResource InfoBrush}" />
                                                     </Border>
                                                 </StackPanel>
-                                                <TextBlock Text="{Binding Detail}"
-                                                           Style="{StaticResource CaptionText}"
-                                                           Margin="0,3,0,0" />
+                                                <TextBlock Text="{Binding Detail}" FontSize="10.5"
+                                                           Margin="0,3,0,0" TextWrapping="Wrap"
+                                                           MaxWidth="360" HorizontalAlignment="Left"
+                                                           Foreground="{DynamicResource TextMutedBrush}" />
                                                 <TextBlock Text="{Binding CommandLine}" FontSize="10"
                                                            FontFamily="{StaticResource MonoFont}"
-                                                           Margin="0,3,0,0"
+                                                           Margin="0,4,0,0"
                                                            Foreground="{DynamicResource TextMutedBrush}" />
                                             </StackPanel>
 
-                                            <StackPanel Grid.Column="1" Margin="12,0,0,0"
+                                            <StackPanel Grid.Column="1" Margin="14,0,0,0"
                                                         VerticalAlignment="Center">
                                                 <Button Content="Run" Style="{StaticResource GhostButton}"
                                                         Command="{Binding DataContext.RunCommand,
-                                                            RelativeSource={RelativeSource AncestorType=ListBox}}"
+                                                            RelativeSource={RelativeSource AncestorType=ItemsControl}}"
                                                         CommandParameter="{Binding}" />
                                                 <TextBlock Text="{Binding Outcome}" FontSize="10"
-                                                           HorizontalAlignment="Center" Margin="0,4,0,0"
+                                                           HorizontalAlignment="Center" Margin="0,5,0,0"
                                                            Foreground="{DynamicResource TextMutedBrush}" />
                                             </StackPanel>
                                         </Grid>
                                     </Border>
                                 </DataTemplate>
-                            </ListBox.ItemTemplate>
-                        </ListBox>
-                    </DockPanel>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
                 </Border>
 
-                <Border Grid.Column="2" Style="{StaticResource Card}" Padding="14">
+                <!-- Verbatim. These tools report findings this app has no business
+                     interpreting, and a paraphrase would be worse than the sentence. -->
+                <Border Grid.Column="2" Style="{StaticResource Card}" Padding="15">
                     <DockPanel>
                         <TextBlock DockPanel.Dock="Top" Text="Output, unedited"
                                    Style="{StaticResource SectionTitle}" />
@@ -213,30 +176,7 @@
                     </DockPanel>
                 </Border>
             </Grid>
-
-            <!-- centre stage -->
-            <Border Style="{StaticResource Card}" Padding="18">
-                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
-                    <Grid Width="140" Height="140" HorizontalAlignment="Center">
-                        <ctl:RadialGauge Thickness="11" Percent="{Binding GaugePercent}"
-                                         TrackBrush="{DynamicResource GaugeTrackBrush}"
-                                         ValueBrush="{DynamicResource AccentMaintenanceBrush}" />
-                        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
-                            <TextBlock Text="{Binding CompletedCount}" FontSize="30"
-                                       FontWeight="SemiBold" HorizontalAlignment="Center"
-                                       Foreground="{DynamicResource TextPrimaryBrush}" />
-                            <TextBlock Text="tools run" Style="{StaticResource CaptionText}"
-                                       HorizontalAlignment="Center" />
-                        </StackPanel>
-                    </Grid>
-
-                    <TextBlock Text="{Binding Headline}" Style="{StaticResource DisplayText}"
-                               FontSize="20" HorizontalAlignment="Center" Margin="0,12,0,0" />
-                    <TextBlock Text="{Binding HeadlineDetail}" Style="{StaticResource BodyText}"
-                               TextAlignment="Center" MaxWidth="490" Margin="0,6,0,0" />
-                </StackPanel>
-            </Border>
-        </DockPanel>
+        </ctl:SectionFrame>
     </DataTemplate>
 
 </ResourceDictionary>

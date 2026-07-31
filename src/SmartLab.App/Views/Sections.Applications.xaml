@@ -2,30 +2,42 @@
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     xmlns:ctl="clr-namespace:SmartLab.App.Controls">
 
+    <!--
+        Uninstall and Add-ons take the console shape - two lists side by side, no
+        figure worth enlarging. Updater takes reading-and-list, because ticked over
+        upgradable is a real proportion.
+    -->
+
     <!-- ================= Uninstall ================= -->
 
     <DataTemplate x:Key="section-uninstall">
-        <DockPanel DataContext="{Binding DataContext.Uninstall,
-                       RelativeSource={RelativeSource AncestorType=Window}}">
+        <ctl:SectionFrame Title="Uninstall" Status="{Binding Status}"
+                          Subtitle="Removing Smart Lab, and removing anything else. Rescued data is listed but never ticked - it may be the only copy left."
+                          DataContext="{Binding DataContext.Uninstall,
+                              RelativeSource={RelativeSource AncestorType=Window}}">
 
-            <Border DockPanel.Dock="Bottom" Style="{StaticResource Card}"
-                    Background="{DynamicResource SurfaceSunkenBrush}" Padding="14,10"
-                    Margin="0,12,0,0">
-                <TextBlock Text="{Binding Status}" Style="{StaticResource BodyText}" />
-            </Border>
+            <ctl:SectionFrame.Actions>
+                <StackPanel Orientation="Horizontal">
+                    <CheckBox Style="{StaticResource ToggleCheck}" Content="Dry run"
+                              IsChecked="{Binding DryRun}" Margin="0,0,16,0" FontWeight="SemiBold" />
+                    <Button Content="Remove ticked" Style="{StaticResource GhostButton}"
+                            Command="{Binding RemoveSelfCommand}" Margin="0,0,8,0" />
+                    <Button Content="Find traces" Style="{StaticResource PrimaryButton}"
+                            Command="{Binding ScanSelfCommand}" />
+                </StackPanel>
+            </ctl:SectionFrame.Actions>
 
-            <Grid DockPanel.Dock="Bottom" Height="252" Margin="0,14,0,0">
+            <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="14" />
                     <ColumnDefinition Width="1.1*" />
                 </Grid.ColumnDefinitions>
 
-                <Border Grid.Column="0" Style="{StaticResource Card}" Padding="16">
+                <Border Grid.Column="0" Style="{StaticResource Card}" Padding="15">
                     <DockPanel>
                         <TextBlock DockPanel.Dock="Top" Text="What Smart Lab left here"
                                    Style="{StaticResource SectionTitle}" />
-
                         <ListBox Style="{StaticResource PlainList}" ItemsSource="{Binding SelfTraces}">
                             <ListBox.ItemTemplate>
                                 <DataTemplate>
@@ -38,30 +50,35 @@
                                                 <ColumnDefinition Width="*" />
                                                 <ColumnDefinition Width="Auto" />
                                             </Grid.ColumnDefinitions>
+
                                             <CheckBox Grid.Column="0" Style="{StaticResource RowCheck}"
                                                       IsChecked="{Binding IsSelected}"
                                                       VerticalAlignment="Top" Margin="0,2,11,0" />
+
                                             <StackPanel Grid.Column="1">
                                                 <StackPanel Orientation="Horizontal">
                                                     <TextBlock Text="{Binding Description}" FontSize="12"
                                                                FontWeight="SemiBold"
                                                                Foreground="{DynamicResource TextPrimaryBrush}" />
-                                                    <TextBlock Text="your data" FontSize="10"
-                                                               Margin="8,0,0,0" FontWeight="SemiBold"
-                                                               VerticalAlignment="Center"
-                                                               Foreground="{DynamicResource WarningBrush}"
-                                                               Visibility="{Binding IsUserData,
-                                                                   Converter={StaticResource BoolToVisibility}}" />
+                                                    <Border Style="{StaticResource Chip}"
+                                                            Visibility="{Binding IsUserData,
+                                                                Converter={StaticResource BoolToVisibility}}">
+                                                        <TextBlock Text="your data"
+                                                                   Style="{StaticResource ChipText}"
+                                                                   Foreground="{DynamicResource WarningBrush}" />
+                                                    </Border>
                                                 </StackPanel>
-                                                <TextBlock Text="{Binding Location}"
+                                                <TextBlock Text="{Binding Location}" FontSize="10"
                                                            FontFamily="{StaticResource MonoFont}"
-                                                           FontSize="10.5" Margin="0,3,0,0"
-                                                           Foreground="{DynamicResource TextMutedBrush}"
-                                                           TextTrimming="CharacterEllipsis" />
+                                                           Margin="0,3,0,0" TextTrimming="CharacterEllipsis"
+                                                           Foreground="{DynamicResource TextMutedBrush}" />
                                             </StackPanel>
+
                                             <TextBlock Grid.Column="2" Text="{Binding SizeText}"
-                                                       Style="{StaticResource CaptionText}"
-                                                       VerticalAlignment="Center" Margin="10,0,0,0" />
+                                                       FontSize="11" VerticalAlignment="Center"
+                                                       Margin="10,0,0,0"
+                                                       FontFamily="{StaticResource MonoFont}"
+                                                       Foreground="{DynamicResource TextMutedBrush}" />
                                         </Grid>
                                     </Border>
                                 </DataTemplate>
@@ -70,27 +87,21 @@
                     </DockPanel>
                 </Border>
 
-                <Border Grid.Column="2" Style="{StaticResource Card}" Padding="16">
+                <Border Grid.Column="2" Style="{StaticResource Card}" Padding="15">
                     <DockPanel>
-                        <!-- Removing another program is its own job with its own
-                             verbs, so they stay on this card rather than joining
-                             the stage's - the dial above counts Smart Lab's own
-                             traces and nothing here changes it. -->
+                        <!-- Removing another program is its own job with its own verbs,
+                             so they stay on this card rather than joining the header's. -->
                         <Grid DockPanel.Dock="Top" Margin="0,0,0,10">
                             <TextBlock Text="Installed programs" VerticalAlignment="Center"
                                        Style="{StaticResource SectionTitle}" Margin="0" />
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                                <Button Content="List programs" Style="{StaticResource GhostButton}"
+                                <Button Content="List" Style="{StaticResource GhostButton}"
                                         Command="{Binding ScanProgramsCommand}" />
                                 <Button Content="Uninstall selected" Style="{StaticResource GhostButton}"
                                         Command="{Binding UninstallProgramCommand}" Margin="8,0,0,0" />
                             </StackPanel>
                         </Grid>
 
-                        <!-- Hidden until an uninstaller has actually left something
-                             behind. The stage costs this card most of its height, so
-                             an empty heading and a button that would report nothing
-                             are paid for by the program list. -->
                         <StackPanel DockPanel.Dock="Bottom" Margin="0,10,0,0">
                             <StackPanel.Style>
                                 <Style TargetType="StackPanel">
@@ -106,16 +117,16 @@
                             <TextBlock Text="Leftovers" Style="{StaticResource SectionTitle}"
                                        Margin="0,0,0,6" />
                             <ListBox Style="{StaticResource PlainList}"
-                                     ItemsSource="{Binding Leftovers}" MaxHeight="72">
+                                     ItemsSource="{Binding Leftovers}" MaxHeight="80">
                                 <ListBox.ItemTemplate>
                                     <DataTemplate>
                                         <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
                                             <CheckBox Style="{StaticResource RowCheck}"
                                                       IsChecked="{Binding IsSelected}" Margin="0,0,10,0" />
-                                            <TextBlock Text="{Binding Location}"
-                                                       FontFamily="{StaticResource MonoFont}" FontSize="10.5"
-                                                       Foreground="{DynamicResource TextSecondaryBrush}"
-                                                       TextTrimming="CharacterEllipsis" MaxWidth="360" />
+                                            <TextBlock Text="{Binding Location}" FontSize="10"
+                                                       FontFamily="{StaticResource MonoFont}"
+                                                       TextTrimming="CharacterEllipsis" MaxWidth="360"
+                                                       Foreground="{DynamicResource TextSecondaryBrush}" />
                                         </StackPanel>
                                     </DataTemplate>
                                 </ListBox.ItemTemplate>
@@ -125,9 +136,8 @@
                                     HorizontalAlignment="Left" Margin="0,8,0,0" />
                         </StackPanel>
 
-                        <!-- Grouped by who the program was installed for, because
-                             that is what decides whether removing it will be
-                             refused: this app runs as the invoking user. -->
+                        <!-- Grouped by who the program was installed for, because that is
+                             what decides whether removing it will be refused. -->
                         <ListBox Style="{StaticResource InsetList}"
                                  ItemsSource="{Binding GroupedPrograms.View}"
                                  SelectedItem="{Binding SelectedProgram}">
@@ -149,16 +159,15 @@
                                                        VerticalAlignment="Center"
                                                        TextTrimming="CharacterEllipsis"
                                                        Foreground="{DynamicResource TextSecondaryBrush}" />
-
                                             <TextBlock Grid.Column="1" Text="{Binding Version}"
-                                                       FontSize="10.5" Margin="12,0,0,0"
-                                                       VerticalAlignment="Center"
-                                                       TextTrimming="CharacterEllipsis" MaxWidth="90"
+                                                       FontSize="10" Margin="12,0,0,0"
+                                                       VerticalAlignment="Center" MaxWidth="90"
+                                                       TextTrimming="CharacterEllipsis"
                                                        Foreground="{DynamicResource TextMutedBrush}" />
-
                                             <TextBlock Grid.Column="2" Text="{Binding SizeText}"
-                                                       FontSize="10.5" Margin="12,0,0,0" MinWidth="52"
+                                                       FontSize="10" Margin="12,0,0,0" MinWidth="52"
                                                        TextAlignment="Right" VerticalAlignment="Center"
+                                                       FontFamily="{StaticResource MonoFont}"
                                                        Foreground="{DynamicResource TextMutedBrush}" />
                                         </Grid>
                                     </Border>
@@ -185,173 +194,126 @@
                     </DockPanel>
                 </Border>
             </Grid>
-
-            <!-- centre stage -->
-            <Border Style="{StaticResource Card}" Padding="20">
-                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
-                    <Grid Width="176" Height="176" HorizontalAlignment="Center">
-                        <ctl:RadialGauge Thickness="13" Percent="{Binding GaugePercent}"
-                                         TrackBrush="{DynamicResource GaugeTrackBrush}"
-                                         ValueBrush="{DynamicResource AccentUninstallBrush}" />
-                        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
-                            <TextBlock Text="{Binding TraceCount}" FontSize="40"
-                                       FontWeight="SemiBold" HorizontalAlignment="Center"
-                                       Foreground="{DynamicResource TextPrimaryBrush}" />
-                            <TextBlock Text="traces" Style="{StaticResource CaptionText}"
-                                       HorizontalAlignment="Center" />
-                        </StackPanel>
-                    </Grid>
-
-                    <TextBlock Text="{Binding Headline}" Style="{StaticResource DisplayText}"
-                               FontSize="22" HorizontalAlignment="Center" Margin="0,16,0,0" />
-                    <TextBlock Text="{Binding HeadlineDetail}" Style="{StaticResource BodyText}"
-                               TextAlignment="Center" MaxWidth="430" Margin="0,6,0,0" />
-
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center"
-                                Margin="0,16,0,0">
-                        <Button Content="Find traces" Style="{StaticResource PrimaryButton}"
-                                Command="{Binding ScanSelfCommand}" Padding="30,10" />
-                        <Button Content="Remove ticked" Style="{StaticResource GhostButton}"
-                                Command="{Binding RemoveSelfCommand}" Margin="10,0,0,0" />
-                        <CheckBox Style="{StaticResource ToggleCheck}" Content="Dry run"
-                                  IsChecked="{Binding DryRun}" Margin="16,0,0,0"
-                                  FontWeight="SemiBold" />
-                    </StackPanel>
-                </StackPanel>
-            </Border>
-        </DockPanel>
+        </ctl:SectionFrame>
     </DataTemplate>
 
     <!-- ================= Updater ================= -->
 
     <DataTemplate x:Key="section-updater">
-        <DockPanel DataContext="{Binding DataContext.Updater,
-                       RelativeSource={RelativeSource AncestorType=Window}}">
+        <ctl:SectionFrame Title="Updater" Status="{Binding Status}"
+                          Subtitle="Upgrades run through winget, which installed most of these. This app never downloads anything itself."
+                          DataContext="{Binding DataContext.Updater,
+                              RelativeSource={RelativeSource AncestorType=Window}}">
 
-            <Border DockPanel.Dock="Bottom" Style="{StaticResource Card}"
-                    Background="{DynamicResource SurfaceSunkenBrush}" Padding="14,10"
-                    Margin="0,12,0,0">
-                <TextBlock Text="{Binding Status}" Style="{StaticResource BodyText}" />
-            </Border>
-
-            <Border DockPanel.Dock="Bottom" Style="{StaticResource Card}" Padding="14"
-                    Height="210" Margin="0,14,0,0">
-                <DockPanel>
-                    <TextBlock DockPanel.Dock="Top" Text="Out of date"
-                               Style="{StaticResource SectionTitle}" />
-                    <ListBox Style="{StaticResource PlainList}" ItemsSource="{Binding Packages}">
-                        <ListBox.ItemTemplate>
-                            <DataTemplate>
-                                <Border Background="{DynamicResource SurfaceRaisedBrush}"
-                                        CornerRadius="{StaticResource ControlRadius}"
-                                        Padding="11,8" Margin="0,0,0,5">
-                                    <Grid>
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="Auto" />
-                                            <ColumnDefinition Width="*" />
-                                            <ColumnDefinition Width="Auto" />
-                                            <ColumnDefinition Width="Auto" />
-                                        </Grid.ColumnDefinitions>
-
-                                        <CheckBox Grid.Column="0" Style="{StaticResource RowCheck}"
-                                                  IsChecked="{Binding IsSelected}"
-                                                  VerticalAlignment="Center" Margin="0,0,11,0" />
-
-                                        <StackPanel Grid.Column="1">
-                                            <StackPanel Orientation="Horizontal">
-                                                <TextBlock Text="{Binding Name}" FontSize="11.5"
-                                                           Foreground="{DynamicResource TextPrimaryBrush}"
-                                                           TextTrimming="CharacterEllipsis" MaxWidth="300" />
-                                                <Border Background="{DynamicResource SurfaceSunkenBrush}"
-                                                        CornerRadius="4" Padding="6,1" Margin="8,0,0,0"
-                                                        Visibility="{Binding NotFromWinget,
-                                                            Converter={StaticResource BoolToVisibility}}">
-                                                    <TextBlock Text="not from winget" FontSize="10"
-                                                               Foreground="{DynamicResource WarningBrush}" />
-                                                </Border>
-                                            </StackPanel>
-                                            <TextBlock Text="{Binding Id}" FontSize="10"
-                                                       FontFamily="{StaticResource MonoFont}" Margin="0,2,0,0"
-                                                       Foreground="{DynamicResource TextMutedBrush}" />
-                                        </StackPanel>
-
-                                        <TextBlock Grid.Column="2" Margin="12,0,0,0"
-                                                   VerticalAlignment="Center" FontSize="10.5"
-                                                   Foreground="{DynamicResource TextMutedBrush}">
-                                            <Run Text="{Binding Installed, Mode=OneWay}" />
-                                            <Run Text="&#x2192;" />
-                                            <Run Text="{Binding Available, Mode=OneWay}"
-                                                 Foreground="{DynamicResource AccentBrush}" />
-                                        </TextBlock>
-
-                                        <TextBlock Grid.Column="3" Text="{Binding Outcome}" FontSize="10.5"
-                                                   Margin="12,0,0,0" MinWidth="76" TextAlignment="Right"
-                                                   VerticalAlignment="Center"
-                                                   Foreground="{DynamicResource WarningBrush}" />
-                                    </Grid>
-                                </Border>
-                            </DataTemplate>
-                        </ListBox.ItemTemplate>
-                    </ListBox>
-                </DockPanel>
-            </Border>
-
-            <!-- centre stage -->
-            <Border Style="{StaticResource Card}" Padding="20">
-                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
-                    <Grid Width="160" Height="160" HorizontalAlignment="Center">
-                        <ctl:RadialGauge Thickness="12" Percent="{Binding GaugePercent}"
-                                         TrackBrush="{DynamicResource GaugeTrackBrush}"
-                                         ValueBrush="{DynamicResource AccentUpdaterBrush}" />
-                        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
-                            <TextBlock Text="{Binding PackageCount}" FontSize="34"
-                                       FontWeight="SemiBold" HorizontalAlignment="Center"
-                                       Foreground="{DynamicResource TextPrimaryBrush}" />
-                            <TextBlock Text="out of date" Style="{StaticResource CaptionText}"
-                                       HorizontalAlignment="Center" />
-                        </StackPanel>
-                    </Grid>
-
-                    <TextBlock Text="{Binding Headline}" Style="{StaticResource DisplayText}"
-                               FontSize="21" HorizontalAlignment="Center" Margin="0,14,0,0" />
-                    <TextBlock Text="{Binding HeadlineDetail}" Style="{StaticResource BodyText}"
-                               TextAlignment="Center" MaxWidth="470" Margin="0,6,0,0" />
-
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center"
-                                Margin="0,14,0,0">
-                        <Button Content="Check" Style="{StaticResource PrimaryButton}"
-                                Command="{Binding CheckCommand}" Padding="34,10" />
-                        <Button Content="Upgrade ticked" Style="{StaticResource GhostButton}"
-                                Command="{Binding UpgradeTickedCommand}" Margin="10,0,0,0" />
-                        <CheckBox Style="{StaticResource ToggleCheck}" Content="Dry run"
-                                  IsChecked="{Binding DryRun}" Margin="16,0,0,0"
-                                  FontWeight="SemiBold" />
-                    </StackPanel>
+            <ctl:SectionFrame.Actions>
+                <StackPanel Orientation="Horizontal">
+                    <CheckBox Style="{StaticResource ToggleCheck}" Content="Dry run"
+                              IsChecked="{Binding DryRun}" Margin="0,0,16,0" FontWeight="SemiBold" />
+                    <Button Content="Upgrade ticked" Style="{StaticResource GhostButton}"
+                            Command="{Binding UpgradeTickedCommand}" Margin="0,0,8,0" />
+                    <Button Content="Check" Style="{StaticResource PrimaryButton}"
+                            Command="{Binding CheckCommand}" />
                 </StackPanel>
-            </Border>
-        </DockPanel>
+            </ctl:SectionFrame.Actions>
+
+            <DockPanel>
+                <StackPanel DockPanel.Dock="Top" Style="{StaticResource ReadingRow}" Margin="0,0,0,16">
+                    <ctl:Reading Value="{Binding PackageCount}" Caption="OUT OF DATE"
+                                 Proportion="{Binding GaugePercent}" ShowProportion="True"
+                                 Tint="{DynamicResource AccentUpdaterBrush}" Width="180" />
+                </StackPanel>
+
+                <Border Style="{StaticResource Card}" Padding="0">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto"
+                                  HorizontalScrollBarVisibility="Disabled">
+                        <ItemsControl ItemsSource="{Binding Packages}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Style="{StaticResource InsetRow}" Padding="15,10">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+
+                                            <CheckBox Grid.Column="0" Style="{StaticResource RowCheck}"
+                                                      IsChecked="{Binding IsSelected}"
+                                                      VerticalAlignment="Center" Margin="0,0,13,0" />
+
+                                            <StackPanel Grid.Column="1">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <TextBlock Text="{Binding Name}" FontSize="12"
+                                                               TextTrimming="CharacterEllipsis"
+                                                               MaxWidth="300"
+                                                               Foreground="{DynamicResource TextPrimaryBrush}" />
+                                                    <!-- Upgrading one of these swaps a hand-placed
+                                                         build for the store's. -->
+                                                    <Border Style="{StaticResource Chip}"
+                                                            Visibility="{Binding NotFromWinget,
+                                                                Converter={StaticResource BoolToVisibility}}">
+                                                        <TextBlock Text="not from winget"
+                                                                   Style="{StaticResource ChipText}"
+                                                                   Foreground="{DynamicResource WarningBrush}" />
+                                                    </Border>
+                                                </StackPanel>
+                                                <TextBlock Text="{Binding Id}" FontSize="10"
+                                                           FontFamily="{StaticResource MonoFont}"
+                                                           Margin="0,2,0,0"
+                                                           Foreground="{DynamicResource TextMutedBrush}" />
+                                            </StackPanel>
+
+                                            <TextBlock Grid.Column="2" Margin="14,0,0,0" FontSize="10.5"
+                                                       VerticalAlignment="Center"
+                                                       FontFamily="{StaticResource MonoFont}"
+                                                       Foreground="{DynamicResource TextMutedBrush}">
+                                                <Run Text="{Binding Installed, Mode=OneWay}" />
+                                                <Run Text="&#x2192;" />
+                                                <Run Text="{Binding Available, Mode=OneWay}"
+                                                     Foreground="{DynamicResource AccentBrush}" />
+                                            </TextBlock>
+
+                                            <TextBlock Grid.Column="3" Text="{Binding Outcome}"
+                                                       FontSize="10" Margin="14,0,0,0" MinWidth="76"
+                                                       TextAlignment="Right" VerticalAlignment="Center"
+                                                       Foreground="{DynamicResource WarningBrush}" />
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </Border>
+            </DockPanel>
+        </ctl:SectionFrame>
     </DataTemplate>
 
     <!-- ================= Add-ons ================= -->
 
     <DataTemplate x:Key="section-extensions">
-        <DockPanel DataContext="{Binding DataContext.Extensions,
-                       RelativeSource={RelativeSource AncestorType=Window}}">
+        <ctl:SectionFrame Title="Add-ons" Status="{Binding Status}"
+                          Subtitle="Lists what is installed and what each one may see. Removal stays with the browser - nothing here writes to a profile."
+                          DataContext="{Binding DataContext.Extensions,
+                              RelativeSource={RelativeSource AncestorType=Window}}">
 
-            <Border DockPanel.Dock="Bottom" Style="{StaticResource Card}"
-                    Background="{DynamicResource SurfaceSunkenBrush}" Padding="14,10"
-                    Margin="0,12,0,0">
-                <TextBlock Text="{Binding Status}" Style="{StaticResource BodyText}" />
-            </Border>
+            <ctl:SectionFrame.Actions>
+                <StackPanel Orientation="Horizontal">
+                    <ctl:Reading Value="{Binding ExtensionCount}" Caption="EXTENSIONS"
+                                 IsQuiet="True" Margin="0,0,20,0" />
+                    <Button Content="Scan" Style="{StaticResource PrimaryButton}"
+                            Command="{Binding ScanCommand}" VerticalAlignment="Center" />
+                </StackPanel>
+            </ctl:SectionFrame.Actions>
 
-            <Grid DockPanel.Dock="Bottom" Height="210" Margin="0,14,0,0">
+            <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="1.6*" />
                     <ColumnDefinition Width="14" />
                     <ColumnDefinition Width="*" />
                 </Grid.ColumnDefinitions>
 
-                <Border Grid.Column="0" Style="{StaticResource Card}" Padding="14">
+                <Border Grid.Column="0" Style="{StaticResource Card}" Padding="15">
                     <ScrollViewer VerticalScrollBarVisibility="Auto"
                                   HorizontalScrollBarVisibility="Disabled">
                         <ItemsControl ItemsSource="{Binding GroupedExtensions.View}">
@@ -370,13 +332,16 @@
                                             <StackPanel Grid.Column="0">
                                                 <StackPanel Orientation="Horizontal">
                                                     <TextBlock Text="{Binding Name}" FontSize="11.5"
-                                                               Foreground="{DynamicResource TextPrimaryBrush}"
-                                                               TextTrimming="CharacterEllipsis" MaxWidth="280" />
-                                                    <Border Background="{DynamicResource SurfaceSunkenBrush}"
-                                                            CornerRadius="4" Padding="6,1" Margin="8,0,0,0"
+                                                               TextTrimming="CharacterEllipsis"
+                                                               MaxWidth="280"
+                                                               Foreground="{DynamicResource TextPrimaryBrush}" />
+                                                    <!-- The one fact worth surfacing: size tells
+                                                         nobody anything, reach does. -->
+                                                    <Border Style="{StaticResource Chip}"
                                                             Visibility="{Binding ReadsEverySite,
                                                                 Converter={StaticResource BoolToVisibility}}">
-                                                        <TextBlock Text="reads every site" FontSize="10"
+                                                        <TextBlock Text="reads every site"
+                                                                   Style="{StaticResource ChipText}"
                                                                    Foreground="{DynamicResource DangerBrush}" />
                                                     </Border>
                                                 </StackPanel>
@@ -385,8 +350,10 @@
                                                            Foreground="{DynamicResource TextMutedBrush}" />
                                             </StackPanel>
 
-                                            <TextBlock Grid.Column="1" Text="{Binding Version}" FontSize="10.5"
-                                                       Margin="12,0,0,0" VerticalAlignment="Center"
+                                            <TextBlock Grid.Column="1" Text="{Binding Version}"
+                                                       FontSize="10" Margin="12,0,0,0"
+                                                       VerticalAlignment="Center"
+                                                       FontFamily="{StaticResource MonoFont}"
                                                        Foreground="{DynamicResource TextMutedBrush}" />
                                         </Grid>
                                     </Border>
@@ -396,7 +363,7 @@
                     </ScrollViewer>
                 </Border>
 
-                <Border Grid.Column="2" Style="{StaticResource Card}" Padding="14">
+                <Border Grid.Column="2" Style="{StaticResource Card}" Padding="15">
                     <DockPanel>
                         <TextBlock DockPanel.Dock="Top" Text="Explorer add-ons (listed only)"
                                    Style="{StaticResource SectionTitle}" />
@@ -412,34 +379,7 @@
                     </DockPanel>
                 </Border>
             </Grid>
-
-            <!-- centre stage -->
-            <Border Style="{StaticResource Card}" Padding="20">
-                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
-                    <Grid Width="160" Height="160" HorizontalAlignment="Center">
-                        <ctl:RadialGauge Thickness="12" Percent="{Binding GaugePercent}"
-                                         TrackBrush="{DynamicResource GaugeTrackBrush}"
-                                         ValueBrush="{DynamicResource AccentExtensionsBrush}" />
-                        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
-                            <TextBlock Text="{Binding ExtensionCount}" FontSize="34"
-                                       FontWeight="SemiBold" HorizontalAlignment="Center"
-                                       Foreground="{DynamicResource TextPrimaryBrush}" />
-                            <TextBlock Text="extensions" Style="{StaticResource CaptionText}"
-                                       HorizontalAlignment="Center" />
-                        </StackPanel>
-                    </Grid>
-
-                    <TextBlock Text="{Binding Headline}" Style="{StaticResource DisplayText}"
-                               FontSize="21" HorizontalAlignment="Center" Margin="0,14,0,0" />
-                    <TextBlock Text="{Binding HeadlineDetail}" Style="{StaticResource BodyText}"
-                               TextAlignment="Center" MaxWidth="480" Margin="0,6,0,0" />
-
-                    <Button Content="Scan" Style="{StaticResource PrimaryButton}"
-                            Command="{Binding ScanCommand}" Padding="34,10"
-                            HorizontalAlignment="Center" Margin="0,14,0,0" />
-                </StackPanel>
-            </Border>
-        </DockPanel>
+        </ctl:SectionFrame>
     </DataTemplate>
 
 </ResourceDictionary>

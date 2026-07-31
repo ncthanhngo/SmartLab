@@ -2,35 +2,51 @@
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     xmlns:ctl="clr-namespace:SmartLab.App.Controls">
 
+    <!--
+        The Cleanup group, all three in the reading-and-list shape: a headline figure
+        with a real denominator, quiet context beside it, and the evidence at full
+        height underneath. The list is what an operator came to read.
+    -->
+
     <!-- ================= System Junk ================= -->
 
     <DataTemplate x:Key="section-cleanup">
-        <DockPanel DataContext="{Binding DataContext.Cleanup,
-                       RelativeSource={RelativeSource AncestorType=Window}}">
+        <ctl:SectionFrame Title="System Junk" Status="{Binding Status}"
+                          Subtitle="Nine places whose entire purpose is holding disposable data. The Recycle Bin is not one of them - it has its own section."
+                          DataContext="{Binding DataContext.Cleanup,
+                              RelativeSource={RelativeSource AncestorType=Window}}">
 
-            <Border DockPanel.Dock="Bottom" Style="{StaticResource Card}"
-                    Background="{DynamicResource SurfaceSunkenBrush}" Padding="14,10"
-                    Margin="0,12,0,0">
-                <TextBlock Text="{Binding Status}" Style="{StaticResource BodyText}" />
-            </Border>
+            <ctl:SectionFrame.Actions>
+                <StackPanel Orientation="Horizontal">
+                    <CheckBox Style="{StaticResource ToggleCheck}" Content="Dry run"
+                              IsChecked="{Binding DryRun}" Margin="0,0,16,0" FontWeight="SemiBold" />
+                    <Button Content="Clean ticked" Style="{StaticResource GhostButton}"
+                            Command="{Binding CleanCommand}" Margin="0,0,8,0" />
+                    <Button Content="Measure" Style="{StaticResource PrimaryButton}"
+                            Command="{Binding AnalyseCommand}" />
+                </StackPanel>
+            </ctl:SectionFrame.Actions>
 
-            <Grid DockPanel.Dock="Bottom" Height="230" Margin="0,14,0,0">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="1.5*" />
-                    <ColumnDefinition Width="14" />
-                    <ColumnDefinition Width="*" />
-                </Grid.ColumnDefinitions>
+            <DockPanel>
+                <StackPanel DockPanel.Dock="Top" Style="{StaticResource ReadingRow}" Margin="0,0,0,16">
+                    <ctl:Reading Value="{Binding TotalText}" Caption="TICKED FOR REMOVAL"
+                                 Proportion="{Binding GaugePercent}" ShowProportion="True"
+                                 Tint="{DynamicResource AccentCleanupBrush}" Width="180" />
+                    <ctl:Reading Value="{Binding MeasuredText}" Caption="MEASURED"
+                                 IsQuiet="True" Margin="26,0,0,0" />
+                    <ctl:Reading Value="{Binding FileCount, StringFormat={}{0:N0}}" Caption="FILES"
+                                 IsQuiet="True" Margin="26,0,0,0" />
+                    <ctl:Reading Value="{Binding NeedsAdminCount}" Caption="NEED ADMIN"
+                                 IsQuiet="True" Margin="26,0,0,0" />
+                </StackPanel>
 
-                <Border Grid.Column="0" Style="{StaticResource Card}" Padding="14">
-                    <DockPanel>
-                        <TextBlock DockPanel.Dock="Top" Text="What to clean"
-                                   Style="{StaticResource SectionTitle}" />
-                        <ListBox Style="{StaticResource PlainList}" ItemsSource="{Binding Categories}">
-                            <ListBox.ItemTemplate>
+                <Border Style="{StaticResource Card}" Padding="0">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto"
+                                  HorizontalScrollBarVisibility="Disabled">
+                        <ItemsControl ItemsSource="{Binding Categories}">
+                            <ItemsControl.ItemTemplate>
                                 <DataTemplate>
-                                    <Border Background="{DynamicResource SurfaceRaisedBrush}"
-                                            CornerRadius="{StaticResource ControlRadius}"
-                                            Padding="11,9" Margin="0,0,0,5">
+                                    <Border Style="{StaticResource InsetRow}" Padding="15,11">
                                         <Grid>
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="Auto" />
@@ -40,38 +56,47 @@
 
                                             <CheckBox Grid.Column="0" Style="{StaticResource RowCheck}"
                                                       IsChecked="{Binding IsSelected}"
-                                                      VerticalAlignment="Top" Margin="0,2,11,0" />
+                                                      VerticalAlignment="Center" Margin="0,0,13,0" />
 
                                             <StackPanel Grid.Column="1">
                                                 <StackPanel Orientation="Horizontal">
-                                                    <TextBlock Text="{Binding Name}" FontSize="12"
+                                                    <TextBlock Text="{Binding Name}" FontSize="12.5"
                                                                FontWeight="SemiBold"
                                                                Foreground="{DynamicResource TextPrimaryBrush}" />
-                                                    <Border Background="{DynamicResource SurfaceSunkenBrush}"
-                                                            CornerRadius="4" Padding="6,1" Margin="8,0,0,0"
+
+                                                    <Border Style="{StaticResource Chip}"
                                                             Visibility="{Binding NeedsElevation,
                                                                 Converter={StaticResource BoolToVisibility}}">
-                                                        <TextBlock Text="admin" FontSize="10"
+                                                        <TextBlock Text="admin"
+                                                                   Style="{StaticResource ChipText}"
                                                                    Foreground="{DynamicResource InfoBrush}" />
                                                     </Border>
+
+                                                    <!-- The caution is on the row, because the row is
+                                                         where the decision is. -->
+                                                    <Border Style="{StaticResource Chip}"
+                                                            Visibility="{Binding HasCaution,
+                                                                Converter={StaticResource BoolToVisibility}}">
+                                                        <TextBlock Text="{Binding Caution}"
+                                                                   Style="{StaticResource ChipText}"
+                                                                   Foreground="{DynamicResource WarningBrush}" />
+                                                    </Border>
                                                 </StackPanel>
-                                                <TextBlock Text="{Binding Detail}"
-                                                           Style="{StaticResource CaptionText}"
-                                                           Margin="0,3,0,0" />
-                                                <TextBlock Text="{Binding Caution}" FontSize="10.5"
-                                                           Margin="0,3,0,0" TextWrapping="Wrap"
-                                                           Foreground="{DynamicResource WarningBrush}"
-                                                           Visibility="{Binding HasCaution,
-                                                               Converter={StaticResource BoolToVisibility}}" />
+
+                                                <TextBlock Text="{Binding Detail}" FontSize="10.5"
+                                                           Margin="0,3,0,0"
+                                                           Foreground="{DynamicResource TextMutedBrush}" />
                                             </StackPanel>
 
-                                            <StackPanel Grid.Column="2" Margin="10,0,0,0"
+                                            <StackPanel Grid.Column="2" Margin="14,0,0,0"
                                                         VerticalAlignment="Center">
                                                 <TextBlock Text="{Binding SizeText}" FontSize="12"
                                                            HorizontalAlignment="Right"
+                                                           FontFamily="{StaticResource MonoFont}"
                                                            Foreground="{DynamicResource TextPrimaryBrush}" />
-                                                <TextBlock HorizontalAlignment="Right"
-                                                           Style="{StaticResource CaptionText}"
+                                                <TextBlock HorizontalAlignment="Right" FontSize="10"
+                                                           Margin="0,2,0,0"
+                                                           Foreground="{DynamicResource TextMutedBrush}"
                                                            Text="{Binding Files, StringFormat={}{0:N0} files}"
                                                            Visibility="{Binding Measured,
                                                                Converter={StaticResource BoolToVisibility}}" />
@@ -79,258 +104,174 @@
                                         </Grid>
                                     </Border>
                                 </DataTemplate>
-                            </ListBox.ItemTemplate>
-                        </ListBox>
-                    </DockPanel>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
                 </Border>
-
-                <Border Grid.Column="2" Style="{StaticResource Card}" Padding="14">
-                    <DockPanel>
-                        <TextBlock DockPanel.Dock="Top" Text="Log"
-                                   Style="{StaticResource SectionTitle}" />
-                        <ListBox Style="{StaticResource PlainList}" ItemsSource="{Binding Log}"
-                                 FontFamily="{StaticResource MonoFont}" FontSize="11">
-                            <ListBox.ItemTemplate>
-                                <DataTemplate>
-                                    <TextBlock Text="{Binding}" TextWrapping="Wrap"
-                                               Foreground="{DynamicResource TextSecondaryBrush}" />
-                                </DataTemplate>
-                            </ListBox.ItemTemplate>
-                        </ListBox>
-                    </DockPanel>
-                </Border>
-            </Grid>
-
-            <!-- centre stage -->
-            <Border Style="{StaticResource Card}" Padding="20">
-                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
-                    <Grid Width="176" Height="176" HorizontalAlignment="Center">
-                        <ctl:RadialGauge Thickness="13" Percent="{Binding GaugePercent}"
-                                         TrackBrush="{DynamicResource GaugeTrackBrush}"
-                                         ValueBrush="{DynamicResource AccentCleanupBrush}" />
-                        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
-                            <TextBlock Text="{Binding TotalText}" FontSize="34"
-                                       FontWeight="SemiBold" HorizontalAlignment="Center"
-                                       Foreground="{DynamicResource TextPrimaryBrush}" />
-                            <TextBlock Text="reclaimable" Style="{StaticResource CaptionText}"
-                                       HorizontalAlignment="Center" />
-                        </StackPanel>
-                    </Grid>
-
-                    <TextBlock Text="Disk cleanup" Style="{StaticResource DisplayText}"
-                               FontSize="22" HorizontalAlignment="Center" Margin="0,16,0,0" />
-                    <TextBlock Style="{StaticResource BodyText}" TextAlignment="Center"
-                               MaxWidth="430" Margin="0,6,0,0"
-                               Text="The ring shows how much of what was found is ticked. Only ticked categories are cleaned." />
-
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center"
-                                Margin="0,16,0,0">
-                        <Button Content="Analyse" Style="{StaticResource PrimaryButton}"
-                                Command="{Binding AnalyseCommand}" Padding="30,10" />
-                        <Button Content="Clean" Style="{StaticResource GhostButton}"
-                                Command="{Binding CleanCommand}" Margin="10,0,0,0" />
-                        <CheckBox Style="{StaticResource ToggleCheck}" Content="Dry run"
-                                  IsChecked="{Binding DryRun}" Margin="16,0,0,0"
-                                  FontWeight="SemiBold" />
-                    </StackPanel>
-                </StackPanel>
-            </Border>
-        </DockPanel>
+            </DockPanel>
+        </ctl:SectionFrame>
     </DataTemplate>
 
     <!-- ================= Trash Bins ================= -->
 
     <DataTemplate x:Key="section-trash">
-        <DockPanel DataContext="{Binding DataContext.TrashBins,
-                       RelativeSource={RelativeSource AncestorType=Window}}">
+        <ctl:SectionFrame Title="Trash Bins" Status="{Binding Status}"
+                          Subtitle="Every bin starts unticked, on every drive. This is the one place Windows already keeps deleted files intact, and Deleted files recovers from exactly here."
+                          DataContext="{Binding DataContext.TrashBins,
+                              RelativeSource={RelativeSource AncestorType=Window}}">
 
-            <Border DockPanel.Dock="Bottom" Style="{StaticResource Card}"
-                    Background="{DynamicResource SurfaceSunkenBrush}" Padding="14,10"
-                    Margin="0,12,0,0">
-                <TextBlock Text="{Binding Status}" Style="{StaticResource BodyText}" />
-            </Border>
-
-            <Border DockPanel.Dock="Bottom" Style="{StaticResource Card}" Padding="14"
-                    Height="190" Margin="0,14,0,0">
-                <DockPanel>
-                    <TextBlock DockPanel.Dock="Top" Text="Bins on this machine"
-                               Style="{StaticResource SectionTitle}" />
-                    <ListBox Style="{StaticResource PlainList}" ItemsSource="{Binding Bins}">
-                        <ListBox.ItemTemplate>
-                            <DataTemplate>
-                                <Border Background="{DynamicResource SurfaceRaisedBrush}"
-                                        CornerRadius="{StaticResource ControlRadius}"
-                                        Padding="11,9" Margin="0,0,0,5">
-                                    <Grid>
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="Auto" />
-                                            <ColumnDefinition Width="*" />
-                                            <ColumnDefinition Width="Auto" />
-                                        </Grid.ColumnDefinitions>
-
-                                        <CheckBox Grid.Column="0" Style="{StaticResource RowCheck}"
-                                                  IsChecked="{Binding IsSelected}"
-                                                  VerticalAlignment="Top" Margin="0,2,11,0" />
-
-                                        <StackPanel Grid.Column="1">
-                                            <StackPanel Orientation="Horizontal">
-                                                <TextBlock Text="{Binding Root}" FontSize="12"
-                                                           FontWeight="SemiBold"
-                                                           FontFamily="{StaticResource MonoFont}"
-                                                           Foreground="{DynamicResource TextPrimaryBrush}" />
-                                                <TextBlock Text="{Binding Label}" FontSize="11.5"
-                                                           Margin="8,0,0,0" VerticalAlignment="Center"
-                                                           Foreground="{DynamicResource TextSecondaryBrush}" />
-                                                <Border Background="{DynamicResource SurfaceSunkenBrush}"
-                                                        CornerRadius="4" Padding="6,1" Margin="8,0,0,0"
-                                                        Visibility="{Binding IsRemovable,
-                                                            Converter={StaticResource BoolToVisibility}}">
-                                                    <TextBlock Text="removable" FontSize="10"
-                                                               Foreground="{DynamicResource WarningBrush}" />
-                                                </Border>
-                                            </StackPanel>
-                                            <TextBlock Text="{Binding Detail}"
-                                                       Style="{StaticResource CaptionText}"
-                                                       Margin="0,3,0,0" />
-                                        </StackPanel>
-
-                                        <TextBlock Grid.Column="2" Text="{Binding SizeText}" FontSize="12"
-                                                   VerticalAlignment="Center" Margin="10,0,0,0"
-                                                   Foreground="{DynamicResource TextPrimaryBrush}" />
-                                    </Grid>
-                                </Border>
-                            </DataTemplate>
-                        </ListBox.ItemTemplate>
-                    </ListBox>
-                </DockPanel>
-            </Border>
-
-            <!-- centre stage -->
-            <Border Style="{StaticResource Card}" Padding="20">
-                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
-                    <Grid Width="176" Height="176" HorizontalAlignment="Center">
-                        <ctl:RadialGauge Thickness="13" Percent="{Binding GaugePercent}"
-                                         TrackBrush="{DynamicResource GaugeTrackBrush}"
-                                         ValueBrush="{DynamicResource AccentTrashBrush}" />
-                        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
-                            <TextBlock Text="{Binding ItemCount, StringFormat={}{0:N0}}" FontSize="36"
-                                       FontWeight="SemiBold" HorizontalAlignment="Center"
-                                       Foreground="{DynamicResource TextPrimaryBrush}" />
-                            <TextBlock Text="deleted items" Style="{StaticResource CaptionText}"
-                                       HorizontalAlignment="Center" />
-                        </StackPanel>
-                    </Grid>
-
-                    <TextBlock Text="{Binding Headline}" Style="{StaticResource DisplayText}"
-                               FontSize="22" HorizontalAlignment="Center" Margin="0,16,0,0" />
-                    <TextBlock Text="{Binding HeadlineDetail}" Style="{StaticResource BodyText}"
-                               TextAlignment="Center" MaxWidth="450" Margin="0,6,0,0" />
-
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center"
-                                Margin="0,16,0,0">
-                        <Button Content="Measure" Style="{StaticResource PrimaryButton}"
-                                Command="{Binding MeasureCommand}" Padding="30,10" />
-                        <Button Content="Empty ticked" Style="{StaticResource GhostButton}"
-                                Command="{Binding EmptyTickedCommand}" Margin="10,0,0,0" />
-                        <CheckBox Style="{StaticResource ToggleCheck}" Content="Dry run"
-                                  IsChecked="{Binding DryRun}" Margin="16,0,0,0"
-                                  FontWeight="SemiBold" />
-                    </StackPanel>
+            <ctl:SectionFrame.Actions>
+                <StackPanel Orientation="Horizontal">
+                    <CheckBox Style="{StaticResource ToggleCheck}" Content="Dry run"
+                              IsChecked="{Binding DryRun}" Margin="0,0,16,0" FontWeight="SemiBold" />
+                    <Button Content="Empty ticked" Style="{StaticResource GhostButton}"
+                            Command="{Binding EmptyTickedCommand}" Margin="0,0,8,0" />
+                    <Button Content="Measure" Style="{StaticResource PrimaryButton}"
+                            Command="{Binding MeasureCommand}" />
                 </StackPanel>
-            </Border>
-        </DockPanel>
+            </ctl:SectionFrame.Actions>
+
+            <DockPanel>
+                <StackPanel DockPanel.Dock="Top" Style="{StaticResource ReadingRow}" Margin="0,0,0,16">
+                    <ctl:Reading Value="{Binding ItemCount, StringFormat={}{0:N0}}"
+                                 Caption="DELETED ITEMS STILL RECOVERABLE"
+                                 Proportion="{Binding GaugePercent}" ShowProportion="True"
+                                 Tint="{DynamicResource AccentTrashBrush}" Width="250" />
+                    <ctl:Reading Value="{Binding TotalText}" Caption="ON DISK"
+                                 IsQuiet="True" Margin="26,0,0,0" />
+                </StackPanel>
+
+                <Border Style="{StaticResource Card}" Padding="0">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto"
+                                  HorizontalScrollBarVisibility="Disabled">
+                        <ItemsControl ItemsSource="{Binding Bins}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Style="{StaticResource InsetRow}" Padding="15,11">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+
+                                            <CheckBox Grid.Column="0" Style="{StaticResource RowCheck}"
+                                                      IsChecked="{Binding IsSelected}"
+                                                      VerticalAlignment="Center" Margin="0,0,13,0" />
+
+                                            <StackPanel Grid.Column="1">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <TextBlock Text="{Binding Root}" FontSize="12.5"
+                                                               FontWeight="SemiBold"
+                                                               FontFamily="{StaticResource MonoFont}"
+                                                               Foreground="{DynamicResource TextPrimaryBrush}" />
+                                                    <TextBlock Text="{Binding Label}" FontSize="11.5"
+                                                               Margin="9,0,0,0" VerticalAlignment="Center"
+                                                               Foreground="{DynamicResource TextSecondaryBrush}" />
+
+                                                    <!-- A removable drive may not be here tomorrow,
+                                                         and its bin is exactly the population the
+                                                         Deleted files section tries to carve back. -->
+                                                    <Border Style="{StaticResource Chip}"
+                                                            Visibility="{Binding IsRemovable,
+                                                                Converter={StaticResource BoolToVisibility}}">
+                                                        <TextBlock Text="removable"
+                                                                   Style="{StaticResource ChipText}"
+                                                                   Foreground="{DynamicResource WarningBrush}" />
+                                                    </Border>
+                                                </StackPanel>
+
+                                                <TextBlock Text="{Binding Detail}" FontSize="10.5"
+                                                           Margin="0,3,0,0"
+                                                           Foreground="{DynamicResource TextMutedBrush}" />
+                                            </StackPanel>
+
+                                            <TextBlock Grid.Column="2" Text="{Binding SizeText}"
+                                                       FontSize="12" VerticalAlignment="Center"
+                                                       Margin="14,0,0,0"
+                                                       FontFamily="{StaticResource MonoFont}"
+                                                       Foreground="{DynamicResource TextPrimaryBrush}" />
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </Border>
+            </DockPanel>
+        </ctl:SectionFrame>
     </DataTemplate>
 
-    <!-- ================= Mail Attachments ================= -->
+    <!-- ================= Mail ================= -->
 
     <DataTemplate x:Key="section-mail">
-        <DockPanel DataContext="{Binding DataContext.Mail,
-                       RelativeSource={RelativeSource AncestorType=Window}}">
+        <ctl:SectionFrame Title="Mail" Status="{Binding Status}"
+                          Subtitle="Only the folder Outlook copies an attachment into when you open it. Your mailbox is never listed - an .ost is a cache to Outlook but the mailbox to you."
+                          DataContext="{Binding DataContext.Mail,
+                              RelativeSource={RelativeSource AncestorType=Window}}">
 
-            <Border DockPanel.Dock="Bottom" Style="{StaticResource Card}"
-                    Background="{DynamicResource SurfaceSunkenBrush}" Padding="14,10"
-                    Margin="0,12,0,0">
-                <TextBlock Text="{Binding Status}" Style="{StaticResource BodyText}" />
-            </Border>
-
-            <Border DockPanel.Dock="Bottom" Style="{StaticResource Card}" Padding="14"
-                    Height="190" Margin="0,14,0,0">
-                <DockPanel>
-                    <TextBlock DockPanel.Dock="Top" Text="Cached copies"
-                               Style="{StaticResource SectionTitle}" />
-                    <ListBox Style="{StaticResource PlainList}" ItemsSource="{Binding Attachments}">
-                        <ListBox.ItemTemplate>
-                            <DataTemplate>
-                                <Border Background="{DynamicResource SurfaceRaisedBrush}"
-                                        CornerRadius="{StaticResource ControlRadius}"
-                                        Padding="11,8" Margin="0,0,0,5">
-                                    <Grid>
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="Auto" />
-                                            <ColumnDefinition Width="*" />
-                                            <ColumnDefinition Width="Auto" />
-                                            <ColumnDefinition Width="Auto" />
-                                        </Grid.ColumnDefinitions>
-
-                                        <CheckBox Grid.Column="0" Style="{StaticResource RowCheck}"
-                                                  IsChecked="{Binding IsSelected}"
-                                                  VerticalAlignment="Center" Margin="0,0,11,0" />
-
-                                        <TextBlock Grid.Column="1" Text="{Binding Name}" FontSize="11.5"
-                                                   VerticalAlignment="Center"
-                                                   TextTrimming="CharacterEllipsis"
-                                                   Foreground="{DynamicResource TextPrimaryBrush}" />
-
-                                        <TextBlock Grid.Column="2" Text="{Binding Age}" FontSize="10.5"
-                                                   Margin="12,0,0,0" VerticalAlignment="Center"
-                                                   Foreground="{DynamicResource TextMutedBrush}" />
-
-                                        <TextBlock Grid.Column="3" Text="{Binding SizeText}" FontSize="11"
-                                                   Margin="12,0,0,0" MinWidth="60" TextAlignment="Right"
-                                                   VerticalAlignment="Center"
-                                                   Foreground="{DynamicResource TextSecondaryBrush}" />
-                                    </Grid>
-                                </Border>
-                            </DataTemplate>
-                        </ListBox.ItemTemplate>
-                    </ListBox>
-                </DockPanel>
-            </Border>
-
-            <!-- centre stage -->
-            <Border Style="{StaticResource Card}" Padding="20">
-                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
-                    <Grid Width="176" Height="176" HorizontalAlignment="Center">
-                        <ctl:RadialGauge Thickness="13" Percent="{Binding GaugePercent}"
-                                         TrackBrush="{DynamicResource GaugeTrackBrush}"
-                                         ValueBrush="{DynamicResource AccentMailBrush}" />
-                        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
-                            <TextBlock Text="{Binding TotalText}" FontSize="32"
-                                       FontWeight="SemiBold" HorizontalAlignment="Center"
-                                       Foreground="{DynamicResource TextPrimaryBrush}" />
-                            <TextBlock Text="reclaimable" Style="{StaticResource CaptionText}"
-                                       HorizontalAlignment="Center" />
-                        </StackPanel>
-                    </Grid>
-
-                    <TextBlock Text="{Binding Headline}" Style="{StaticResource DisplayText}"
-                               FontSize="22" HorizontalAlignment="Center" Margin="0,16,0,0" />
-                    <TextBlock Text="{Binding HeadlineDetail}" Style="{StaticResource BodyText}"
-                               TextAlignment="Center" MaxWidth="450" Margin="0,6,0,0" />
-
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center"
-                                Margin="0,16,0,0">
-                        <Button Content="Scan" Style="{StaticResource PrimaryButton}"
-                                Command="{Binding ScanCommand}" Padding="34,10" />
-                        <Button Content="Clean ticked" Style="{StaticResource GhostButton}"
-                                Command="{Binding CleanCommand}" Margin="10,0,0,0" />
-                        <CheckBox Style="{StaticResource ToggleCheck}" Content="Dry run"
-                                  IsChecked="{Binding DryRun}" Margin="16,0,0,0"
-                                  FontWeight="SemiBold" />
-                    </StackPanel>
+            <ctl:SectionFrame.Actions>
+                <StackPanel Orientation="Horizontal">
+                    <CheckBox Style="{StaticResource ToggleCheck}" Content="Dry run"
+                              IsChecked="{Binding DryRun}" Margin="0,0,16,0" FontWeight="SemiBold" />
+                    <Button Content="Clean ticked" Style="{StaticResource GhostButton}"
+                            Command="{Binding CleanCommand}" Margin="0,0,8,0" />
+                    <Button Content="Scan" Style="{StaticResource PrimaryButton}"
+                            Command="{Binding ScanCommand}" />
                 </StackPanel>
-            </Border>
-        </DockPanel>
+            </ctl:SectionFrame.Actions>
+
+            <DockPanel>
+                <StackPanel DockPanel.Dock="Top" Style="{StaticResource ReadingRow}" Margin="0,0,0,16">
+                    <ctl:Reading Value="{Binding TotalText}" Caption="TICKED FOR REMOVAL"
+                                 Proportion="{Binding GaugePercent}" ShowProportion="True"
+                                 Tint="{DynamicResource AccentMailBrush}" Width="180" />
+                    <ctl:Reading Value="{Binding FileCount, StringFormat={}{0:N0}}" Caption="CACHED COPIES"
+                                 IsQuiet="True" Margin="26,0,0,0" />
+                </StackPanel>
+
+                <Border Style="{StaticResource Card}" Padding="0">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto"
+                                  HorizontalScrollBarVisibility="Disabled">
+                        <ItemsControl ItemsSource="{Binding Attachments}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Style="{StaticResource InsetRow}" Padding="15,9">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+
+                                            <CheckBox Grid.Column="0" Style="{StaticResource RowCheck}"
+                                                      IsChecked="{Binding IsSelected}"
+                                                      VerticalAlignment="Center" Margin="0,0,13,0" />
+
+                                            <TextBlock Grid.Column="1" Text="{Binding Name}" FontSize="12"
+                                                       VerticalAlignment="Center"
+                                                       TextTrimming="CharacterEllipsis"
+                                                       Foreground="{DynamicResource TextPrimaryBrush}" />
+
+                                            <TextBlock Grid.Column="2" Text="{Binding Age}" FontSize="10.5"
+                                                       Margin="14,0,0,0" VerticalAlignment="Center"
+                                                       Foreground="{DynamicResource TextMutedBrush}" />
+
+                                            <TextBlock Grid.Column="3" Text="{Binding SizeText}"
+                                                       FontSize="11.5" Margin="16,0,0,0" MinWidth="68"
+                                                       TextAlignment="Right" VerticalAlignment="Center"
+                                                       FontFamily="{StaticResource MonoFont}"
+                                                       Foreground="{DynamicResource TextSecondaryBrush}" />
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </Border>
+            </DockPanel>
+        </ctl:SectionFrame>
     </DataTemplate>
 
 </ResourceDictionary>

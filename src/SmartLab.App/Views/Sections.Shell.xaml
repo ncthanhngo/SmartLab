@@ -4,8 +4,8 @@
                     xmlns:local="clr-namespace:SmartLab.App">
 
     <!--
-        Stages that belong to the application rather than to a feature group, plus the
-        fallback for a section whose stage has not been built yet.
+        Home, Settings, About, and the fallback for a section whose stage has not been
+        built yet.
 
         Every section template binds its DataContext back to the window's view model.
         The ContentControl hands each template a NavSection, which carries a section's
@@ -15,224 +15,238 @@
     <!-- ================= not built yet ================= -->
 
     <DataTemplate x:Key="section-missing">
-        <Border Style="{StaticResource Card}" Padding="36"
-                HorizontalAlignment="Center" VerticalAlignment="Center" MaxWidth="480">
-            <StackPanel>
-                <TextBlock Text="{Binding Title}" Style="{StaticResource DisplayText}"
-                           FontSize="22" HorizontalAlignment="Center" />
-                <TextBlock Text="{Binding Subtitle}" Style="{StaticResource CaptionText}"
-                           HorizontalAlignment="Center" Margin="0,4,0,0" />
-                <TextBlock Style="{StaticResource BodyText}" TextAlignment="Center"
-                           Margin="0,18,0,0"
-                           Text="This section is in the rail but its stage has not been built yet." />
-            </StackPanel>
-        </Border>
+        <ctl:SectionFrame Title="{Binding Title}" Subtitle="{Binding Subtitle}">
+            <TextBlock Style="{StaticResource BodyText}"
+                       Text="This section is in the rail but its stage has not been built yet." />
+        </ctl:SectionFrame>
     </DataTemplate>
 
-    <!-- ================= Smart Scan ================= -->
+    <!-- ================= Home =================
 
-    <DataTemplate x:Key="section-smart">
-        <DockPanel DataContext="{Binding DataContext.SmartScan,
-                       RelativeSource={RelativeSource AncestorType=Window}}">
+         Verdict and evidence. This was Smart Scan, one of seventeen equal entries,
+         which made the front door a room you had to find. Nothing here acts.
+    -->
 
-            <Border DockPanel.Dock="Bottom" Style="{StaticResource Card}"
-                    Background="{DynamicResource SurfaceSunkenBrush}" Padding="14,10"
-                    Margin="0,12,0,0">
-                <TextBlock Text="{Binding Status}" Style="{StaticResource BodyText}" />
-            </Border>
+    <DataTemplate x:Key="section-home">
+        <ctl:SectionFrame Title="Home"
+                          Subtitle="Every read-only pass, in one place. Nothing here cleans, removes or upgrades."
+                          Status="{Binding Status}"
+                          DataContext="{Binding DataContext.SmartScan,
+                              RelativeSource={RelativeSource AncestorType=Window}}">
 
-            <Border DockPanel.Dock="Bottom" Style="{StaticResource Card}" Padding="14"
-                    Height="210" Margin="0,14,0,0">
-                <DockPanel>
-                    <TextBlock DockPanel.Dock="Top" Text="What was measured"
-                               Style="{StaticResource SectionTitle}" />
-                    <ListBox Style="{StaticResource PlainList}" ItemsSource="{Binding Results}">
-                        <ListBox.ItemTemplate>
+            <ctl:SectionFrame.Actions>
+                <StackPanel Orientation="Horizontal">
+                    <Button Content="Stop" Style="{StaticResource GhostButton}"
+                            Command="{Binding CancelCommand}" Margin="0,0,8,0" />
+                    <Button Content="Check everything" Style="{StaticResource PrimaryButton}"
+                            Command="{Binding ScanCommand}" />
+                </StackPanel>
+            </ctl:SectionFrame.Actions>
+
+            <DockPanel>
+                <!-- the verdict band -->
+                <Border DockPanel.Dock="Top" Style="{StaticResource VerdictBand}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <Border x:Name="Lamp" Grid.Column="0" Style="{StaticResource VerdictLamp}"
+                                Background="{DynamicResource SurfaceRaisedBrush}">
+                            <TextBlock x:Name="LampGlyph" Text="&#xE946;" FontFamily="Segoe MDL2 Assets"
+                                       FontSize="15" HorizontalAlignment="Center"
+                                       VerticalAlignment="Center"
+                                       Foreground="{DynamicResource TextMutedBrush}" />
+                        </Border>
+
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                            <TextBlock Text="{Binding Headline}" Style="{StaticResource VerdictHeadline}" />
+                            <TextBlock Text="{Binding HeadlineDetail}" Style="{StaticResource VerdictDetail}"
+                                       MaxWidth="600" HorizontalAlignment="Left" />
+                        </StackPanel>
+
+                        <ctl:Reading Grid.Column="2" VerticalAlignment="Center" Margin="18,0,0,0"
+                                     Value="{Binding FindingCount}" Caption="FINDINGS" />
+                    </Grid>
+                </Border>
+
+                <!-- one card per area that has a read-only pass -->
+                <ScrollViewer Margin="0,14,0,0" VerticalScrollBarVisibility="Auto"
+                              HorizontalScrollBarVisibility="Disabled">
+                    <ItemsControl ItemsSource="{Binding Results}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <UniformGrid Columns="3" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
                             <DataTemplate>
-                                <Border Background="{DynamicResource SurfaceRaisedBrush}"
-                                        CornerRadius="{StaticResource ControlRadius}"
-                                        Padding="11,8" Margin="0,0,0,5">
-                                    <Grid>
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="Auto" />
-                                            <ColumnDefinition Width="*" />
-                                            <ColumnDefinition Width="Auto" />
-                                            <ColumnDefinition Width="Auto" />
-                                        </Grid.ColumnDefinitions>
-
-                                        <TextBlock Grid.Column="0" Text="{Binding Section.Glyph}"
-                                                   FontFamily="Segoe MDL2 Assets" FontSize="14"
-                                                   VerticalAlignment="Center" Margin="0,0,11,0"
-                                                   Foreground="{Binding Section.Accent}" />
-
-                                        <StackPanel Grid.Column="1">
-                                            <TextBlock Text="{Binding Title}" FontSize="11.5"
+                                <!-- Left stripe in the section's own hue, so a card and its
+                                     rail entry are recognisably the same thing. -->
+                                <Border x:Name="Card" Margin="0,0,11,11" CornerRadius="11" Padding="14,12"
+                                        Background="{DynamicResource SurfaceBrush}"
+                                        BorderBrush="{DynamicResource HairlineBrush}"
+                                        BorderThickness="1" Cursor="Hand">
+                                    <StackPanel>
+                                        <StackPanel Orientation="Horizontal">
+                                            <Border Width="7" Height="7" CornerRadius="2.5"
+                                                    VerticalAlignment="Center" Margin="0,0,8,0"
+                                                    Background="{Binding Section.Accent}" />
+                                            <TextBlock Text="{Binding Title}" FontSize="11"
                                                        FontWeight="SemiBold"
-                                                       Foreground="{DynamicResource TextPrimaryBrush}" />
-                                            <TextBlock Text="{Binding Summary}" FontSize="10.5"
-                                                       Margin="0,2,0,0" TextTrimming="CharacterEllipsis"
-                                                       Foreground="{DynamicResource TextMutedBrush}" />
+                                                       Foreground="{DynamicResource TextSecondaryBrush}" />
+                                            <Border x:Name="Skip" Style="{StaticResource Chip}"
+                                                    Visibility="Collapsed">
+                                                <TextBlock Text="skipped" Style="{StaticResource ChipText}"
+                                                           Foreground="{DynamicResource WarningBrush}" />
+                                            </Border>
                                         </StackPanel>
 
-                                        <TextBlock Grid.Column="2" Text="{Binding State}" FontSize="10.5"
-                                                   Margin="12,0,0,0" MinWidth="86" TextAlignment="Right"
-                                                   VerticalAlignment="Center">
-                                            <TextBlock.Style>
-                                                <Style TargetType="TextBlock">
-                                                    <Setter Property="Foreground"
-                                                            Value="{DynamicResource TextSecondaryBrush}" />
-                                                    <Style.Triggers>
-                                                        <!-- A skipped section is called out, never
-                                                             folded into a clean-looking row. -->
-                                                        <DataTrigger Binding="{Binding Skipped}" Value="True">
-                                                            <Setter Property="Foreground"
-                                                                    Value="{DynamicResource WarningBrush}" />
-                                                        </DataTrigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </TextBlock.Style>
-                                        </TextBlock>
+                                        <TextBlock x:Name="Count" Text="{Binding Findings}" FontSize="24"
+                                                   FontFamily="{StaticResource MonoFont}" FontWeight="Bold"
+                                                   Margin="0,7,0,0"
+                                                   Foreground="{DynamicResource TextPrimaryBrush}" />
 
-                                        <Button Grid.Column="3" Content="Open"
-                                                Style="{StaticResource GhostButton}" Margin="12,0,0,0"
-                                                Command="{Binding DataContext.OpenCommand,
-                                                    RelativeSource={RelativeSource AncestorType=ListBox}}"
-                                                CommandParameter="{Binding}" />
-                                    </Grid>
+                                        <TextBlock Text="{Binding Summary}" FontSize="10.5" Margin="0,4,0,0"
+                                                   TextWrapping="Wrap" MaxHeight="30"
+                                                   TextTrimming="CharacterEllipsis"
+                                                   Foreground="{DynamicResource TextMutedBrush}" />
+                                    </StackPanel>
                                 </Border>
+
+                                <DataTemplate.Triggers>
+                                    <!-- A skipped section shows a dash, never a zero. Zero is a
+                                         finding; "could not look" is not, and the two must never
+                                         share a glyph. -->
+                                    <DataTrigger Binding="{Binding Skipped}" Value="True">
+                                        <Setter TargetName="Skip" Property="Visibility" Value="Visible" />
+                                        <Setter TargetName="Count" Property="Text" Value="&#x2014;" />
+                                        <Setter TargetName="Count" Property="Foreground"
+                                                Value="{DynamicResource WarningBrush}" />
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding Tone}" Value="danger">
+                                        <Setter TargetName="Count" Property="Foreground"
+                                                Value="{DynamicResource DangerBrush}" />
+                                    </DataTrigger>
+                                    <DataTrigger Value="True"
+                                                 Binding="{Binding IsMouseOver,
+                                                     RelativeSource={RelativeSource Self}}">
+                                        <Setter TargetName="Card" Property="BorderBrush"
+                                                Value="{DynamicResource AccentBrush}" />
+                                    </DataTrigger>
+                                </DataTemplate.Triggers>
                             </DataTemplate>
-                        </ListBox.ItemTemplate>
-                    </ListBox>
-                </DockPanel>
-            </Border>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+            </DockPanel>
+        </ctl:SectionFrame>
 
-            <!-- centre stage -->
-            <Border Style="{StaticResource Card}" Padding="18">
-                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
-                    <Grid Width="164" Height="164" HorizontalAlignment="Center">
-                        <ctl:RadialGauge Thickness="13"
-                                         Percent="{Binding Source={x:Static local:SmartScanViewModel.GaugePercent}}"
-                                         TrackBrush="{DynamicResource GaugeTrackBrush}">
-                            <ctl:RadialGauge.Style>
-                                <Style TargetType="ctl:RadialGauge">
-                                    <Setter Property="ValueBrush" Value="{DynamicResource AccentSmartBrush}" />
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding HeadlineTone}" Value="good">
-                                            <Setter Property="ValueBrush" Value="{DynamicResource AccentBrush}" />
-                                        </DataTrigger>
-                                        <DataTrigger Binding="{Binding HeadlineTone}" Value="warning">
-                                            <Setter Property="ValueBrush" Value="{DynamicResource WarningBrush}" />
-                                        </DataTrigger>
-                                        <DataTrigger Binding="{Binding HeadlineTone}" Value="danger">
-                                            <Setter Property="ValueBrush" Value="{DynamicResource DangerBrush}" />
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </ctl:RadialGauge.Style>
-                        </ctl:RadialGauge>
-
-                        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
-                            <TextBlock Text="{Binding FindingCount}" FontSize="38"
-                                       FontWeight="SemiBold" HorizontalAlignment="Center"
-                                       Foreground="{DynamicResource TextPrimaryBrush}" />
-                            <TextBlock Text="findings" Style="{StaticResource CaptionText}"
-                                       HorizontalAlignment="Center" />
-                        </StackPanel>
-                    </Grid>
-
-                    <TextBlock Text="{Binding Headline}" Style="{StaticResource DisplayText}"
-                               FontSize="22" HorizontalAlignment="Center" Margin="0,14,0,0" />
-                    <TextBlock Text="{Binding HeadlineDetail}" Style="{StaticResource BodyText}"
-                               TextAlignment="Center" MaxWidth="480" Margin="0,6,0,0" />
-
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center"
-                                Margin="0,14,0,0">
-                        <Button Content="Scan" Style="{StaticResource PrimaryButton}"
-                                Command="{Binding ScanCommand}" Padding="38,10" />
-                        <Button Content="Stop" Style="{StaticResource GhostButton}"
-                                Command="{Binding CancelCommand}" Margin="10,0,0,0" />
-                    </StackPanel>
-                </StackPanel>
-            </Border>
-        </DockPanel>
+        <!-- The lamp carries the verdict in colour and in shape; the headline carries
+             it in words, so neither alone has to do the whole job. -->
+        <DataTemplate.Triggers>
+            <DataTrigger Value="good"
+                         Binding="{Binding DataContext.SmartScan.HeadlineTone,
+                             RelativeSource={RelativeSource AncestorType=Window}}">
+                <Setter TargetName="Lamp" Property="Background" Value="{DynamicResource AccentSoftBrush}" />
+                <Setter TargetName="LampGlyph" Property="Text" Value="&#xE930;" />
+                <Setter TargetName="LampGlyph" Property="Foreground" Value="{DynamicResource AccentBrush}" />
+            </DataTrigger>
+            <DataTrigger Value="warning"
+                         Binding="{Binding DataContext.SmartScan.HeadlineTone,
+                             RelativeSource={RelativeSource AncestorType=Window}}">
+                <Setter TargetName="LampGlyph" Property="Text" Value="&#xE7BA;" />
+                <Setter TargetName="LampGlyph" Property="Foreground" Value="{DynamicResource WarningBrush}" />
+            </DataTrigger>
+            <DataTrigger Value="danger"
+                         Binding="{Binding DataContext.SmartScan.HeadlineTone,
+                             RelativeSource={RelativeSource AncestorType=Window}}">
+                <Setter TargetName="LampGlyph" Property="Text" Value="&#xE814;" />
+                <Setter TargetName="LampGlyph" Property="Foreground" Value="{DynamicResource DangerBrush}" />
+            </DataTrigger>
+        </DataTemplate.Triggers>
     </DataTemplate>
 
     <!-- ================= Settings ================= -->
 
     <DataTemplate x:Key="section-settings">
-        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
-                      DataContext="{Binding DataContext, RelativeSource={RelativeSource AncestorType=Window}}">
-            <StackPanel Margin="0,0,10,0">
-                <Border Style="{StaticResource Card}" Padding="22" Margin="0,0,0,14">
-                    <StackPanel>
-                        <TextBlock Text="Appearance" Style="{StaticResource DisplayText}" FontSize="20" />
-                        <TextBlock Style="{StaticResource BodyText}" Margin="0,4,0,18"
-                                   Text="Both themes are chosen rather than inverted, so neither is the other one turned inside out." />
+        <ctl:SectionFrame Title="Settings"
+                          Subtitle="How Smart Lab looks, and what it does when you are not looking at it."
+                          DataContext="{Binding DataContext,
+                              RelativeSource={RelativeSource AncestorType=Window}}">
+            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                <StackPanel Margin="0,0,10,0" MaxWidth="660" HorizontalAlignment="Left">
+                    <Border Style="{StaticResource Card}" Padding="20" Margin="0,0,12,12">
+                        <StackPanel>
+                            <TextBlock Text="Appearance" Style="{StaticResource SectionTitle}" />
+                            <CheckBox Style="{StaticResource ToggleCheck}" Margin="0,0,0,4"
+                                      Content="Light theme" IsChecked="{Binding IsLightTheme}" />
+                            <TextBlock Style="{StaticResource CaptionText}" Margin="43,0,0,0"
+                                       Text="Follows Windows the first time you run the app, then remembers what you pick here. Both themes are chosen rather than inverted." />
+                        </StackPanel>
+                    </Border>
 
-                        <CheckBox Style="{StaticResource ToggleCheck}" Margin="0,0,0,4"
-                                  Content="Light theme" IsChecked="{Binding IsLightTheme}" />
-                        <TextBlock Style="{StaticResource CaptionText}" Margin="43,0,0,0"
-                                   Text="Follows Windows the first time you run the app, then remembers what you pick here." />
-                    </StackPanel>
-                </Border>
+                    <Border Style="{StaticResource Card}" Padding="20" Margin="0,0,12,0">
+                        <StackPanel>
+                            <TextBlock Text="Watching" Style="{StaticResource SectionTitle}" />
 
-                <Border Style="{StaticResource Card}" Padding="22">
-                    <StackPanel>
-                        <TextBlock Text="Watching" Style="{StaticResource DisplayText}" FontSize="20" />
-                        <TextBlock Style="{StaticResource BodyText}" Margin="0,4,0,18"
-                                   Text="How Smart Lab behaves when you are not looking at it." />
+                            <CheckBox Style="{StaticResource ToggleCheck}" Margin="0,0,0,4"
+                                      Content="Scan automatically when a USB is plugged in"
+                                      IsChecked="{Binding AutoScanOnInsert}" />
+                            <TextBlock Style="{StaticResource CaptionText}" Margin="43,0,0,16"
+                                       Text="The drive that started this project had carried its worm for six days before anyone looked." />
 
-                        <CheckBox Style="{StaticResource ToggleCheck}" Margin="0,0,0,4"
-                                  Content="Scan automatically when a USB is plugged in"
-                                  IsChecked="{Binding AutoScanOnInsert}" />
-                        <TextBlock Style="{StaticResource CaptionText}" Margin="43,0,0,16"
-                                   Text="The drive that started this project had carried its worm for six days before anyone looked." />
+                            <CheckBox Style="{StaticResource ToggleCheck}" Margin="0,0,0,4"
+                                      Content="Keep watching in the tray when the window is closed"
+                                      IsChecked="{Binding KeepWatchingInTray}" />
+                            <TextBlock Style="{StaticResource CaptionText}" Margin="43,0,0,16"
+                                       Text="Watching runs on the window's message loop, so closing would otherwise stop it. Exit from the tray menu." />
 
-                        <CheckBox Style="{StaticResource ToggleCheck}" Margin="0,0,0,4"
-                                  Content="Keep watching in the tray when the window is closed"
-                                  IsChecked="{Binding KeepWatchingInTray}" />
-                        <TextBlock Style="{StaticResource CaptionText}" Margin="43,0,0,16"
-                                   Text="Watching runs on the window's message loop, so closing would otherwise stop it. Exit from the tray menu." />
-
-                        <CheckBox Style="{StaticResource ToggleCheck}" Margin="0,0,0,4"
-                                  Content="Start with Windows" IsChecked="{Binding StartWithWindows}" />
-                        <TextBlock Style="{StaticResource CaptionText}" Margin="43,0,0,0"
-                                   Text="Registers for this user only, starting in the tray. Never machine-wide." />
-                    </StackPanel>
-                </Border>
-            </StackPanel>
-        </ScrollViewer>
+                            <CheckBox Style="{StaticResource ToggleCheck}" Margin="0,0,0,4"
+                                      Content="Start with Windows" IsChecked="{Binding StartWithWindows}" />
+                            <TextBlock Style="{StaticResource CaptionText}" Margin="43,0,0,0"
+                                       Text="Registers for this user only, starting in the tray. Never machine-wide." />
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </ScrollViewer>
+        </ctl:SectionFrame>
     </DataTemplate>
 
     <!-- ================= About ================= -->
 
     <DataTemplate x:Key="section-about">
-        <Border Style="{StaticResource Card}" Padding="36"
-                HorizontalAlignment="Center" VerticalAlignment="Center" MinWidth="450"
-                DataContext="{Binding DataContext, RelativeSource={RelativeSource AncestorType=Window}}">
-            <StackPanel HorizontalAlignment="Center">
-                <Control Style="{StaticResource LogoMark}" HorizontalAlignment="Center" />
-                <TextBlock Text="Smart Lab" Style="{StaticResource DisplayText}"
-                           HorizontalAlignment="Center" Margin="0,14,0,0" />
-                <Control Style="{StaticResource LogoLockup}" HorizontalAlignment="Center"
-                         Margin="0,8,0,0" />
-                <TextBlock Style="{StaticResource BodyText}" TextAlignment="Center"
-                           Margin="0,18,0,0" MaxWidth="380"
-                           Text="Triage and recovery for USB drives whose files have disappeared. Built from a real worm infection: the data was not hidden, it was moved into a folder named with a single invisible character." />
-                <Border Background="{DynamicResource SurfaceSunkenBrush}"
-                        CornerRadius="{StaticResource ControlRadius}"
-                        Padding="16,12" Margin="0,20,0,0">
-                    <StackPanel>
-                        <TextBlock Style="{StaticResource CaptionText}" HorizontalAlignment="Center"
-                                   Text="{Binding Source={x:Static local:MainViewModel.AppVersion},
-                                                  StringFormat='Version {0}'}" />
-                        <TextBlock HorizontalAlignment="Center" Margin="0,4,0,0" FontSize="12.5"
-                                   Foreground="{DynamicResource AccentBrush}"
-                                   Text="{Binding Source={x:Static local:MainViewModel.AppAuthor}}" />
-                    </StackPanel>
-                </Border>
-            </StackPanel>
-        </Border>
+        <ctl:SectionFrame Title="About"
+                          DataContext="{Binding DataContext,
+                              RelativeSource={RelativeSource AncestorType=Window}}">
+            <Border Style="{StaticResource Card}" Padding="34"
+                    HorizontalAlignment="Center" VerticalAlignment="Center" MaxWidth="520">
+                <StackPanel HorizontalAlignment="Center">
+                    <Control Style="{StaticResource LogoMark}" HorizontalAlignment="Center" />
+                    <TextBlock Text="Smart Lab" Style="{StaticResource DisplayText}"
+                               HorizontalAlignment="Center" Margin="0,14,0,0" />
+                    <Control Style="{StaticResource LogoLockup}" HorizontalAlignment="Center"
+                             Margin="0,8,0,0" />
+                    <TextBlock Style="{StaticResource BodyText}" TextAlignment="Center"
+                               Margin="0,18,0,0" MaxWidth="400"
+                               Text="Triage, recovery and maintenance for Windows machines and the drives they read. Built from a real worm infection: the data was not hidden, it was moved into a folder named with a single invisible character." />
+                    <Border Background="{DynamicResource SurfaceSunkenBrush}"
+                            CornerRadius="{StaticResource ControlRadius}"
+                            Padding="16,12" Margin="0,20,0,0">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource CaptionText}" HorizontalAlignment="Center"
+                                       Text="{Binding Source={x:Static local:MainViewModel.AppVersion},
+                                                      StringFormat='Version {0}'}" />
+                            <TextBlock HorizontalAlignment="Center" Margin="0,4,0,0" FontSize="12.5"
+                                       Foreground="{DynamicResource AccentBrush}"
+                                       Text="{Binding Source={x:Static local:MainViewModel.AppAuthor}}" />
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </Border>
+        </ctl:SectionFrame>
     </DataTemplate>
 
 </ResourceDictionary>

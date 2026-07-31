@@ -193,6 +193,14 @@ public sealed partial class CleanupViewModel : ObservableObject
     /// </remarks>
     [ObservableProperty] private double _gaugePercent;
 
+    /// <summary>Everything found, ticked or not. The denominator the bar divides by.</summary>
+    [ObservableProperty] private string _measuredText = "--";
+
+    [ObservableProperty] private int _fileCount;
+
+    /// <summary>Categories this process cannot fully clear without Administrator.</summary>
+    [ObservableProperty] private int _needsAdminCount;
+
     private void UpdateTotal()
     {
         var bytes = Categories.Where(c => c.IsSelected && c.Measured).Sum(c => c.Bytes);
@@ -200,13 +208,18 @@ public sealed partial class CleanupViewModel : ObservableObject
 
         GaugePercent = measured > 0 ? (double)bytes / measured : 0;
 
-        TotalText = bytes switch
-        {
-            0 => "0 MB",
-            < 1024L * 1024 * 1024 => $"{bytes / 1024.0 / 1024:F0} MB",
-            _ => $"{bytes / 1024.0 / 1024 / 1024:F2} GB",
-        };
+        TotalText = Size(bytes);
+        MeasuredText = Size(measured);
+        FileCount = Categories.Where(c => c.IsSelected && c.Measured).Sum(c => c.Files);
+        NeedsAdminCount = Categories.Count(c => c.IsSelected && c.NeedsElevation);
     }
+
+    private static string Size(long bytes) => bytes switch
+    {
+        0 => "0 MB",
+        < 1024L * 1024 * 1024 => $"{bytes / 1024.0 / 1024:F0} MB",
+        _ => $"{bytes / 1024.0 / 1024 / 1024:F2} GB",
+    };
 
     /// <summary>Keeps the headline honest when a category is ticked or unticked.</summary>
     public void OnSelectionChanged()
