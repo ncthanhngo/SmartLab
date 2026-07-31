@@ -8,16 +8,17 @@ public class JunkCatalogueTests
     private static readonly IReadOnlyList<JunkCategory> Catalogue = JunkCatalogue.ForCurrentUser();
 
     /// <summary>
-    /// This app exists to recover deleted files. Emptying the one place Windows
-    /// keeps them for the user, by default, would contradict the whole tool.
+    /// The Recycle Bin belongs to its own section and must not also be offered here.
     /// </summary>
+    /// <remarks>
+    /// Two screens proposing the same irreversible deletion is how one of them ends up
+    /// with the wrong default. Trash Bins owns it, per drive, every row unticked.
+    /// </remarks>
     [Fact]
-    public void The_recycle_bin_is_never_ticked_by_default()
+    public void The_recycle_bin_is_not_a_junk_category()
     {
-        var bin = Assert.Single(Catalogue, c => c.IsRecycleBin);
-
-        Assert.False(bin.EnabledByDefault);
-        Assert.Contains("irreversible", bin.Caution!, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain(Catalogue, c => c.IsRecycleBin);
+        Assert.DoesNotContain(Catalogue, c => c.Id == "recycle-bin");
     }
 
     [Fact]

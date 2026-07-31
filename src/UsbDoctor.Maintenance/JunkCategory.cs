@@ -128,15 +128,10 @@ public static class JunkCatalogue
                 Caution = "stop Windows Update first, or the files are locked and re-downloaded",
             },
 
-            // Off by default on purpose, and the reason is specific to this app: it
-            // exists to recover deleted files. Emptying the one place Windows keeps
-            // them for you, by default, would contradict the whole tool.
-            new JunkCategory("recycle-bin", "Recycle Bin", "Everything you have deleted.", [])
-            {
-                IsRecycleBin = true,
-                EnabledByDefault = false,
-                Caution = "irreversible - this is where deleted files are recovered from",
-            },
+            // The Recycle Bin is deliberately absent. It has its own section, where
+            // it is broken down per drive and every row starts unticked - offering it
+            // here as well would mean two screens proposing the same irreversible
+            // deletion with two different defaults.
         ];
     }
 }
