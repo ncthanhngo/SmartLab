@@ -100,7 +100,7 @@ public sealed partial class AboutViewModel(MainViewModel shell) : ObservableObje
                 "Temp & Cache, Recycle Bins: measures what is disposable and removes only what is ticked.",
                 "Disk Map, Big & Stale: shows where the space went, and which large files nothing has written to in months.",
                 "Wipe: overwrites a file and says plainly when the drive makes that meaningless.",
-                "Uninstall, Updater: runs each program's own uninstaller, and upgrades through winget.",
+                "Uninstall, Updater: runs each program's own uninstaller - correcting the MSI mode switch Windows registers, which would otherwise open a repair dialog - and upgrades through winget.",
                 "Startup, Repair OS: lists what runs at logon and runs the Windows repair tools as themselves.",
                 "Home: one pass over the machine that measures everything and changes nothing until you confirm.",
                 "Ctrl+K over every section and every action, a light and a dark theme, and a tray watcher that scans a USB stick on insert.",

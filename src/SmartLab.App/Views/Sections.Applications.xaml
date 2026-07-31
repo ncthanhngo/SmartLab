@@ -97,8 +97,14 @@
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                                 <Button Content="List" Style="{StaticResource GhostButton}"
                                         Command="{Binding ScanProgramsCommand}" />
+
+                                <!-- Says why it is dead. A disabled button with no
+                                     explanation is indistinguishable from a broken
+                                     one, and this one is dead until a row is picked. -->
                                 <Button Content="Uninstall selected" Style="{StaticResource GhostButton}"
-                                        Command="{Binding UninstallProgramCommand}" Margin="8,0,0,0" />
+                                        Command="{Binding UninstallProgramCommand}" Margin="8,0,0,0"
+                                        ToolTipService.ShowOnDisabled="True"
+                                        ToolTip="{Binding UninstallHint}" />
                             </StackPanel>
                         </Grid>
 

@@ -605,7 +605,19 @@ is the classic mistake — a 64-bit process silently misses every 32-bit applica
 
 The vendor's own uninstaller always runs first and is never bypassed. Deleting a
 program's files directly leaves its registration, services and drivers behind, which
-is worse than not uninstalling at all. Leftover cleanup is a separate second step
+is worse than not uninstalling at all.
+
+The one thing the registered command is not taken at its word on is the MSI mode
+switch. Windows writes `MsiExec.exe /I{GUID}` into the uninstall key for a great many
+products — 99 of the 134 MSI entries on the machine this was found on — and `/I` is
+*install* mode. Run it and the operator gets a repair dialog, or for a component with
+no interface, nothing visible at all. `UninstallCommandParser` rewrites the switch to
+`/X`, leaves everything after it exactly as the vendor wrote it, and adds nothing —
+no `/qn`, no `/norestart`, so msiexec still asks before it removes anything. A test
+walks this machine's own registry and fails if any listed program would still be
+asked to repair.
+
+Leftover cleanup is a separate second step
 over what actually remains, and it is deliberately narrow: only the install folder
 the program registered and its own uninstall key. It does not hunt the filesystem
 for the vendor's name — that is how a cleaner ends up proposing to delete a shared

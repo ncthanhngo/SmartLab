@@ -332,8 +332,29 @@ public sealed partial class UninstallViewModel : ObservableObject
                  (failed.Length > 0 ? $", {failed.Length} failed: {failed[0].Detail}" : ".");
     }
 
-    partial void OnSelectedProgramChanged(InstalledProgram? value) =>
+    /// <summary>
+    /// What the Uninstall button would do, or why it will not.
+    /// </summary>
+    /// <remarks>
+    /// Shown on the button itself, including while it is disabled. A dead button with
+    /// no explanation cannot be told apart from a broken one - and this one is dead
+    /// until a row is picked, which is not obvious from looking at it.
+    /// </remarks>
+    public string UninstallHint => SelectedProgram switch
+    {
+        null => "Pick a program in the list below first.",
+        { HasUninstaller: false } p => $"'{p.DisplayName}' registered no uninstaller, so it cannot be removed from here.",
+        { } p when DryRun => $"Dry run is on: this will report what removing '{p.DisplayName}' would run, and change nothing.",
+        { } p => $"Runs the uninstaller '{p.DisplayName}' registered. Its own prompts still apply.",
+    };
+
+    partial void OnSelectedProgramChanged(InstalledProgram? value)
+    {
         UninstallProgramCommand.NotifyCanExecuteChanged();
+        OnPropertyChanged(nameof(UninstallHint));
+    }
+
+    partial void OnDryRunChanged(bool value) => OnPropertyChanged(nameof(UninstallHint));
 
     partial void OnIsBusyChanged(bool value) =>
         UninstallProgramCommand.NotifyCanExecuteChanged();

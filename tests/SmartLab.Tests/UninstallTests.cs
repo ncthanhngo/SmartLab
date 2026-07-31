@@ -128,6 +128,54 @@ public class UninstallCommandParserTests
         Assert.Equal("/X{2A1B4C3D-0000-1111-2222-333344445555}", command.Arguments);
     }
 
+    [Theory]
+    [InlineData("MsiExec.exe /I{2A1B4C3D-0000-1111-2222-333344445555}")]
+    [InlineData("MsiExec.exe /i{2A1B4C3D-0000-1111-2222-333344445555}")]
+    [InlineData("msiexec -I{2A1B4C3D-0000-1111-2222-333344445555}")]
+    public void An_msi_command_that_would_repair_is_turned_into_one_that_removes(string registered)
+    {
+        // The bug this exists for: Windows writes /I - install mode - into the
+        // uninstall key for most MSI products. 99 of the 134 MSI entries on the
+        // machine this was found on. Running it opens a repair dialog, or for a
+        // component with no UI does nothing visible, which is exactly what "the
+        // uninstall button does not work" looks like.
+        var command = UninstallCommandParser.Parse(registered);
+
+        Assert.DoesNotContain("/I{", command.Arguments, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("X{2A1B4C3D-0000-1111-2222-333344445555}", command.Arguments, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("MsiExec.exe /package {2A1B4C3D-0000-1111-2222-333344445555}", "/uninstall {2A1B4C3D-0000-1111-2222-333344445555}")]
+    [InlineData("MsiExec.exe /X{2A1B4C3D-0000-1111-2222-333344445555}", "/X{2A1B4C3D-0000-1111-2222-333344445555}")]
+    [InlineData("MsiExec.exe /x {2A1B4C3D-0000-1111-2222-333344445555}", "/x {2A1B4C3D-0000-1111-2222-333344445555}")]
+    public void TheLongFormIsRewrittenAndAnAlreadyCorrectCommandIsLeftAlone(
+        string registered, string expected)
+    {
+        Assert.Equal(expected, UninstallCommandParser.Parse(registered).Arguments);
+    }
+
+    [Fact]
+    public void OnlyMsiExecIsRewritten()
+    {
+        // /I means something else entirely to somebody else's uninstaller, and this
+        // has no business editing arguments it did not write.
+        var command = UninstallCommandParser.Parse(@"""C:\Apps\thing\uninst.exe"" /I /quiet");
+
+        Assert.Equal("/I /quiet", command.Arguments);
+    }
+
+    [Fact]
+    public void NothingIsAddedToAnMsiCommand()
+    {
+        // No /qn, no /norestart. msiexec still asks before it removes anything, and
+        // for an irreversible action that prompt is worth keeping.
+        var command = UninstallCommandParser.Parse("MsiExec.exe /I{2A1B4C3D-0000-1111-2222-333344445555}");
+
+        Assert.DoesNotContain("/q", command.Arguments, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("norestart", command.Arguments, StringComparison.OrdinalIgnoreCase);
+    }
+
     [Fact]
     public void A_bare_executable_has_no_arguments()
     {
