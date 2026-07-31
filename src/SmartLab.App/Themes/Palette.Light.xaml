@@ -1,10 +1,16 @@
-﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     xmlns:sys="clr-namespace:System;assembly=mscorlib">
 
     <!--
         Light theme. Same keys as Palette.Dark.xaml, chosen rather than inverted.
-        Two rules did most of the work here:
+
+        The chrome here is grey and white and nothing else. A tinted ground is what
+        gives the dark theme its atmosphere, but on a light one the same trick
+        stains every white card it is meant to hold up; the colour in this theme
+        comes from the sections themselves.
+
+        Two rules did the rest of the work:
 
         The greens, ambers and blues that read well on a dark ground are far too
         pale on a white one. Anything that carries text or a thin glyph is darkened
@@ -12,35 +18,43 @@
         like a gauge ring, keeps its saturation because area supplies the contrast
         that a caption cannot.
 
-        The ground is not white. A blue bias in the greys echoes the dark theme's
-        blue-black and stops the surfaces reading as bare paper.
+        The ground is not white either. The two cards are white, so the surface they
+        sit on has to be a grey deep enough to let their edges and shadows show.
     -->
 
-    <!-- The same violet, held far back. On a light ground the atmosphere has to be a
-         tint rather than a colour, or every surface laid on it loses its edges. -->
-    <Color x:Key="ShellTopColor">#E7DEFB</Color>
-    <Color x:Key="ShellBottomColor">#D4C7F2</Color>
+    <Color x:Key="ShellTopColor">#DDE0E6</Color>
+    <Color x:Key="ShellBottomColor">#C6CAD2</Color>
 
     <SolidColorBrush x:Key="SurfaceBrush" Color="#FFFFFF" />
-    <SolidColorBrush x:Key="SurfaceRaisedBrush" Color="#F7F4FE" />
-    <SolidColorBrush x:Key="SurfaceSunkenBrush" Color="#EFEAFA" />
+    <SolidColorBrush x:Key="SurfaceRaisedBrush" Color="#FAFBFC" />
+    <SolidColorBrush x:Key="SurfaceSunkenBrush" Color="#EDEFF3" />
 
+    <!-- The stage card. A shade below white on purpose: the cards a section lays on
+         it are white, and a white stage would swallow them. -->
+    <SolidColorBrush x:Key="StageBrush" Color="#F6F7F9" />
+
+    <!-- What the two cards drop onto the ground. Grey rather than black, so the
+         shadow reads as depth instead of soot. -->
+    <Color x:Key="CardShadowColor">#8A929E</Color>
+
+    <!-- The rail card. A shade below the stage, which is the whole of what separates
+         them now that neither has a border. -->
     <LinearGradientBrush x:Key="SidebarBrush" StartPoint="0,0" EndPoint="0.6,1">
-        <GradientStop Color="#DBCEF7" Offset="0" />
-        <GradientStop Color="#CFC0F1" Offset="0.5" />
-        <GradientStop Color="#C2B1EB" Offset="1" />
+        <GradientStop Color="#FFFFFF" Offset="0" />
+        <GradientStop Color="#FAFBFC" Offset="0.55" />
+        <GradientStop Color="#F1F3F6" Offset="1" />
     </LinearGradientBrush>
 
     <LinearGradientBrush x:Key="BrandBlockBrush" StartPoint="0,0" EndPoint="1,1">
-        <GradientStop Color="#DCE5F7" Offset="0" />
-        <GradientStop Color="#CCD8EE" Offset="1" />
+        <GradientStop Color="#EDEFF3" Offset="0" />
+        <GradientStop Color="#E1E4EA" Offset="1" />
     </LinearGradientBrush>
 
-    <SolidColorBrush x:Key="HairlineBrush" Color="#DFD7F0" />
-    <SolidColorBrush x:Key="SidebarHairlineBrush" Color="#B4A2E2" />
+    <SolidColorBrush x:Key="HairlineBrush" Color="#E2E5EA" />
+    <SolidColorBrush x:Key="SidebarHairlineBrush" Color="#D7DBE2" />
 
-    <SolidColorBrush x:Key="HoverBrush" Color="#EAE3F9" />
-    <SolidColorBrush x:Key="SidebarHoverBrush" Color="#B9A6E8" />
+    <SolidColorBrush x:Key="HoverBrush" Color="#EFF1F4" />
+    <SolidColorBrush x:Key="SidebarHoverBrush" Color="#E1E5EB" />
 
     <!-- ============================ the three pillars ============================
          Kept saturated. These are large filled areas, where area supplies the
@@ -61,16 +75,23 @@
     <!-- White, not grey: on light the toggle track is already pale, so an off knob
          has to be lighter than its track rather than darker. -->
     <SolidColorBrush x:Key="ToggleKnobBrush" Color="#FFFFFF" />
-    <SolidColorBrush x:Key="ScrollThumbBrush" Color="#C0CAD9" />
+    <SolidColorBrush x:Key="ScrollThumbBrush" Color="#C2C8D1" />
 
     <LinearGradientBrush x:Key="LogoPlateBrush" StartPoint="0,0" EndPoint="1,1">
-        <GradientStop Color="#E7F3EB" Offset="0" />
-        <GradientStop Color="#DFE8F2" Offset="1" />
+        <GradientStop Color="#F1F3F6" Offset="0" />
+        <GradientStop Color="#E4E7EC" Offset="1" />
     </LinearGradientBrush>
 
-    <SolidColorBrush x:Key="TextPrimaryBrush" Color="#131A25" />
-    <SolidColorBrush x:Key="TextSecondaryBrush" Color="#4E5A6B" />
-    <SolidColorBrush x:Key="TextMutedBrush" Color="#78859A" />
+    <!-- Near-black rather than the mid grey this replaced, which sat just under
+         4.5:1 on white - thin for the sizes it is mostly used at. -->
+    <SolidColorBrush x:Key="TextPrimaryBrush" Color="#14171C" />
+    <SolidColorBrush x:Key="TextSecondaryBrush" Color="#3C434D" />
+    <SolidColorBrush x:Key="TextMutedBrush" Color="#5E6672" />
+
+    <!-- The rail has its own pair: it sits a shade below the stage, so its text is
+         darkened to match rather than inheriting the stage's. -->
+    <SolidColorBrush x:Key="SidebarTextBrush" Color="#11141A" />
+    <SolidColorBrush x:Key="SidebarMutedBrush" Color="#454C57" />
 
     <!-- The EVSELab green at #2BD673 sits at about 1.7:1 on white, which is not a
          colour so much as a suggestion of one. Darkened until it can carry a label. -->
@@ -101,15 +122,15 @@
     <SolidColorBrush x:Key="AccentShredderBrush" Color="#C62B2B" />
     <SolidColorBrush x:Key="AccentUpdaterBrush" Color="#BE3A80" />
     <SolidColorBrush x:Key="AccentExtensionsBrush" Color="#A93A96" />
-    <SolidColorBrush x:Key="AccentOptimizeBrush" Color="#6B4FD0" />
-    <SolidColorBrush x:Key="AccentMaintenanceBrush" Color="#4A5AC4" />
+    <SolidColorBrush x:Key="AccentOptimizeBrush" Color="#4C57CC" />
+    <SolidColorBrush x:Key="AccentMaintenanceBrush" Color="#3F63C4" />
     <SolidColorBrush x:Key="AccentMalwareBrush" Color="#C2500F" />
     <SolidColorBrush x:Key="AccentSmartBrush" Color="#0E7490" />
 
-    <SolidColorBrush x:Key="GaugeTrackBrush" Color="#DFE6F1" />
+    <SolidColorBrush x:Key="GaugeTrackBrush" Color="#E3E6EB" />
 
-    <!-- Darkened for the same reason the accent was: these draw 17px glyphs on a
-         tinted rail, and a glyph is a thin mark before it is a colour. -->
+    <!-- Darkened for the same reason the accent was: these draw a small mark on a
+         pale card, and a mark that size is a thin thing before it is a colour. -->
     <sys:String x:Key="NavSmartHex">#0E7490</sys:String>
 
     <sys:String x:Key="NavCleanupHex">#B3760A</sys:String>
@@ -119,8 +140,8 @@
     <sys:String x:Key="NavRepairHex">#0E9E56</sys:String>
     <sys:String x:Key="NavMalwareHex">#C2500F</sys:String>
 
-    <sys:String x:Key="NavOptimizeHex">#6B4FD0</sys:String>
-    <sys:String x:Key="NavMaintenanceHex">#4A5AC4</sys:String>
+    <sys:String x:Key="NavOptimizeHex">#4C57CC</sys:String>
+    <sys:String x:Key="NavMaintenanceHex">#3F63C4</sys:String>
 
     <sys:String x:Key="NavUninstallHex">#C93A5E</sys:String>
     <sys:String x:Key="NavUpdaterHex">#BE3A80</sys:String>
@@ -131,7 +152,7 @@
     <sys:String x:Key="NavDeletedHex">#0E7C99</sys:String>
     <sys:String x:Key="NavShredderHex">#C62B2B</sys:String>
 
-    <sys:String x:Key="NavSettingsHex">#526075</sys:String>
+    <sys:String x:Key="NavSettingsHex">#4E5764</sys:String>
     <sys:String x:Key="NavAboutHex">#0C8078</sys:String>
 
 </ResourceDictionary>

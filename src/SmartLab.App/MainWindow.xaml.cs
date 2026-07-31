@@ -45,6 +45,26 @@ public partial class MainWindow : Window
     private void OnCloseClicked(object sender, RoutedEventArgs e) => Close();
 
     /// <summary>
+    /// Clips a card to its own corner radius.
+    /// </summary>
+    /// <remarks>
+    /// A Border with a CornerRadius rounds what it paints, not what it contains, so
+    /// a full-width child - the status strip at the stage's foot, or a treemap drawn
+    /// edge to edge - squares the bottom corners off again. The clip is a geometry
+    /// rather than an opacity mask on purpose: a mask pushes the subtree through an
+    /// intermediate surface and takes ClearType with it, which is a poor trade for a
+    /// corner.
+    /// </remarks>
+    private void OnCardSizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        if (sender is not Border card) return;
+
+        var radius = card.CornerRadius.TopLeft;
+        card.Clip = new RectangleGeometry(
+            new Rect(0, 0, card.ActualWidth, card.ActualHeight), radius, radius);
+    }
+
+    /// <summary>
     /// Keeps the selected rail entry on screen.
     /// </summary>
     /// <remarks>

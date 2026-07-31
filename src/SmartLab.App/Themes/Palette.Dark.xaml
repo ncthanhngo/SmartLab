@@ -26,9 +26,16 @@
     <SolidColorBrush x:Key="SurfaceRaisedBrush" Color="#282040" />
     <SolidColorBrush x:Key="SurfaceSunkenBrush" Color="#171029" />
 
-    <!-- The rail sits on the ground rather than over it: a lighter violet at partial
-         strength, so the gradient behind still shows through and the sidebar reads as
-         part of the window instead of a panel bolted to it. -->
+    <!-- The stage card. Lifted off the ground rather than cut out of it, which is
+         what lets the shadow under the rail land on something. -->
+    <SolidColorBrush x:Key="StageBrush" Color="#1B1531" />
+
+    <!-- What the two cards drop onto the ground. Nearly black, since on a dark
+         theme a shadow can only be read as an absence of the ground's light. -->
+    <Color x:Key="CardShadowColor">#0A0614</Color>
+
+    <!-- The rail card. A lighter violet than the stage, so the two pieces separate
+         by tone alone and neither needs a border to be found. -->
     <LinearGradientBrush x:Key="SidebarBrush" StartPoint="0,0" EndPoint="0.6,1">
         <GradientStop Color="#553A8A" Offset="0" />
         <GradientStop Color="#3E2A6B" Offset="0.5" />
@@ -75,9 +82,17 @@
         <GradientStop Color="#16202A" Offset="1" />
     </LinearGradientBrush>
 
-    <SolidColorBrush x:Key="TextPrimaryBrush" Color="#E9EEF4" />
-    <SolidColorBrush x:Key="TextSecondaryBrush" Color="#8B98A8" />
-    <SolidColorBrush x:Key="TextMutedBrush" Color="#5F6B7A" />
+    <!-- Warmed toward the violet ground and lifted. The blue-grey greys these replaced
+         were chosen against a blue-black surface; on violet they sat near 3:1, which
+         is not a colour a caption can be read in. -->
+    <SolidColorBrush x:Key="TextPrimaryBrush" Color="#F2EEFC" />
+    <SolidColorBrush x:Key="TextSecondaryBrush" Color="#C4B9DF" />
+    <SolidColorBrush x:Key="TextMutedBrush" Color="#9C90BE" />
+
+    <!-- The rail has its own pair. It sits on the lighter half of the violet gradient,
+         where the surface brushes above lose most of their separation. -->
+    <SolidColorBrush x:Key="SidebarTextBrush" Color="#F4EFFF" />
+    <SolidColorBrush x:Key="SidebarMutedBrush" Color="#C9BAEC" />
 
     <!-- Accent taken from the EVSELab mark, so the brand reads as the app's. -->
     <Color x:Key="AccentColor">#2BD673</Color>

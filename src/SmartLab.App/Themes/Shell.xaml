@@ -38,8 +38,9 @@
                         </StackPanel>
 
                         <TextBlock x:Name="Caption" Text="{TemplateBinding Caption}"
-                                   FontSize="9.5" FontWeight="SemiBold" Margin="0,5,0,0"
-                                   Foreground="{DynamicResource TextMutedBrush}" />
+                                   FontSize="11" FontWeight="SemiBold" Margin="0,5,0,0"
+                                   TextWrapping="Wrap"
+                                   Foreground="{DynamicResource TextSecondaryBrush}" />
 
                         <ctl:ProportionBar x:Name="Bar" Height="5" Margin="0,9,0,0"
                                            Visibility="Collapsed"
@@ -119,9 +120,9 @@
                                                    FontWeight="Bold"
                                                    Foreground="{DynamicResource TextPrimaryBrush}" />
                                         <TextBlock x:Name="Sub" Text="{TemplateBinding Subtitle}"
-                                                   FontSize="11.5" Margin="0,3,0,0" TextWrapping="Wrap"
-                                                   MaxWidth="560" HorizontalAlignment="Left"
-                                                   Foreground="{DynamicResource TextMutedBrush}" />
+                                                   FontSize="13" Margin="0,4,0,0" TextWrapping="Wrap"
+                                                   MaxWidth="620" HorizontalAlignment="Left"
+                                                   Foreground="{DynamicResource TextSecondaryBrush}" />
                                     </StackPanel>
 
                                     <!-- The verbs. In the header so a Dry run toggle is read
@@ -144,7 +145,7 @@
                                 <Ellipse Width="6" Height="6" Margin="0,0,9,0"
                                          VerticalAlignment="Center"
                                          Fill="{DynamicResource AccentBrush}" />
-                                <TextBlock Text="{TemplateBinding Status}" FontSize="11"
+                                <TextBlock Text="{TemplateBinding Status}" FontSize="12.5"
                                            TextTrimming="CharacterEllipsis"
                                            Foreground="{DynamicResource TextSecondaryBrush}" />
                             </StackPanel>
@@ -208,7 +209,7 @@
     </Style>
 
     <Style x:Key="VerdictDetail" TargetType="TextBlock">
-        <Setter Property="FontSize" Value="11.5" />
+        <Setter Property="FontSize" Value="12.5" />
         <Setter Property="TextWrapping" Value="Wrap" />
         <Setter Property="Margin" Value="0,3,0,0" />
         <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
@@ -221,15 +222,15 @@
     -->
 
     <Style x:Key="Chip" TargetType="Border">
-        <Setter Property="CornerRadius" Value="4" />
-        <Setter Property="Padding" Value="6,1" />
+        <Setter Property="CornerRadius" Value="5" />
+        <Setter Property="Padding" Value="7,2" />
         <Setter Property="VerticalAlignment" Value="Center" />
         <Setter Property="Margin" Value="8,0,0,0" />
         <Setter Property="Background" Value="{DynamicResource SurfaceSunkenBrush}" />
     </Style>
 
     <Style x:Key="ChipText" TargetType="TextBlock">
-        <Setter Property="FontSize" Value="9.5" />
+        <Setter Property="FontSize" Value="11" />
         <Setter Property="FontWeight" Value="Bold" />
     </Style>
 
@@ -265,7 +266,7 @@
     </Style>
 
     <Style x:Key="PillarName" TargetType="TextBlock">
-        <Setter Property="FontSize" Value="14.5" />
+        <Setter Property="FontSize" Value="15.5" />
         <Setter Property="FontWeight" Value="Bold" />
         <Setter Property="HorizontalAlignment" Value="Center" />
         <Setter Property="Margin" Value="0,16,0,0" />
@@ -273,10 +274,10 @@
     </Style>
 
     <Style x:Key="PillarCaption" TargetType="TextBlock">
-        <Setter Property="FontSize" Value="11.5" />
+        <Setter Property="FontSize" Value="12.5" />
         <Setter Property="HorizontalAlignment" Value="Center" />
         <Setter Property="Margin" Value="0,4,0,0" />
-        <Setter Property="Foreground" Value="{DynamicResource TextMutedBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
     </Style>
 
     <Style x:Key="PillarValue" TargetType="TextBlock">
@@ -453,10 +454,11 @@
     </Style>
 
     <Style x:Key="RailGroupLabel" TargetType="TextBlock">
-        <Setter Property="FontSize" Value="9" />
+        <Setter Property="FontSize" Value="10.5" />
         <Setter Property="FontWeight" Value="Bold" />
-        <Setter Property="Foreground" Value="{DynamicResource TextMutedBrush}" />
-        <Setter Property="Margin" Value="10,12,0,4" />
+        <Setter Property="Foreground" Value="{DynamicResource SidebarMutedBrush}" />
+        <Setter Property="Opacity" Value="0.85" />
+        <Setter Property="Margin" Value="12,14,0,5" />
         <Style.Triggers>
             <!-- Home stands outside a group; an empty heading collapses rather than
                  leaving a gap where a word should be. -->

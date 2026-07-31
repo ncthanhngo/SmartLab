@@ -117,21 +117,21 @@
                                                       VerticalAlignment="Center" Margin="0,0,13,0" />
 
                                             <StackPanel Grid.Column="1">
-                                                <TextBlock Text="{Binding Name}" FontSize="11.5"
+                                                <TextBlock Text="{Binding Name}" FontSize="13"
                                                            TextTrimming="CharacterEllipsis"
                                                            Foreground="{DynamicResource TextPrimaryBrush}" />
-                                                <TextBlock Text="{Binding Path}" FontSize="10"
+                                                <TextBlock Text="{Binding Path}" FontSize="11.5"
                                                            FontFamily="{StaticResource MonoFont}"
                                                            Margin="0,2,0,0" TextTrimming="CharacterEllipsis"
                                                            Foreground="{DynamicResource TextMutedBrush}" />
                                             </StackPanel>
 
-                                            <TextBlock Grid.Column="2" Text="{Binding AgeText}" FontSize="10"
+                                            <TextBlock Grid.Column="2" Text="{Binding AgeText}" FontSize="11.5"
                                                        Margin="14,0,0,0" MinWidth="60" TextAlignment="Right"
                                                        VerticalAlignment="Center"
                                                        Foreground="{DynamicResource TextMutedBrush}" />
                                             <TextBlock Grid.Column="3" Text="{Binding SizeText}"
-                                                       FontSize="11.5" Margin="16,0,0,0" MinWidth="70"
+                                                       FontSize="13" Margin="16,0,0,0" MinWidth="70"
                                                        TextAlignment="Right" VerticalAlignment="Center"
                                                        FontFamily="{StaticResource MonoFont}"
                                                        Foreground="{DynamicResource TextSecondaryBrush}" />
@@ -218,17 +218,17 @@
                                                       VerticalAlignment="Center" Margin="0,0,13,0" />
 
                                             <StackPanel Grid.Column="1">
-                                                <TextBlock Text="{Binding Path}" FontSize="11"
+                                                <TextBlock Text="{Binding Path}" FontSize="12.5"
                                                            FontFamily="{StaticResource MonoFont}"
                                                            TextTrimming="CharacterEllipsis"
                                                            Foreground="{DynamicResource TextPrimaryBrush}" />
-                                                <TextBlock Text="{Binding Summary}" FontSize="10"
+                                                <TextBlock Text="{Binding Summary}" FontSize="11.5"
                                                            Margin="0,2,0,0" TextTrimming="CharacterEllipsis"
                                                            Foreground="{DynamicResource TextMutedBrush}" />
                                             </StackPanel>
 
                                             <TextBlock Grid.Column="2" Text="{Binding SizeText}"
-                                                       FontSize="11" Margin="14,0,0,0" MinWidth="70"
+                                                       FontSize="12.5" Margin="14,0,0,0" MinWidth="70"
                                                        TextAlignment="Right" VerticalAlignment="Center"
                                                        FontFamily="{StaticResource MonoFont}"
                                                        Foreground="{DynamicResource TextSecondaryBrush}" />
@@ -318,7 +318,7 @@
                                                 <ColumnDefinition Width="Auto" />
                                             </Grid.ColumnDefinitions>
 
-                                            <TextBlock Grid.Column="0" Text="{Binding Name}" FontSize="11.5"
+                                            <TextBlock Grid.Column="0" Text="{Binding Name}" FontSize="13"
                                                        VerticalAlignment="Center"
                                                        TextTrimming="CharacterEllipsis"
                                                        Foreground="{DynamicResource TextPrimaryBrush}" />
@@ -328,7 +328,7 @@
                                                            Foreground="{DynamicResource WarningBrush}" />
                                             </Border>
                                             <TextBlock Grid.Column="2" Text="{Binding SizeText}"
-                                                       FontSize="11" Margin="16,0,0,0" MinWidth="70"
+                                                       FontSize="12.5" Margin="16,0,0,0" MinWidth="70"
                                                        TextAlignment="Right" VerticalAlignment="Center"
                                                        FontFamily="{StaticResource MonoFont}"
                                                        Foreground="{DynamicResource TextMutedBrush}" />

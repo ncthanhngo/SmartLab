@@ -57,7 +57,7 @@
 
                                             <StackPanel Grid.Column="1">
                                                 <StackPanel Orientation="Horizontal">
-                                                    <TextBlock Text="{Binding Description}" FontSize="12"
+                                                    <TextBlock Text="{Binding Description}" FontSize="13"
                                                                FontWeight="SemiBold"
                                                                Foreground="{DynamicResource TextPrimaryBrush}" />
                                                     <Border Style="{StaticResource Chip}"
@@ -68,14 +68,14 @@
                                                                    Foreground="{DynamicResource WarningBrush}" />
                                                     </Border>
                                                 </StackPanel>
-                                                <TextBlock Text="{Binding Location}" FontSize="10"
+                                                <TextBlock Text="{Binding Location}" FontSize="11.5"
                                                            FontFamily="{StaticResource MonoFont}"
                                                            Margin="0,3,0,0" TextTrimming="CharacterEllipsis"
                                                            Foreground="{DynamicResource TextMutedBrush}" />
                                             </StackPanel>
 
                                             <TextBlock Grid.Column="2" Text="{Binding SizeText}"
-                                                       FontSize="11" VerticalAlignment="Center"
+                                                       FontSize="12.5" VerticalAlignment="Center"
                                                        Margin="10,0,0,0"
                                                        FontFamily="{StaticResource MonoFont}"
                                                        Foreground="{DynamicResource TextMutedBrush}" />
@@ -123,7 +123,7 @@
                                         <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
                                             <CheckBox Style="{StaticResource RowCheck}"
                                                       IsChecked="{Binding IsSelected}" Margin="0,0,10,0" />
-                                            <TextBlock Text="{Binding Location}" FontSize="10"
+                                            <TextBlock Text="{Binding Location}" FontSize="11.5"
                                                        FontFamily="{StaticResource MonoFont}"
                                                        TextTrimming="CharacterEllipsis" MaxWidth="360"
                                                        Foreground="{DynamicResource TextSecondaryBrush}" />
@@ -155,17 +155,17 @@
                                             </Grid.ColumnDefinitions>
 
                                             <TextBlock x:Name="Name" Grid.Column="0"
-                                                       Text="{Binding DisplayName}" FontSize="11.5"
+                                                       Text="{Binding DisplayName}" FontSize="13"
                                                        VerticalAlignment="Center"
                                                        TextTrimming="CharacterEllipsis"
                                                        Foreground="{DynamicResource TextSecondaryBrush}" />
                                             <TextBlock Grid.Column="1" Text="{Binding Version}"
-                                                       FontSize="10" Margin="12,0,0,0"
+                                                       FontSize="11.5" Margin="12,0,0,0"
                                                        VerticalAlignment="Center" MaxWidth="90"
                                                        TextTrimming="CharacterEllipsis"
                                                        Foreground="{DynamicResource TextMutedBrush}" />
                                             <TextBlock Grid.Column="2" Text="{Binding SizeText}"
-                                                       FontSize="10" Margin="12,0,0,0" MinWidth="52"
+                                                       FontSize="11.5" Margin="12,0,0,0" MinWidth="52"
                                                        TextAlignment="Right" VerticalAlignment="Center"
                                                        FontFamily="{StaticResource MonoFont}"
                                                        Foreground="{DynamicResource TextMutedBrush}" />
@@ -244,7 +244,7 @@
 
                                             <StackPanel Grid.Column="1">
                                                 <StackPanel Orientation="Horizontal">
-                                                    <TextBlock Text="{Binding Name}" FontSize="12"
+                                                    <TextBlock Text="{Binding Name}" FontSize="13"
                                                                TextTrimming="CharacterEllipsis"
                                                                MaxWidth="300"
                                                                Foreground="{DynamicResource TextPrimaryBrush}" />
@@ -258,13 +258,13 @@
                                                                    Foreground="{DynamicResource WarningBrush}" />
                                                     </Border>
                                                 </StackPanel>
-                                                <TextBlock Text="{Binding Id}" FontSize="10"
+                                                <TextBlock Text="{Binding Id}" FontSize="11.5"
                                                            FontFamily="{StaticResource MonoFont}"
                                                            Margin="0,2,0,0"
                                                            Foreground="{DynamicResource TextMutedBrush}" />
                                             </StackPanel>
 
-                                            <TextBlock Grid.Column="2" Margin="14,0,0,0" FontSize="10.5"
+                                            <TextBlock Grid.Column="2" Margin="14,0,0,0" FontSize="12"
                                                        VerticalAlignment="Center"
                                                        FontFamily="{StaticResource MonoFont}"
                                                        Foreground="{DynamicResource TextMutedBrush}">
@@ -275,7 +275,7 @@
                                             </TextBlock>
 
                                             <TextBlock Grid.Column="3" Text="{Binding Outcome}"
-                                                       FontSize="10" Margin="14,0,0,0" MinWidth="76"
+                                                       FontSize="11.5" Margin="14,0,0,0" MinWidth="76"
                                                        TextAlignment="Right" VerticalAlignment="Center"
                                                        Foreground="{DynamicResource WarningBrush}" />
                                         </Grid>
@@ -331,7 +331,7 @@
 
                                             <StackPanel Grid.Column="0">
                                                 <StackPanel Orientation="Horizontal">
-                                                    <TextBlock Text="{Binding Name}" FontSize="11.5"
+                                                    <TextBlock Text="{Binding Name}" FontSize="13"
                                                                TextTrimming="CharacterEllipsis"
                                                                MaxWidth="280"
                                                                Foreground="{DynamicResource TextPrimaryBrush}" />
@@ -345,13 +345,13 @@
                                                                    Foreground="{DynamicResource DangerBrush}" />
                                                     </Border>
                                                 </StackPanel>
-                                                <TextBlock Text="{Binding PermissionSummary}" FontSize="10"
+                                                <TextBlock Text="{Binding PermissionSummary}" FontSize="11.5"
                                                            Margin="0,2,0,0" TextTrimming="CharacterEllipsis"
                                                            Foreground="{DynamicResource TextMutedBrush}" />
                                             </StackPanel>
 
                                             <TextBlock Grid.Column="1" Text="{Binding Version}"
-                                                       FontSize="10" Margin="12,0,0,0"
+                                                       FontSize="11.5" Margin="12,0,0,0"
                                                        VerticalAlignment="Center"
                                                        FontFamily="{StaticResource MonoFont}"
                                                        Foreground="{DynamicResource TextMutedBrush}" />
@@ -370,7 +370,7 @@
                         <ListBox Style="{StaticResource PlainList}" ItemsSource="{Binding ShellExtensions}">
                             <ListBox.ItemTemplate>
                                 <DataTemplate>
-                                    <TextBlock Text="{Binding Name}" FontSize="10.5" Margin="0,0,0,3"
+                                    <TextBlock Text="{Binding Name}" FontSize="12" Margin="0,0,0,3"
                                                TextTrimming="CharacterEllipsis"
                                                Foreground="{DynamicResource TextSecondaryBrush}" />
                                 </DataTemplate>

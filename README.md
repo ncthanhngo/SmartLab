@@ -146,6 +146,14 @@ locking need Administrator, but the UI must not run elevated.
   proportional to the distance travelled. This is why `--screenshot` waits after
   layout settles: a capture taken the instant bindings resolve catches a
   half-drawn ring.
+- The shell is two cards stacked on the window's own ground, not one surface split
+  by a line: the rail overlaps the stage's left edge and is inset from its top and
+  foot, so the piece underneath shows on three sides. Each card is two borders —
+  the outer paints the fill and casts the shadow, the inner clips the contents.
+  They cannot be one: WPF applies `Clip` after `Effect`, so a card that clipped
+  itself would cut off its own shadow, and a rounded `Border` does not clip what it
+  contains, which is how a full-bleed treemap or the status strip squares the
+  corners off again.
 - Reference every colour with `DynamicResource`, never `StaticResource`. The two
   palettes are swapped whole at runtime; a static reference is resolved once when
   the element is parsed and keeps the colour it was born with. Radii, typefaces
@@ -153,6 +161,15 @@ locking need Administrator, but the UI must not run elevated.
 - A colour added to one palette must be added to the other. A missing key breaks
   in whichever theme nobody was working in, which is why `PaletteParityTests`
   compares the two key sets.
+- The two themes are chosen, not inverted, and they do not carry the same idea of
+  atmosphere. Dark takes its ground from a violet gradient, which is what keeps a
+  dark interface from reading as switched off. Light takes its from grey and white
+  alone: on a pale ground the same tint stains every white card it is meant to hold
+  up, so on light the colour comes from the sections themselves.
+- Text sits on four grounds, not one, so the text brushes come in pairs.
+  `SidebarText`/`SidebarMuted` are for the rail card, which is a different tone from
+  the stage in both themes; using the stage's pair there costs about a stop of
+  contrast at the sizes the rail is set in.
 
 ## Proposed actions
 

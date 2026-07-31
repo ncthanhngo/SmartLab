@@ -60,7 +60,7 @@
 
                                             <StackPanel Grid.Column="1">
                                                 <StackPanel Orientation="Horizontal">
-                                                    <TextBlock Text="{Binding Name}" FontSize="12.5"
+                                                    <TextBlock Text="{Binding Name}" FontSize="13.5"
                                                                FontWeight="SemiBold"
                                                                Foreground="{DynamicResource TextPrimaryBrush}" />
 
@@ -83,18 +83,18 @@
                                                     </Border>
                                                 </StackPanel>
 
-                                                <TextBlock Text="{Binding Detail}" FontSize="10.5"
+                                                <TextBlock Text="{Binding Detail}" FontSize="12"
                                                            Margin="0,3,0,0"
                                                            Foreground="{DynamicResource TextMutedBrush}" />
                                             </StackPanel>
 
                                             <StackPanel Grid.Column="2" Margin="14,0,0,0"
                                                         VerticalAlignment="Center">
-                                                <TextBlock Text="{Binding SizeText}" FontSize="12"
+                                                <TextBlock Text="{Binding SizeText}" FontSize="13"
                                                            HorizontalAlignment="Right"
                                                            FontFamily="{StaticResource MonoFont}"
                                                            Foreground="{DynamicResource TextPrimaryBrush}" />
-                                                <TextBlock HorizontalAlignment="Right" FontSize="10"
+                                                <TextBlock HorizontalAlignment="Right" FontSize="11.5"
                                                            Margin="0,2,0,0"
                                                            Foreground="{DynamicResource TextMutedBrush}"
                                                            Text="{Binding Files, StringFormat={}{0:N0} files}"
@@ -161,11 +161,11 @@
 
                                             <StackPanel Grid.Column="1">
                                                 <StackPanel Orientation="Horizontal">
-                                                    <TextBlock Text="{Binding Root}" FontSize="12.5"
+                                                    <TextBlock Text="{Binding Root}" FontSize="13.5"
                                                                FontWeight="SemiBold"
                                                                FontFamily="{StaticResource MonoFont}"
                                                                Foreground="{DynamicResource TextPrimaryBrush}" />
-                                                    <TextBlock Text="{Binding Label}" FontSize="11.5"
+                                                    <TextBlock Text="{Binding Label}" FontSize="13"
                                                                Margin="9,0,0,0" VerticalAlignment="Center"
                                                                Foreground="{DynamicResource TextSecondaryBrush}" />
 
@@ -181,13 +181,13 @@
                                                     </Border>
                                                 </StackPanel>
 
-                                                <TextBlock Text="{Binding Detail}" FontSize="10.5"
+                                                <TextBlock Text="{Binding Detail}" FontSize="12"
                                                            Margin="0,3,0,0"
                                                            Foreground="{DynamicResource TextMutedBrush}" />
                                             </StackPanel>
 
                                             <TextBlock Grid.Column="2" Text="{Binding SizeText}"
-                                                       FontSize="12" VerticalAlignment="Center"
+                                                       FontSize="13" VerticalAlignment="Center"
                                                        Margin="14,0,0,0"
                                                        FontFamily="{StaticResource MonoFont}"
                                                        Foreground="{DynamicResource TextPrimaryBrush}" />
@@ -249,17 +249,17 @@
                                                       IsChecked="{Binding IsSelected}"
                                                       VerticalAlignment="Center" Margin="0,0,13,0" />
 
-                                            <TextBlock Grid.Column="1" Text="{Binding Name}" FontSize="12"
+                                            <TextBlock Grid.Column="1" Text="{Binding Name}" FontSize="13"
                                                        VerticalAlignment="Center"
                                                        TextTrimming="CharacterEllipsis"
                                                        Foreground="{DynamicResource TextPrimaryBrush}" />
 
-                                            <TextBlock Grid.Column="2" Text="{Binding Age}" FontSize="10.5"
+                                            <TextBlock Grid.Column="2" Text="{Binding Age}" FontSize="12"
                                                        Margin="14,0,0,0" VerticalAlignment="Center"
                                                        Foreground="{DynamicResource TextMutedBrush}" />
 
                                             <TextBlock Grid.Column="3" Text="{Binding SizeText}"
-                                                       FontSize="11.5" Margin="16,0,0,0" MinWidth="68"
+                                                       FontSize="13" Margin="16,0,0,0" MinWidth="68"
                                                        TextAlignment="Right" VerticalAlignment="Center"
                                                        FontFamily="{StaticResource MonoFont}"
                                                        Foreground="{DynamicResource TextSecondaryBrush}" />
