@@ -28,153 +28,239 @@
     -->
 
     <DataTemplate x:Key="section-home">
-        <ctl:SectionFrame Title="Home"
-                          Subtitle="Every read-only pass, in one place. Nothing here cleans, removes or upgrades."
-                          Status="{Binding Status}"
-                          DataContext="{Binding DataContext.SmartScan,
-                              RelativeSource={RelativeSource AncestorType=Window}}">
+        <Grid DataContext="{Binding DataContext.SmartScan,
+                  RelativeSource={RelativeSource AncestorType=Window}}"
+              Margin="0,10,0,0">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
 
-            <ctl:SectionFrame.Actions>
-                <StackPanel Orientation="Horizontal">
-                    <Button Content="Stop" Style="{StaticResource GhostButton}"
-                            Command="{Binding CancelCommand}" Margin="0,0,8,0" />
-                    <Button Content="Check everything" Style="{StaticResource PrimaryButton}"
-                            Command="{Binding ScanCommand}" />
+            <!-- ===== the headline ===== -->
+            <StackPanel Grid.Row="0" Margin="0,10,0,0">
+                <TextBlock Text="{Binding Headline}" FontSize="27" FontWeight="Bold"
+                           HorizontalAlignment="Center" TextAlignment="Center"
+                           Foreground="{DynamicResource TextPrimaryBrush}" />
+                <TextBlock Text="{Binding HeadlineDetail}" FontSize="12.5" Margin="0,8,0,0"
+                           HorizontalAlignment="Center" TextAlignment="Center"
+                           MaxWidth="620" TextWrapping="Wrap"
+                           Foreground="{DynamicResource TextSecondaryBrush}" />
+            </StackPanel>
+
+            <!-- ===== the three pillars ===== -->
+            <Grid Grid.Row="1" VerticalAlignment="Center">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <!-- Cleanup -->
+                <StackPanel Grid.Column="0" x:Name="OrbOne">
+                    <Border x:Name="CleanupOrb" Style="{StaticResource PillarOrb}">
+                        <Border.Background>
+                            <LinearGradientBrush StartPoint="0,0" EndPoint="0.4,1">
+                                <GradientStop Color="{DynamicResource PillarCleanupTop}" Offset="0" />
+                                <GradientStop Color="{DynamicResource PillarCleanupBottom}" Offset="1" />
+                            </LinearGradientBrush>
+                        </Border.Background>
+                        <TextBlock Text="&#xEDA2;" Style="{StaticResource PillarGlyph}" />
+                    </Border>
+
+                    <TextBlock Text="Cleanup" Style="{StaticResource PillarName}" />
+                    <TextBlock Text="Space nothing is using" Style="{StaticResource PillarCaption}" />
+                    <TextBlock Text="{Binding CleanupValue}" Style="{StaticResource PillarValue}"
+                               Foreground="{DynamicResource PillarCleanupBrush}"
+                               Visibility="{Binding IsReviewing, Converter={StaticResource BoolToVisibility}}" />
+
+                    <Button Content="Review details" Style="{StaticResource GhostButton}"
+                            HorizontalAlignment="Center" Margin="0,12,0,0"
+                            Command="{Binding OpenPillarCommand}" CommandParameter="{x:Static local:Pillar.Cleanup}"
+                            Visibility="{Binding IsReviewing, Converter={StaticResource BoolToVisibility}}" />
                 </StackPanel>
-            </ctl:SectionFrame.Actions>
 
-            <DockPanel>
-                <!-- the verdict band -->
-                <Border DockPanel.Dock="Top" Style="{StaticResource VerdictBand}">
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
+                <!-- Protection -->
+                <StackPanel Grid.Column="1" x:Name="OrbTwo">
+                    <Border x:Name="ProtectionOrb" Style="{StaticResource PillarOrb}">
+                        <Border.Background>
+                            <LinearGradientBrush StartPoint="0,0" EndPoint="0.4,1">
+                                <GradientStop Color="{DynamicResource PillarProtectionTop}" Offset="0" />
+                                <GradientStop Color="{DynamicResource PillarProtectionBottom}" Offset="1" />
+                            </LinearGradientBrush>
+                        </Border.Background>
+                        <TextBlock Text="&#xE72E;" Style="{StaticResource PillarGlyph}" />
+                    </Border>
 
-                        <Border x:Name="Lamp" Grid.Column="0" Style="{StaticResource VerdictLamp}"
-                                Background="{DynamicResource SurfaceRaisedBrush}">
-                            <TextBlock x:Name="LampGlyph" Text="&#xE946;" FontFamily="Segoe MDL2 Assets"
-                                       FontSize="15" HorizontalAlignment="Center"
-                                       VerticalAlignment="Center"
-                                       Foreground="{DynamicResource TextMutedBrush}" />
-                        </Border>
+                    <TextBlock Text="Protection" Style="{StaticResource PillarName}" />
+                    <TextBlock Text="Hiding, and what Defender names" Style="{StaticResource PillarCaption}" />
+                    <TextBlock Text="{Binding ProtectionValue}" Style="{StaticResource PillarValue}"
+                               Foreground="{DynamicResource PillarProtectionBrush}"
+                               Visibility="{Binding IsReviewing, Converter={StaticResource BoolToVisibility}}" />
 
-                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                            <TextBlock Text="{Binding Headline}" Style="{StaticResource VerdictHeadline}" />
-                            <TextBlock Text="{Binding HeadlineDetail}" Style="{StaticResource VerdictDetail}"
-                                       MaxWidth="600" HorizontalAlignment="Left" />
-                        </StackPanel>
+                    <Button Content="Review details" Style="{StaticResource GhostButton}"
+                            HorizontalAlignment="Center" Margin="0,12,0,0"
+                            Command="{Binding OpenPillarCommand}" CommandParameter="{x:Static local:Pillar.Protection}"
+                            Visibility="{Binding IsReviewing, Converter={StaticResource BoolToVisibility}}" />
+                </StackPanel>
 
-                        <ctl:Reading Grid.Column="2" VerticalAlignment="Center" Margin="18,0,0,0"
-                                     Value="{Binding FindingCount}" Caption="FINDINGS" />
-                    </Grid>
-                </Border>
+                <!-- Speed -->
+                <StackPanel Grid.Column="2" x:Name="OrbThree">
+                    <Border x:Name="SpeedOrb" Style="{StaticResource PillarOrb}">
+                        <Border.Background>
+                            <LinearGradientBrush StartPoint="0,0" EndPoint="0.4,1">
+                                <GradientStop Color="{DynamicResource PillarSpeedTop}" Offset="0" />
+                                <GradientStop Color="{DynamicResource PillarSpeedBottom}" Offset="1" />
+                            </LinearGradientBrush>
+                        </Border.Background>
+                        <TextBlock Text="&#xEC4A;" Style="{StaticResource PillarGlyph}" />
+                    </Border>
 
-                <!-- one card per area that has a read-only pass -->
-                <ScrollViewer Margin="0,14,0,0" VerticalScrollBarVisibility="Auto"
-                              HorizontalScrollBarVisibility="Disabled">
+                    <TextBlock Text="Speed" Style="{StaticResource PillarName}" />
+                    <TextBlock Text="Things to do, not things wrong" Style="{StaticResource PillarCaption}" />
+                    <TextBlock Text="{Binding SpeedValue}" Style="{StaticResource PillarValue}"
+                               Foreground="{DynamicResource PillarSpeedBrush}"
+                               Visibility="{Binding IsReviewing, Converter={StaticResource BoolToVisibility}}" />
+
+                    <Button Content="Review details" Style="{StaticResource GhostButton}"
+                            HorizontalAlignment="Center" Margin="0,12,0,0"
+                            Command="{Binding OpenPillarCommand}" CommandParameter="{x:Static local:Pillar.Speed}"
+                            Visibility="{Binding IsReviewing, Converter={StaticResource BoolToVisibility}}" />
+                </StackPanel>
+            </Grid>
+
+            <!-- ===== what will be acted on =====
+                 Only after a scan. This is the list the confirm button acts on, and
+                 nothing outside it is touched. -->
+            <Border Grid.Row="2" Style="{StaticResource Card}" Padding="0" MaxHeight="150"
+                    Margin="0,10,0,0"
+                    Visibility="{Binding IsReviewing, Converter={StaticResource BoolToVisibility}}">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                     <ItemsControl ItemsSource="{Binding Results}">
-                        <ItemsControl.ItemsPanel>
-                            <ItemsPanelTemplate>
-                                <UniformGrid Columns="3" />
-                            </ItemsPanelTemplate>
-                        </ItemsControl.ItemsPanel>
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
-                                <!-- Left stripe in the section's own hue, so a card and its
-                                     rail entry are recognisably the same thing. -->
-                                <Border x:Name="Card" Margin="0,0,11,11" CornerRadius="11" Padding="14,12"
-                                        Background="{DynamicResource SurfaceBrush}"
-                                        BorderBrush="{DynamicResource HairlineBrush}"
-                                        BorderThickness="1" Cursor="Hand">
-                                    <!-- A card is a door. It had the hover state and the hand
-                                         cursor of something clickable without being clickable,
-                                         which is worse than looking inert. -->
-                                    <Border.InputBindings>
-                                        <MouseBinding MouseAction="LeftClick"
-                                                      Command="{Binding DataContext.OpenCommand,
-                                                          RelativeSource={RelativeSource AncestorType=ItemsControl}}"
-                                                      CommandParameter="{Binding}" />
-                                    </Border.InputBindings>
+                                <Border Style="{StaticResource InsetRow}" Padding="15,9">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
 
-                                    <StackPanel>
-                                        <StackPanel Orientation="Horizontal">
-                                            <Border Width="7" Height="7" CornerRadius="2.5"
-                                                    VerticalAlignment="Center" Margin="0,0,8,0"
-                                                    Background="{Binding Section.Accent}" />
-                                            <TextBlock Text="{Binding Title}" FontSize="11"
+                                        <CheckBox Grid.Column="0" Style="{StaticResource RowCheck}"
+                                                  IsChecked="{Binding IsSelected}"
+                                                  IsEnabled="{Binding IsActionable}"
+                                                  VerticalAlignment="Center" Margin="0,0,12,0" />
+
+                                        <Border Grid.Column="1" Width="7" Height="7" CornerRadius="2.5"
+                                                VerticalAlignment="Center" Margin="0,0,10,0"
+                                                Background="{Binding Section.Accent}" />
+
+                                        <StackPanel Grid.Column="2">
+                                            <TextBlock Text="{Binding Title}" FontSize="11.5"
                                                        FontWeight="SemiBold"
-                                                       Foreground="{DynamicResource TextSecondaryBrush}" />
-                                            <Border x:Name="Skip" Style="{StaticResource Chip}"
-                                                    Visibility="Collapsed">
-                                                <TextBlock Text="skipped" Style="{StaticResource ChipText}"
-                                                           Foreground="{DynamicResource WarningBrush}" />
-                                            </Border>
+                                                       Foreground="{DynamicResource TextPrimaryBrush}" />
+                                            <TextBlock Text="{Binding Summary}" FontSize="10"
+                                                       Margin="0,2,0,0" TextTrimming="CharacterEllipsis"
+                                                       Foreground="{DynamicResource TextMutedBrush}" />
                                         </StackPanel>
 
-                                        <TextBlock x:Name="Count" Text="{Binding Findings}" FontSize="24"
-                                                   FontFamily="{StaticResource MonoFont}" FontWeight="Bold"
-                                                   Margin="0,7,0,0"
-                                                   Foreground="{DynamicResource TextPrimaryBrush}" />
+                                        <Border x:Name="Skip" Grid.Column="3" Style="{StaticResource Chip}"
+                                                Visibility="Collapsed">
+                                            <TextBlock Text="could not run" Style="{StaticResource ChipText}"
+                                                       Foreground="{DynamicResource WarningBrush}" />
+                                        </Border>
 
-                                        <TextBlock Text="{Binding Summary}" FontSize="10.5" Margin="0,4,0,0"
-                                                   TextWrapping="Wrap" MaxHeight="30"
-                                                   TextTrimming="CharacterEllipsis"
-                                                   Foreground="{DynamicResource TextMutedBrush}" />
-                                    </StackPanel>
+                                        <Button Grid.Column="4" Content="Open"
+                                                Style="{StaticResource GhostButton}" Margin="12,0,0,0"
+                                                Command="{Binding DataContext.OpenCommand,
+                                                    RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                CommandParameter="{Binding}" />
+                                    </Grid>
                                 </Border>
 
                                 <DataTemplate.Triggers>
-                                    <!-- A skipped section shows a dash, never a zero. Zero is a
-                                         finding; "could not look" is not, and the two must never
-                                         share a glyph. -->
                                     <DataTrigger Binding="{Binding Skipped}" Value="True">
                                         <Setter TargetName="Skip" Property="Visibility" Value="Visible" />
-                                        <Setter TargetName="Count" Property="Text" Value="&#x2014;" />
-                                        <Setter TargetName="Count" Property="Foreground"
-                                                Value="{DynamicResource WarningBrush}" />
-                                    </DataTrigger>
-                                    <DataTrigger Binding="{Binding Tone}" Value="danger">
-                                        <Setter TargetName="Count" Property="Foreground"
-                                                Value="{DynamicResource DangerBrush}" />
-                                    </DataTrigger>
-                                    <DataTrigger Value="True"
-                                                 Binding="{Binding IsMouseOver,
-                                                     RelativeSource={RelativeSource Self}}">
-                                        <Setter TargetName="Card" Property="BorderBrush"
-                                                Value="{DynamicResource AccentBrush}" />
                                     </DataTrigger>
                                 </DataTemplate.Triggers>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
                 </ScrollViewer>
-            </DockPanel>
-        </ctl:SectionFrame>
+            </Border>
 
-        <!-- The lamp carries the verdict in colour and in shape; the headline carries
-             it in words, so neither alone has to do the whole job. -->
+            <!-- ===== the one control the screen is arranged around ===== -->
+            <StackPanel Grid.Row="3" Margin="0,16,0,18" HorizontalAlignment="Center">
+                <Grid>
+                    <Button x:Name="RunButton" Content="Run" Style="{StaticResource RunButton}"
+                            Command="{Binding ScanCommand}" />
+
+                    <Button x:Name="ConfirmButton" Content="Confirm" Style="{StaticResource RunButton}"
+                            Command="{Binding ApplyCommand}" Visibility="Collapsed" />
+                </Grid>
+
+                <TextBlock x:Name="RunCaption" Text="Measures everything. Changes nothing."
+                           FontSize="11" Margin="0,12,0,0" HorizontalAlignment="Center"
+                           Foreground="{DynamicResource TextMutedBrush}" />
+
+                <Button Content="Stop" Style="{StaticResource GhostButton}" Margin="0,10,0,0"
+                        HorizontalAlignment="Center" Command="{Binding CancelCommand}"
+                        Visibility="{Binding IsScanning, Converter={StaticResource BoolToVisibility}}" />
+            </StackPanel>
+        </Grid>
+
         <DataTemplate.Triggers>
-            <DataTrigger Value="good"
-                         Binding="{Binding DataContext.SmartScan.HeadlineTone,
+            <!-- The orbs breathe only while something is genuinely being measured, and
+                 settle the moment it stops. A still window therefore means nothing is
+                 running, which is a thing the operator can rely on. -->
+            <DataTrigger Value="True"
+                         Binding="{Binding DataContext.SmartScan.IsScanning,
                              RelativeSource={RelativeSource AncestorType=Window}}">
-                <Setter TargetName="Lamp" Property="Background" Value="{DynamicResource AccentSoftBrush}" />
-                <Setter TargetName="LampGlyph" Property="Text" Value="&#xE930;" />
-                <Setter TargetName="LampGlyph" Property="Foreground" Value="{DynamicResource AccentBrush}" />
+                <DataTrigger.EnterActions>
+                    <BeginStoryboard Name="BreatheOne" Storyboard="{StaticResource OrbBreathe}"
+                                     Storyboard.TargetName="CleanupOrb" />
+                    <BeginStoryboard Name="BreatheTwo" Storyboard="{StaticResource OrbBreathe}"
+                                     Storyboard.TargetName="ProtectionOrb" />
+                    <BeginStoryboard Name="BreatheThree" Storyboard="{StaticResource OrbBreathe}"
+                                     Storyboard.TargetName="SpeedOrb" />
+                </DataTrigger.EnterActions>
+                <DataTrigger.ExitActions>
+                    <StopStoryboard BeginStoryboardName="BreatheOne" />
+                    <StopStoryboard BeginStoryboardName="BreatheTwo" />
+                    <StopStoryboard BeginStoryboardName="BreatheThree" />
+                    <BeginStoryboard Storyboard="{StaticResource OrbSettle}"
+                                     Storyboard.TargetName="CleanupOrb" />
+                    <BeginStoryboard Storyboard="{StaticResource OrbSettle}"
+                                     Storyboard.TargetName="ProtectionOrb" />
+                    <BeginStoryboard Storyboard="{StaticResource OrbSettle}"
+                                     Storyboard.TargetName="SpeedOrb" />
+                </DataTrigger.ExitActions>
             </DataTrigger>
-            <DataTrigger Value="warning"
-                         Binding="{Binding DataContext.SmartScan.HeadlineTone,
+
+            <!-- Run becomes Confirm once there is something to confirm. Two presses,
+                 never one, and the second is a different word for a different act. -->
+            <DataTrigger Value="True"
+                         Binding="{Binding DataContext.SmartScan.IsReviewing,
                              RelativeSource={RelativeSource AncestorType=Window}}">
-                <Setter TargetName="LampGlyph" Property="Text" Value="&#xE7BA;" />
-                <Setter TargetName="LampGlyph" Property="Foreground" Value="{DynamicResource WarningBrush}" />
+                <Setter TargetName="RunButton" Property="Visibility" Value="Collapsed" />
+                <Setter TargetName="ConfirmButton" Property="Visibility" Value="Visible" />
+                <Setter TargetName="RunCaption" Property="Text"
+                        Value="Acts on the ticked rows above, using what the scan already found." />
             </DataTrigger>
-            <DataTrigger Value="danger"
-                         Binding="{Binding DataContext.SmartScan.HeadlineTone,
+
+            <DataTrigger Value="Done"
+                         Binding="{Binding DataContext.SmartScan.Phase,
                              RelativeSource={RelativeSource AncestorType=Window}}">
-                <Setter TargetName="LampGlyph" Property="Text" Value="&#xE814;" />
-                <Setter TargetName="LampGlyph" Property="Foreground" Value="{DynamicResource DangerBrush}" />
+                <Setter TargetName="ConfirmButton" Property="Content" Value="Run again" />
+                <Setter TargetName="ConfirmButton" Property="Command"
+                        Value="{Binding DataContext.SmartScan.ScanCommand,
+                            RelativeSource={RelativeSource AncestorType=Window}}" />
+                <Setter TargetName="RunCaption" Property="Text"
+                        Value="Run again to see what is left." />
             </DataTrigger>
         </DataTemplate.Triggers>
     </DataTemplate>

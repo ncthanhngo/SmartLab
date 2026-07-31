@@ -16,19 +16,23 @@
         coloured accents something to sit against instead of a void.
     -->
 
-    <Color x:Key="ShellTopColor">#141B29</Color>
-    <Color x:Key="ShellBottomColor">#0B0F18</Color>
+    <!-- Violet rather than blue-black. The ground is the most saturated thing in the
+         window on purpose: everything laid on it is a calm surface, so the colour
+         reads as atmosphere rather than as a component asking for attention. -->
+    <Color x:Key="ShellTopColor">#4A2E7A</Color>
+    <Color x:Key="ShellBottomColor">#241640</Color>
 
-    <SolidColorBrush x:Key="SurfaceBrush" Color="#181F2C" />
-    <SolidColorBrush x:Key="SurfaceRaisedBrush" Color="#1F2735" />
-    <SolidColorBrush x:Key="SurfaceSunkenBrush" Color="#10161F" />
+    <SolidColorBrush x:Key="SurfaceBrush" Color="#1E1733" />
+    <SolidColorBrush x:Key="SurfaceRaisedBrush" Color="#282040" />
+    <SolidColorBrush x:Key="SurfaceSunkenBrush" Color="#171029" />
 
-    <!-- The rail is its own gradient so it reads as a distinct surface without
-         needing a border to say so. -->
-    <LinearGradientBrush x:Key="SidebarBrush" StartPoint="0,0" EndPoint="0.7,1">
-        <GradientStop Color="#223058" Offset="0" />
-        <GradientStop Color="#18213A" Offset="0.45" />
-        <GradientStop Color="#101728" Offset="1" />
+    <!-- The rail sits on the ground rather than over it: a lighter violet at partial
+         strength, so the gradient behind still shows through and the sidebar reads as
+         part of the window instead of a panel bolted to it. -->
+    <LinearGradientBrush x:Key="SidebarBrush" StartPoint="0,0" EndPoint="0.6,1">
+        <GradientStop Color="#553A8A" Offset="0" />
+        <GradientStop Color="#3E2A6B" Offset="0.5" />
+        <GradientStop Color="#2C1D4E" Offset="1" />
     </LinearGradientBrush>
 
     <LinearGradientBrush x:Key="BrandBlockBrush" StartPoint="0,0" EndPoint="1,1">
@@ -36,13 +40,32 @@
         <GradientStop Color="#1E2A4C" Offset="1" />
     </LinearGradientBrush>
 
-    <SolidColorBrush x:Key="HairlineBrush" Color="#28323F" />
-    <SolidColorBrush x:Key="SidebarHairlineBrush" Color="#2A3552" />
+    <SolidColorBrush x:Key="HairlineBrush" Color="#33294F" />
+    <SolidColorBrush x:Key="SidebarHairlineBrush" Color="#4A3477" />
 
-    <!-- Hover fills. The rail has its own because it sits on the bluer sidebar
+    <!-- Hover fills. The rail has its own because it sits on the violet sidebar
          gradient, where the neutral one would read as a grey smudge. -->
-    <SolidColorBrush x:Key="HoverBrush" Color="#1E2732" />
-    <SolidColorBrush x:Key="SidebarHoverBrush" Color="#1A2340" />
+    <SolidColorBrush x:Key="HoverBrush" Color="#2A2245" />
+    <SolidColorBrush x:Key="SidebarHoverBrush" Color="#6A4BA5" />
+
+    <!-- ============================ the three pillars ============================
+
+         Each is a filled orb roughly 130 px across, which is the largest coloured
+         area in the product. They carry more saturation than anything else for that
+         reason: at this size a muted fill reads as a disabled control.
+    -->
+    <Color x:Key="PillarCleanupTop">#5AB4FF</Color>
+    <Color x:Key="PillarCleanupBottom">#2C6FD6</Color>
+
+    <Color x:Key="PillarProtectionTop">#4FE3A8</Color>
+    <Color x:Key="PillarProtectionBottom">#1E9E72</Color>
+
+    <Color x:Key="PillarSpeedTop">#FF7BA8</Color>
+    <Color x:Key="PillarSpeedBottom">#E23D77</Color>
+
+    <SolidColorBrush x:Key="PillarCleanupBrush" Color="#5AB4FF" />
+    <SolidColorBrush x:Key="PillarProtectionBrush" Color="#4FE3A8" />
+    <SolidColorBrush x:Key="PillarSpeedBrush" Color="#FF7BA8" />
 
     <SolidColorBrush x:Key="ToggleKnobBrush" Color="#6B7887" />
     <SolidColorBrush x:Key="ScrollThumbBrush" Color="#2B3644" />

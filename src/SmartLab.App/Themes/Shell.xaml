@@ -215,6 +215,196 @@
         <Setter Property="FontWeight" Value="Bold" />
     </Style>
 
+    <!-- ============================ the pillars ============================
+
+         Three orbs, each the largest coloured area in the product. They stand for
+         what the scan measured rather than for a section, which is why there are
+         three of them and seventeen sections.
+    -->
+
+    <Style x:Key="PillarOrb" TargetType="Border">
+        <Setter Property="Width" Value="132" />
+        <Setter Property="Height" Value="132" />
+        <Setter Property="CornerRadius" Value="38" />
+        <Setter Property="HorizontalAlignment" Value="Center" />
+        <!-- Rendered from the centre so a scale animation grows outward rather than
+             dragging the orb toward its top-left corner. -->
+        <Setter Property="RenderTransformOrigin" Value="0.5,0.5" />
+        <Setter Property="RenderTransform">
+            <Setter.Value>
+                <ScaleTransform ScaleX="1" ScaleY="1" />
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="PillarGlyph" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="Segoe MDL2 Assets" />
+        <Setter Property="FontSize" Value="54" />
+        <Setter Property="Foreground" Value="#FFFFFF" />
+        <Setter Property="HorizontalAlignment" Value="Center" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="Opacity" Value="0.94" />
+    </Style>
+
+    <Style x:Key="PillarName" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="14.5" />
+        <Setter Property="FontWeight" Value="Bold" />
+        <Setter Property="HorizontalAlignment" Value="Center" />
+        <Setter Property="Margin" Value="0,16,0,0" />
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+    </Style>
+
+    <Style x:Key="PillarCaption" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="11.5" />
+        <Setter Property="HorizontalAlignment" Value="Center" />
+        <Setter Property="Margin" Value="0,4,0,0" />
+        <Setter Property="Foreground" Value="{DynamicResource TextMutedBrush}" />
+    </Style>
+
+    <Style x:Key="PillarValue" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource MonoFont}" />
+        <Setter Property="FontSize" Value="34" />
+        <Setter Property="FontWeight" Value="Bold" />
+        <Setter Property="HorizontalAlignment" Value="Center" />
+        <Setter Property="Margin" Value="0,12,0,0" />
+    </Style>
+
+    <!-- ============================ the Run button ============================
+
+         Round, and the only round thing in the window. It is the one control the
+         whole screen is arranged around, and a shape nothing else uses is a faster
+         way to say so than size alone.
+    -->
+
+    <Style x:Key="RunButton" TargetType="Button">
+        <Setter Property="Width" Value="92" />
+        <Setter Property="Height" Value="92" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="FontFamily" Value="{StaticResource UiFont}" />
+        <Setter Property="FontSize" Value="15" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+        <Setter Property="HorizontalAlignment" Value="Center" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Grid RenderTransformOrigin="0.5,0.5">
+                        <Grid.RenderTransform>
+                            <ScaleTransform x:Name="Grow" ScaleX="1" ScaleY="1" />
+                        </Grid.RenderTransform>
+
+                        <!-- A ring rather than a disc: the button is a target, and the
+                             hollow centre keeps the label the brightest thing in it. -->
+                        <Ellipse x:Name="Ring" StrokeThickness="2"
+                                 Stroke="{DynamicResource AccentBrush}"
+                                 Fill="{DynamicResource SurfaceBrush}" Opacity="0.9" />
+
+                        <Ellipse x:Name="Halo" StrokeThickness="10" Opacity="0"
+                                 Stroke="{DynamicResource AccentBrush}" />
+
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Grid>
+
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Trigger.EnterActions>
+                                <BeginStoryboard>
+                                    <Storyboard>
+                                        <DoubleAnimation Storyboard.TargetName="Grow"
+                                                         Storyboard.TargetProperty="ScaleX"
+                                                         To="1.06" Duration="0:0:0.16" />
+                                        <DoubleAnimation Storyboard.TargetName="Grow"
+                                                         Storyboard.TargetProperty="ScaleY"
+                                                         To="1.06" Duration="0:0:0.16" />
+                                        <DoubleAnimation Storyboard.TargetName="Halo"
+                                                         Storyboard.TargetProperty="Opacity"
+                                                         To="0.22" Duration="0:0:0.16" />
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </Trigger.EnterActions>
+                            <Trigger.ExitActions>
+                                <BeginStoryboard>
+                                    <Storyboard>
+                                        <DoubleAnimation Storyboard.TargetName="Grow"
+                                                         Storyboard.TargetProperty="ScaleX"
+                                                         To="1" Duration="0:0:0.22" />
+                                        <DoubleAnimation Storyboard.TargetName="Grow"
+                                                         Storyboard.TargetProperty="ScaleY"
+                                                         To="1" Duration="0:0:0.22" />
+                                        <DoubleAnimation Storyboard.TargetName="Halo"
+                                                         Storyboard.TargetProperty="Opacity"
+                                                         To="0" Duration="0:0:0.22" />
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </Trigger.ExitActions>
+                        </Trigger>
+
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="Ring" Property="Fill"
+                                    Value="{DynamicResource AccentSoftBrush}" />
+                        </Trigger>
+
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter TargetName="Ring" Property="Stroke"
+                                    Value="{DynamicResource HairlineBrush}" />
+                            <Setter Property="Foreground" Value="{DynamicResource TextMutedBrush}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ============================ motion ============================
+
+         Three storyboards, reused rather than written per screen.
+
+         The rule they follow: motion reports state, it does not decorate. The orbs
+         breathe only while something is genuinely being measured, and stop the moment
+         it ends - so a still window means nothing is running, reliably.
+    -->
+
+    <Storyboard x:Key="OrbBreathe" RepeatBehavior="Forever" AutoReverse="True">
+        <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)"
+                         To="1.07" Duration="0:0:1.1">
+            <DoubleAnimation.EasingFunction>
+                <SineEase EasingMode="EaseInOut" />
+            </DoubleAnimation.EasingFunction>
+        </DoubleAnimation>
+        <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)"
+                         To="1.07" Duration="0:0:1.1">
+            <DoubleAnimation.EasingFunction>
+                <SineEase EasingMode="EaseInOut" />
+            </DoubleAnimation.EasingFunction>
+        </DoubleAnimation>
+    </Storyboard>
+
+    <Storyboard x:Key="OrbSettle">
+        <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)"
+                         To="1" Duration="0:0:0.35">
+            <DoubleAnimation.EasingFunction>
+                <BackEase EasingMode="EaseOut" Amplitude="0.4" />
+            </DoubleAnimation.EasingFunction>
+        </DoubleAnimation>
+        <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)"
+                         To="1" Duration="0:0:0.35">
+            <DoubleAnimation.EasingFunction>
+                <BackEase EasingMode="EaseOut" Amplitude="0.4" />
+            </DoubleAnimation.EasingFunction>
+        </DoubleAnimation>
+    </Storyboard>
+
+    <!-- Entrance. Staggered by a tenth of a second per orb, which is enough to read
+         as three things arriving rather than one block appearing. -->
+    <Storyboard x:Key="PillarsArrive">
+        <DoubleAnimation Storyboard.TargetName="OrbOne" Storyboard.TargetProperty="Opacity"
+                         From="0" To="1" Duration="0:0:0.4" />
+        <DoubleAnimation Storyboard.TargetName="OrbTwo" Storyboard.TargetProperty="Opacity"
+                         From="0" To="1" BeginTime="0:0:0.1" Duration="0:0:0.4" />
+        <DoubleAnimation Storyboard.TargetName="OrbThree" Storyboard.TargetProperty="Opacity"
+                         From="0" To="1" BeginTime="0:0:0.2" Duration="0:0:0.4" />
+    </Storyboard>
+
     <!-- ============================ the rail ============================
 
          Labelled, grouped, and short enough to fit without moving. Seventeen

@@ -16,19 +16,19 @@
         blue-black and stops the surfaces reading as bare paper.
     -->
 
-    <Color x:Key="ShellTopColor">#F2F5FA</Color>
-    <Color x:Key="ShellBottomColor">#E5EAF3</Color>
+    <!-- The same violet, held far back. On a light ground the atmosphere has to be a
+         tint rather than a colour, or every surface laid on it loses its edges. -->
+    <Color x:Key="ShellTopColor">#E7DEFB</Color>
+    <Color x:Key="ShellBottomColor">#D4C7F2</Color>
 
     <SolidColorBrush x:Key="SurfaceBrush" Color="#FFFFFF" />
-    <SolidColorBrush x:Key="SurfaceRaisedBrush" Color="#F4F7FC" />
-    <SolidColorBrush x:Key="SurfaceSunkenBrush" Color="#E9EEF6" />
+    <SolidColorBrush x:Key="SurfaceRaisedBrush" Color="#F7F4FE" />
+    <SolidColorBrush x:Key="SurfaceSunkenBrush" Color="#EFEAFA" />
 
-    <!-- Tinted rather than white. A white rail against white cards would leave the
-         navigation with no edge of its own, and the hairline alone cannot carry it. -->
-    <LinearGradientBrush x:Key="SidebarBrush" StartPoint="0,0" EndPoint="0.7,1">
-        <GradientStop Color="#E3EAF8" Offset="0" />
-        <GradientStop Color="#DAE2F2" Offset="0.45" />
-        <GradientStop Color="#D1DAEC" Offset="1" />
+    <LinearGradientBrush x:Key="SidebarBrush" StartPoint="0,0" EndPoint="0.6,1">
+        <GradientStop Color="#DBCEF7" Offset="0" />
+        <GradientStop Color="#CFC0F1" Offset="0.5" />
+        <GradientStop Color="#C2B1EB" Offset="1" />
     </LinearGradientBrush>
 
     <LinearGradientBrush x:Key="BrandBlockBrush" StartPoint="0,0" EndPoint="1,1">
@@ -36,11 +36,27 @@
         <GradientStop Color="#CCD8EE" Offset="1" />
     </LinearGradientBrush>
 
-    <SolidColorBrush x:Key="HairlineBrush" Color="#D6DDE8" />
-    <SolidColorBrush x:Key="SidebarHairlineBrush" Color="#C2CCDF" />
+    <SolidColorBrush x:Key="HairlineBrush" Color="#DFD7F0" />
+    <SolidColorBrush x:Key="SidebarHairlineBrush" Color="#B4A2E2" />
 
-    <SolidColorBrush x:Key="HoverBrush" Color="#E2E8F2" />
-    <SolidColorBrush x:Key="SidebarHoverBrush" Color="#C9D4EA" />
+    <SolidColorBrush x:Key="HoverBrush" Color="#EAE3F9" />
+    <SolidColorBrush x:Key="SidebarHoverBrush" Color="#B9A6E8" />
+
+    <!-- ============================ the three pillars ============================
+         Kept saturated. These are large filled areas, where area supplies the
+         contrast a caption would need from darkness. -->
+    <Color x:Key="PillarCleanupTop">#4FA8F5</Color>
+    <Color x:Key="PillarCleanupBottom">#2360C4</Color>
+
+    <Color x:Key="PillarProtectionTop">#3ED397</Color>
+    <Color x:Key="PillarProtectionBottom">#128B62</Color>
+
+    <Color x:Key="PillarSpeedTop">#FF6E9E</Color>
+    <Color x:Key="PillarSpeedBottom">#D42E68</Color>
+
+    <SolidColorBrush x:Key="PillarCleanupBrush" Color="#2360C4" />
+    <SolidColorBrush x:Key="PillarProtectionBrush" Color="#128B62" />
+    <SolidColorBrush x:Key="PillarSpeedBrush" Color="#D42E68" />
 
     <!-- White, not grey: on light the toggle track is already pale, so an off knob
          has to be lighter than its track rather than darker. -->

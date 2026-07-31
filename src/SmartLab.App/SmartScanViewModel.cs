@@ -4,60 +4,86 @@ using CommunityToolkit.Mvvm.Input;
 
 namespace SmartLab.App;
 
-/// <summary>
-/// One section's read-only pass, as Smart Scan sees it.
-/// </summary>
-/// <remarks>
-/// A small interface rather than Smart Scan reaching into seven view models. It also
-/// makes the one rule enforceable: nothing here exposes a way to act, so the summary
-/// screen cannot grow a Fix All button by accident.
-/// </remarks>
-public interface IScannableSection
-{
-    /// <summary>Section key, matching the rail.</summary>
-    string SectionKey { get; }
-
-    /// <summary>Runs the measuring half only. Must never write.</summary>
-    Task<SectionOutcome> MeasureAsync(CancellationToken ct);
-}
-
 /// <param name="Tone">good, warning, danger, or neutral - as the Repair headline uses.</param>
 /// <param name="Skipped">
 /// True when the section could not run. Kept separate from a count of zero, because a
 /// section that could not look is not a section that found nothing.
 /// </param>
 public sealed record SectionOutcome(
-    string Title, int Findings, string Tone, string Summary, bool Skipped = false);
+    string Title, int Findings, string Tone, string Summary, bool Skipped = false)
+{
+    /// <summary>Bytes this section could reclaim, for the Cleanup pillar's total.</summary>
+    public long Bytes { get; init; }
 
-/// <summary>One row under the dial.</summary>
-public sealed partial class SectionResultViewModel(NavSection section) : ObservableObject
+    /// <summary>True when there is something here an apply could act on.</summary>
+    public bool IsActionable { get; init; }
+}
+
+/// <summary>Which of the three pillars a section reports under.</summary>
+public enum Pillar { Cleanup, Protection, Speed }
+
+/// <summary>One row under the pillars, and one line of the review list.</summary>
+public sealed partial class SectionResultViewModel(NavSection section, Pillar pillar) : ObservableObject
 {
     public NavSection Section { get; } = section;
+    public Pillar Pillar { get; } = pillar;
 
     public string Title => Section.Title;
 
     [ObservableProperty] private string _state = "waiting";
     [ObservableProperty] private int _findings;
+    [ObservableProperty] private long _bytes;
     [ObservableProperty] private string _summary = string.Empty;
     [ObservableProperty] private bool _skipped;
     [ObservableProperty] private string _tone = "neutral";
+    [ObservableProperty] private bool _isActionable;
+
+    /// <summary>
+    /// Whether the apply step will touch this section.
+    /// </summary>
+    /// <remarks>
+    /// Ticked by default only where the section's own defaults already are. Nothing
+    /// here overrides a section's judgement about what is safe to tick - the Recycle
+    /// Bin still arrives unticked inside Trash Bins, and this list cannot tick it.
+    /// </remarks>
+    [ObservableProperty] private bool _isSelected = true;
+}
+
+/// <summary>Where the front door is in its two-step flow.</summary>
+public enum ScanPhase
+{
+    /// <summary>Nothing has run.</summary>
+    Ready,
+
+    /// <summary>Measuring. Nothing has been changed.</summary>
+    Scanning,
+
+    /// <summary>Measured, waiting for the operator to confirm what to act on.</summary>
+    Reviewing,
+
+    /// <summary>Applying what was confirmed, using the previous scan's findings.</summary>
+    Applying,
+
+    /// <summary>Finished applying.</summary>
+    Done,
 }
 
 /// <summary>
-/// Runs the read-only half of every section that has one, and reports.
+/// The front door: scan everything, show what was found, act only on confirmation.
 /// </summary>
 /// <remarks>
 /// <para>
-/// <b>Smart Scan never applies anything.</b> Not with a confirmation, not behind a Dry
-/// run toggle. It measures, it summarises, and every row points at the section that
-/// owns the finding. One button that cleans, disables, removes and upgrades across a
-/// whole machine is precisely what this codebase's plan-then-approve design exists to
-/// prevent, and a test asserts no write command exists on this class so that adding
-/// one is a deliberate act rather than an afternoon's convenience.
+/// Two presses, never one. The first measures and changes nothing; the second acts on
+/// what the first found, and only on the rows still ticked. That is the same
+/// plan-then-approve the engine has always had, wearing the shape of a single big
+/// button - and it is why the button says Run rather than Fix.
 /// </para>
 /// <para>
-/// Findings are counted, never summed with bytes or package counts. A blended health
-/// score would let a worm hide behind a tidy temp folder.
+/// <b>Applying never re-scans.</b> Each section's apply works from the state its own
+/// measure left behind: Cleanup cleans the categories it measured, Trash Bins empties
+/// the bins it counted, Repair applies the plan its scan produced. Re-walking the
+/// machine would not only be slow, it would act on a different machine than the one
+/// the operator reviewed.
 /// </para>
 /// </remarks>
 public sealed partial class SmartScanViewModel(MainViewModel shell) : ObservableObject
@@ -66,36 +92,47 @@ public sealed partial class SmartScanViewModel(MainViewModel shell) : Observable
 
     public ObservableCollection<SectionResultViewModel> Results { get; } = [];
 
-    [ObservableProperty] private bool _isBusy;
+    [ObservableProperty] private ScanPhase _phase = ScanPhase.Ready;
 
     [ObservableProperty] private string _status =
-        "Runs the read-only half of every section. Nothing is cleaned, removed or upgraded.";
+        "Measures everything and changes nothing. You choose what happens next.";
 
-    [ObservableProperty] private int _findingCount;
-    [ObservableProperty] private string _headlineTone = "neutral";
     [ObservableProperty] private string _headline = "Ready when you are";
 
     [ObservableProperty] private string _headlineDetail =
-        "Measures the whole machine and points at whichever section owns each finding. " +
-        "It never acts on anything itself.";
+        "One pass over the whole machine. Nothing is cleaned, removed or upgraded until you say so.";
+
+    [ObservableProperty] private string _headlineTone = "neutral";
+
+    // ---- the three pillars -------------------------------------------------------
+
+    [ObservableProperty] private string _cleanupValue = "--";
+    [ObservableProperty] private string _protectionValue = "--";
+    [ObservableProperty] private string _speedValue = "--";
 
     [ObservableProperty] private bool _hasRun;
 
-    /// <summary>
-    /// Always full.
-    /// </summary>
-    /// <remarks>
-    /// There is no denominator for "how much is wrong with this machine", so the ring
-    /// carries the worst verdict in its colour instead - Repair's precedent.
-    /// </remarks>
-    public static double GaugePercent => 1.0;
+    public bool IsScanning => Phase is ScanPhase.Scanning;
+    public bool IsBusy => Phase is ScanPhase.Scanning or ScanPhase.Applying;
+    public bool IsReviewing => Phase is ScanPhase.Reviewing or ScanPhase.Done;
 
-    private bool CanScan() => !IsBusy;
+    partial void OnPhaseChanged(ScanPhase value)
+    {
+        OnPropertyChanged(nameof(IsScanning));
+        OnPropertyChanged(nameof(IsBusy));
+        OnPropertyChanged(nameof(IsReviewing));
 
+        ScanCommand.NotifyCanExecuteChanged();
+        ApplyCommand.NotifyCanExecuteChanged();
+    }
+
+    private bool CanScan() => Phase is ScanPhase.Ready or ScanPhase.Reviewing or ScanPhase.Done;
+
+    /// <summary>Measures every section that has a read-only pass. Changes nothing.</summary>
     [RelayCommand(CanExecute = nameof(CanScan))]
     private async Task ScanAsync()
     {
-        IsBusy = true;
+        Phase = ScanPhase.Scanning;
         HasRun = false;
         Results.Clear();
 
@@ -104,14 +141,14 @@ public sealed partial class SmartScanViewModel(MainViewModel shell) : Observable
 
         try
         {
-            foreach (var (key, run) in Passes())
+            foreach (var (key, pillar, run) in Passes())
             {
                 if (token.IsCancellationRequested) break;
 
                 var section = shell.Sections.FirstOrDefault(s => s.Key == key);
                 if (section is null) continue;
 
-                var row = new SectionResultViewModel(section) { State = "running" };
+                var row = new SectionResultViewModel(section, pillar) { State = "measuring" };
                 Results.Add(row);
 
                 Status = $"Measuring {section.Title}...";
@@ -119,34 +156,108 @@ public sealed partial class SmartScanViewModel(MainViewModel shell) : Observable
                 var outcome = await run(token).ConfigureAwait(true);
 
                 row.Findings = outcome.Findings;
+                row.Bytes = outcome.Bytes;
                 row.Summary = outcome.Summary;
                 row.Skipped = outcome.Skipped;
                 row.Tone = outcome.Tone;
-                row.State = outcome.Skipped ? "skipped" : $"{outcome.Findings} finding(s)";
+                row.IsActionable = outcome.IsActionable;
+                row.IsSelected = outcome.IsActionable;
+                row.State = outcome.Skipped ? "skipped" : $"{outcome.Findings}";
 
                 Badge(section, outcome);
                 UpdateSummary();
             }
 
             HasRun = true;
+            Phase = ScanPhase.Reviewing;
             UpdateSummary();
 
             var skipped = Results.Count(r => r.Skipped);
 
             Status = skipped == 0
-                ? $"{FindingCount} finding(s) across {Results.Count} section(s). Nothing has been changed."
-                : $"{FindingCount} finding(s), and {skipped} section(s) could not run. " +
-                  "A skipped section is not a clean one.";
+                ? "Nothing has been changed. Review what was found, then confirm."
+                : $"{skipped} section(s) could not run and are not counted as clean. " +
+                  "Nothing has been changed.";
         }
         catch (Exception ex)
         {
-            Status = $"Smart Scan failed: {ex.Message}";
+            Phase = ScanPhase.Ready;
+            Status = $"Scan failed: {ex.Message}";
         }
         finally
         {
             _cancellation?.Dispose();
             _cancellation = null;
-            IsBusy = false;
+        }
+    }
+
+    private bool CanApply() => Phase is ScanPhase.Reviewing && Results.Any(r => r.IsSelected && r.IsActionable);
+
+    /// <summary>
+    /// Acts on what the scan found, and only on what is still ticked.
+    /// </summary>
+    /// <remarks>
+    /// Every call below runs a section's own apply, which works from the state that
+    /// section's measure left behind. Nothing here re-walks the machine: the operator
+    /// reviewed a particular set of findings, and acting on a freshly gathered set
+    /// would be acting on something they never saw.
+    /// </remarks>
+    [RelayCommand(CanExecute = nameof(CanApply))]
+    private async Task ApplyAsync()
+    {
+        Phase = ScanPhase.Applying;
+
+        try
+        {
+            foreach (var row in Results.Where(r => r.IsSelected && r.IsActionable).ToArray())
+            {
+                Status = $"Applying {row.Title}...";
+                row.State = "applying";
+
+                await ApplyOne(row.Section.Key).ConfigureAwait(true);
+
+                row.State = "done";
+                row.IsActionable = false;
+            }
+
+            Phase = ScanPhase.Done;
+            Status = "Done. Each section's own screen has the detail of what it did.";
+            UpdateSummary();
+        }
+        catch (Exception ex)
+        {
+            Phase = ScanPhase.Reviewing;
+            Status = $"Apply failed: {ex.Message}";
+        }
+    }
+
+    /// <remarks>
+    /// Dry run is left exactly as each section has it. A confirmation on this screen
+    /// is consent to run the section's verb, not permission to override the guard the
+    /// section put in front of it.
+    /// </remarks>
+    private async Task ApplyOne(string key)
+    {
+        switch (key)
+        {
+            case "repair":
+                await shell.ApplyCommand.ExecuteAsync(null).ConfigureAwait(true);
+                break;
+            case "cleanup":
+                await shell.Cleanup.CleanCommand.ExecuteAsync(null).ConfigureAwait(true);
+                break;
+            case "mail":
+                await shell.Mail.CleanCommand.ExecuteAsync(null).ConfigureAwait(true);
+                break;
+            case "trash":
+                shell.TrashBins.EmptyTickedCommand.Execute(null);
+                break;
+            case "optimize":
+                shell.Optimization.DisableTickedCommand.Execute(null);
+                break;
+            case "updater":
+                await shell.Updater.UpgradeTickedCommand.ExecuteAsync(null).ConfigureAwait(true);
+                break;
         }
     }
 
@@ -164,20 +275,29 @@ public sealed partial class SmartScanViewModel(MainViewModel shell) : Observable
         if (row is not null) shell.SelectedSection = row.Section;
     }
 
+    /// <summary>Opens the first section of a pillar, for its Review details button.</summary>
+    [RelayCommand]
+    private void OpenPillar(Pillar pillar)
+    {
+        var row = Results.FirstOrDefault(r => r.Pillar == pillar && !r.Skipped && r.Findings > 0)
+            ?? Results.FirstOrDefault(r => r.Pillar == pillar);
+
+        if (row is not null) shell.SelectedSection = row.Section;
+    }
+
     /// <summary>
     /// Writes a section's count onto its rail entry.
     /// </summary>
     /// <remarks>
     /// This is what stops Home being a screen you must return to: once a check has run,
-    /// the navigation itself reports what each section found, so the state of the
-    /// machine is legible from wherever the operator happens to be standing.
+    /// the navigation itself reports what each section found.
     /// </remarks>
     private static void Badge(NavSection section, SectionOutcome outcome)
     {
         if (outcome.Skipped)
         {
-            // A skipped section shows a mark rather than a zero. Zero is a finding;
-            // "could not look" is not, and the two must never share a glyph.
+            // A mark rather than a zero. Zero is a finding; "could not look" is not,
+            // and the two must never share a glyph.
             section.Badge = "?";
             section.BadgeTone = "warn";
             return;
@@ -199,21 +319,21 @@ public sealed partial class SmartScanViewModel(MainViewModel shell) : Observable
     }
 
     /// <summary>
-    /// The read-only passes, in order.
+    /// The read-only passes, in order, each under the pillar it reports to.
     /// </summary>
     /// <remarks>
     /// Space Lens, Shredder, Repair OS and Add-ons are absent on purpose. The first two
     /// are exploratory rather than diagnostic, and the last two produce nothing a
     /// number can carry without a person reading the output.
     /// </remarks>
-    private IEnumerable<(string Key, Func<CancellationToken, Task<SectionOutcome>> Run)> Passes()
+    private IEnumerable<(string Key, Pillar Pillar, Func<CancellationToken, Task<SectionOutcome>> Run)> Passes()
     {
-        yield return ("repair", RepairPass);
-        yield return ("cleanup", CleanupPass);
-        yield return ("trash", TrashPass);
-        yield return ("mail", MailPass);
-        yield return ("optimize", StartupPass);
-        yield return ("updater", UpdaterPass);
+        yield return ("repair", Pillar.Protection, RepairPass);
+        yield return ("cleanup", Pillar.Cleanup, CleanupPass);
+        yield return ("trash", Pillar.Cleanup, TrashPass);
+        yield return ("mail", Pillar.Cleanup, MailPass);
+        yield return ("optimize", Pillar.Speed, StartupPass);
+        yield return ("updater", Pillar.Speed, UpdaterPass);
     }
 
     private async Task<SectionOutcome> RepairPass(CancellationToken ct)
@@ -228,17 +348,25 @@ public sealed partial class SmartScanViewModel(MainViewModel shell) : Observable
 
         var findings = shell.ThreatCount + shell.AnomalyCount + shell.DamagedCount;
 
-        return new SectionOutcome("Repair", findings, shell.HeadlineTone, shell.HeadlineDetail);
+        return new SectionOutcome("Repair", findings, shell.HeadlineTone, shell.HeadlineDetail)
+        {
+            IsActionable = shell.Actions.Any(a => a.IsSelected),
+        };
     }
 
     private async Task<SectionOutcome> CleanupPass(CancellationToken ct)
     {
         await shell.Cleanup.AnalyseCommand.ExecuteAsync(null).ConfigureAwait(true);
 
+        var bytes = shell.Cleanup.Categories.Where(c => c.IsSelected && c.Measured).Sum(c => c.Bytes);
         var measured = shell.Cleanup.Categories.Count(c => c.Measured && c.Bytes > 0);
 
         return new SectionOutcome("System Junk", measured, measured > 0 ? "warning" : "good",
-            $"{shell.Cleanup.TotalText} reclaimable from the ticked categories.");
+            $"{shell.Cleanup.TotalText} reclaimable from the ticked categories.")
+        {
+            Bytes = bytes,
+            IsActionable = bytes > 0,
+        };
     }
 
     private Task<SectionOutcome> TrashPass(CancellationToken ct)
@@ -247,17 +375,30 @@ public sealed partial class SmartScanViewModel(MainViewModel shell) : Observable
 
         var bins = shell.TrashBins.Bins.Count(b => b.Items > 0);
 
+        // Bytes deliberately excluded from the Cleanup total. The bin is where deleted
+        // files are recovered from, so counting it as space this tool would free would
+        // put the headline figure at odds with what an apply actually does - nothing,
+        // because every bin arrives unticked.
         return Task.FromResult(new SectionOutcome("Trash Bins", bins, "neutral",
-            $"{shell.TrashBins.ItemCount:N0} deleted item(s) still recoverable from Explorer."));
+            $"{shell.TrashBins.ItemCount:N0} deleted item(s) still recoverable from Explorer.")
+        {
+            IsActionable = shell.TrashBins.Bins.Any(b => b.IsSelected),
+        });
     }
 
     private async Task<SectionOutcome> MailPass(CancellationToken ct)
     {
         await shell.Mail.ScanCommand.ExecuteAsync(null).ConfigureAwait(true);
 
+        var bytes = shell.Mail.Attachments.Where(a => a.IsSelected).Sum(a => a.SizeBytes);
+
         return new SectionOutcome("Mail", shell.Mail.FileCount,
             shell.Mail.FileCount > 0 ? "warning" : "good",
-            $"{shell.Mail.FileCount} cached attachment cop(ies), {shell.Mail.TotalText}.");
+            $"{shell.Mail.FileCount} cached attachment cop(ies), {shell.Mail.TotalText}.")
+        {
+            Bytes = bytes,
+            IsActionable = shell.Mail.FileCount > 0,
+        };
     }
 
     private Task<SectionOutcome> StartupPass(CancellationToken ct)
@@ -265,7 +406,10 @@ public sealed partial class SmartScanViewModel(MainViewModel shell) : Observable
         shell.Optimization.ScanCommand.Execute(null);
 
         return Task.FromResult(new SectionOutcome("Startup", shell.Optimization.ItemCount, "neutral",
-            $"{shell.Optimization.ItemCount} entr(ies) run at logon."));
+            $"{shell.Optimization.ItemCount} entr(ies) run at logon.")
+        {
+            IsActionable = shell.Optimization.Items.Any(i => i.IsSelected),
+        });
     }
 
     private async Task<SectionOutcome> UpdaterPass(CancellationToken ct)
@@ -283,16 +427,32 @@ public sealed partial class SmartScanViewModel(MainViewModel shell) : Observable
 
         return new SectionOutcome("Updater", shell.Updater.PackageCount,
             shell.Updater.PackageCount > 0 ? "warning" : "good",
-            $"{shell.Updater.PackageCount} package(s) have a newer version.");
+            $"{shell.Updater.PackageCount} package(s) have a newer version.")
+        {
+            IsActionable = shell.Updater.Packages.Any(p => p.IsSelected),
+        };
     }
 
     private void UpdateSummary()
     {
-        FindingCount = Results.Where(r => !r.Skipped).Sum(r => r.Findings);
+        var live = Results.Where(r => !r.Skipped).ToArray();
+
+        CleanupValue = Size(live.Where(r => r.Pillar == Pillar.Cleanup).Sum(r => r.Bytes));
+        ProtectionValue = live.Where(r => r.Pillar == Pillar.Protection).Sum(r => r.Findings).ToString();
+        SpeedValue = live.Count(r => r.Pillar == Pillar.Speed && r.IsActionable).ToString();
 
         (Headline, HeadlineDetail, HeadlineTone) = Summarise(
-            FindingCount, Results.Count, Results.Count(r => r.Skipped), WorstTone(), HasRun);
+            live.Sum(r => r.Findings), Results.Count, Results.Count(r => r.Skipped), WorstTone(), Phase);
+
+        ApplyCommand.NotifyCanExecuteChanged();
     }
+
+    private static string Size(long bytes) => bytes switch
+    {
+        0 => "0",
+        < 1024L * 1024 * 1024 => $"{bytes / 1024.0 / 1024:F0} MB",
+        _ => $"{bytes / 1024.0 / 1024 / 1024:F2} GB",
+    };
 
     /// <remarks>
     /// Worst wins. A machine with one worm and six tidy sections is not "mostly fine",
@@ -309,23 +469,36 @@ public sealed partial class SmartScanViewModel(MainViewModel shell) : Observable
         return "neutral";
     }
 
-    /// <summary>The heading above the dial.</summary>
+    /// <summary>The heading over the pillars.</summary>
     /// <remarks>
-    /// A skipped section is never folded into a clean verdict. It is the easiest lie
-    /// for a summary screen to tell and the hardest for a reader to notice.
+    /// A skipped section is never folded into a clean verdict. It is the easiest lie a
+    /// summary screen can tell and the hardest for a reader to notice.
     /// </remarks>
     public static (string Headline, string Detail, string Tone) Summarise(
-        int findings, int sections, int skipped, string worstTone, bool hasRun)
+        int findings, int sections, int skipped, string worstTone, ScanPhase phase)
     {
-        if (!hasRun)
+        if (phase is ScanPhase.Scanning)
+            return ("Looking through everything", "Nothing is being changed.", "neutral");
+
+        if (phase is ScanPhase.Applying)
+            return ("Working through what you confirmed", "Only the ticked rows.", "neutral");
+
+        if (phase is ScanPhase.Done)
+        {
+            return ("Done",
+                "Each section's own screen has the detail of what it did. Run again to see what is left.",
+                "good");
+        }
+
+        if (phase is ScanPhase.Ready)
         {
             return ("Ready when you are",
-                "Measures the whole machine and points at whichever section owns each finding. " +
-                "It never acts on anything itself.", "neutral");
+                "One pass over the whole machine. Nothing is cleaned, removed or upgraded until you say so.",
+                "neutral");
         }
 
         var detail = $"{findings} finding(s) across {sections - skipped} section(s). " +
-                     "Open any row to deal with it in the section that owns it - nothing here acts.";
+                     "Nothing has been changed - tick what you want done and confirm.";
 
         if (skipped > 0)
         {
@@ -337,6 +510,6 @@ public sealed partial class SmartScanViewModel(MainViewModel shell) : Observable
         if (findings == 0)
             return ("Nothing needs attention", detail, "good");
 
-        return (worstTone == "danger" ? "Needs attention now" : "Some things to look at", detail, worstTone);
+        return (worstTone == "danger" ? "Needs attention now" : "Here is what I found", detail, worstTone);
     }
 }
