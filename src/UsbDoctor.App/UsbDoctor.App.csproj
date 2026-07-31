@@ -34,6 +34,11 @@
 
   <ItemGroup>
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.3.2" />
+
+    <!-- Solid-state detection for the Shredder, which has to know what it may claim:
+         on an SSD an overwrite does not replace the original blocks. WMI's storage
+         namespace is the only place Windows exposes MediaType. -->
+    <PackageReference Include="System.Management" Version="8.0.0" />
   </ItemGroup>
 
   <ItemGroup>
