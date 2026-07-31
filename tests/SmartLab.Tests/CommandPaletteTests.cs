@@ -97,6 +97,168 @@ public sealed class CommandPaletteTests
 }
 
 /// <summary>
+/// The keyboard path: open, type, arrow, Enter.
+/// </summary>
+/// <remarks>
+/// The window owns the key handling, but every decision it delegates lives here, so
+/// the sequence can be driven without a WPF message loop. What these cannot prove is
+/// that the keys reach the view model at all - that is what the palette capture in
+/// <c>--screenshot</c> is for.
+/// </remarks>
+public sealed class CommandPaletteKeyboardTests
+{
+    private static CommandPaletteViewModel Palette() => new MainViewModel().CommandPalette;
+
+    [Fact]
+    public void OpeningWithNoQueryOffersSectionsAndSelectsTheFirst()
+    {
+        var palette = Palette();
+        palette.Open();
+
+        Assert.True(palette.IsOpen);
+        Assert.NotEmpty(palette.Results);
+        Assert.Same(palette.Results[0], palette.Selected);
+        Assert.True(palette.Selected!.IsSection);
+    }
+
+    [Fact]
+    public void OpeningTwiceClearsWhateverWasTypedBefore()
+    {
+        // Otherwise the palette reopens showing the last search, and Enter runs
+        // something the user typed a minute ago.
+        var palette = Palette();
+        palette.Open();
+        palette.Query = "shred";
+
+        palette.Open();
+
+        Assert.Equal(string.Empty, palette.Query);
+    }
+
+    [Fact]
+    public void ArrowingMovesTheHighlightAndOnlyOneRowHoldsIt()
+    {
+        var palette = Palette();
+        palette.Open();
+
+        var first = palette.Selected;
+        palette.Move(1);
+
+        Assert.NotSame(first, palette.Selected);
+        Assert.False(first!.IsSelected);
+        Assert.True(palette.Selected!.IsSelected);
+        Assert.Single(palette.Results, r => r.IsSelected);
+    }
+
+    [Fact]
+    public void ArrowingPastTheEndsWraps()
+    {
+        var palette = Palette();
+        palette.Open();
+
+        palette.Move(-1);
+        Assert.Same(palette.Results[^1], palette.Selected);
+
+        palette.Move(1);
+        Assert.Same(palette.Results[0], palette.Selected);
+    }
+
+    [Fact]
+    public void TypingNarrowsTheResultsAndReselects()
+    {
+        var palette = Palette();
+        palette.Open();
+        palette.Query = "shred";
+
+        Assert.NotEmpty(palette.Results);
+        Assert.All(palette.Results, r =>
+            Assert.True(
+                r.Title.Contains("shred", StringComparison.OrdinalIgnoreCase) ||
+                r.Context.Contains("shred", StringComparison.OrdinalIgnoreCase)));
+
+        Assert.Same(palette.Results[0], palette.Selected);
+    }
+
+    [Fact]
+    public void AQueryThatMatchesNothingLeavesNothingSelected()
+    {
+        // Enter must then do nothing rather than run whatever was highlighted before.
+        var palette = Palette();
+        palette.Open();
+        palette.Query = "zzzzzzz";
+
+        Assert.Empty(palette.Results);
+        Assert.Null(palette.Selected);
+    }
+
+    [Fact]
+    public void EnterOnASectionNavigatesAndCloses()
+    {
+        var shell = new MainViewModel();
+        var palette = shell.CommandPalette;
+
+        palette.Open();
+        palette.Query = "Shredder";
+
+        var target = palette.Selected;
+        Assert.NotNull(target);
+
+        palette.InvokeCommand.Execute(null);
+
+        Assert.False(palette.IsOpen);
+        Assert.Equal(target!.SectionKey, shell.SelectedSection!.Key);
+    }
+
+    [Fact]
+    public void EnterWithNothingSelectedIsHarmless()
+    {
+        var shell = new MainViewModel();
+        var palette = shell.CommandPalette;
+
+        palette.Open();
+        palette.Query = "zzzzzzz";
+
+        var before = shell.SelectedSection;
+        palette.InvokeCommand.Execute(null);
+
+        Assert.Same(before, shell.SelectedSection);
+    }
+
+    [Fact]
+    public void EveryActionPointsAtASectionThatExists()
+    {
+        // An action whose SectionKey is a typo navigates nowhere and then runs, so
+        // the result lands on a screen the operator is not looking at.
+        var shell = new MainViewModel();
+        var palette = shell.CommandPalette;
+        var keys = shell.Sections.Select(s => s.Key).ToHashSet(StringComparer.Ordinal);
+
+        palette.Open();
+
+        foreach (var letter in "abcdefghijklmnopqrstuvwxyz")
+        {
+            palette.Query = letter.ToString();
+
+            foreach (var entry in palette.Results)
+                Assert.True(keys.Contains(entry.SectionKey), $"'{entry.Title}' -> '{entry.SectionKey}'");
+        }
+    }
+
+    [Fact]
+    public void ClosingLeavesTheShellWhereItWas()
+    {
+        var shell = new MainViewModel();
+        var before = shell.SelectedSection;
+
+        shell.CommandPalette.Open();
+        shell.CommandPalette.CloseCommand.Execute(null);
+
+        Assert.False(shell.CommandPalette.IsOpen);
+        Assert.Same(before, shell.SelectedSection);
+    }
+}
+
+/// <summary>
 /// Rail badges, which turn the navigation into the summary.
 /// </summary>
 public sealed class RailBadgeTests

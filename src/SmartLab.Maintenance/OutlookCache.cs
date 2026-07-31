@@ -44,10 +44,15 @@ public static class OutlookCache
     /// Discovered rather than hardcoded: the leaf folder carries a random suffix that
     /// differs on every machine, and a profile can have more than one.
     /// </remarks>
-    public static IReadOnlyList<string> FindCacheFolders()
+    /// <param name="localAppData">
+    /// Overridden only by tests, which build the real folder shape under a temp root.
+    /// Without a seam here the scanner can only be exercised on a machine that happens
+    /// to have Outlook installed and an attachment opened, which is not a test.
+    /// </param>
+    public static IReadOnlyList<string> FindCacheFolders(string? localAppData = null)
     {
         var inetCache = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            localAppData ?? Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             "Microsoft", "Windows", "INetCache", "Content.Outlook");
 
         try
@@ -75,11 +80,11 @@ public static class OutlookCache
     }
 
     /// <summary>Everything in the cache folders that is safe to offer.</summary>
-    public static IReadOnlyList<CachedAttachment> Scan()
+    public static IReadOnlyList<CachedAttachment> Scan(string? localAppData = null)
     {
         var found = new List<CachedAttachment>();
 
-        foreach (var folder in FindCacheFolders())
+        foreach (var folder in FindCacheFolders(localAppData))
         {
             IEnumerable<string> files;
 

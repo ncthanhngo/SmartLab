@@ -76,7 +76,9 @@ public sealed partial class MailAttachmentsViewModel : ObservableObject
         {
             Status = "Reading the attachment cache...";
 
-            var found = await Task.Run(OutlookCache.Scan).ConfigureAwait(true);
+            // Wrapped in a lambda rather than passed as a method group: the scanner
+            // takes an optional root for tests, which makes the group ambiguous.
+            var found = await Task.Run(() => OutlookCache.Scan()).ConfigureAwait(true);
 
             foreach (var attachment in found)
             {

@@ -222,6 +222,11 @@ public partial class MainWindow : Window
     /// </remarks>
     private async Task CaptureSectionsAsync(string directory)
     {
+        // Listening before the first section is selected, so the traversal below is
+        // also a binding check. A binding to a property that does not exist renders
+        // as an empty string and says nothing; this is what makes it say something.
+        var bindings = BindingErrorLog.Attach();
+
         try
         {
             Directory.CreateDirectory(directory);
@@ -292,6 +297,8 @@ public partial class MainWindow : Window
 
                 Save(section.Key, directory);
             }
+
+            await CapturePaletteAsync(directory).ConfigureAwait(true);
         }
         catch (Exception ex)
         {
@@ -299,9 +306,44 @@ public partial class MainWindow : Window
         }
         finally
         {
+            bindings.Detach();
+
+            // Written every run, including when it is empty. A report that only
+            // appears on failure is one nobody knows to look for.
+            File.WriteAllLines(
+                Path.Combine(directory, "binding-errors.txt"),
+                bindings.Errors.Count == 0
+                    ? ["No binding errors."]
+                    : bindings.Errors);
+
             _reallyExiting = true;
             Application.Current.Shutdown();
         }
+    }
+
+    /// <summary>
+    /// Opens the palette, types into it, and captures the result.
+    /// </summary>
+    /// <remarks>
+    /// The palette is the one part of the interface a screenshot run would otherwise
+    /// never reach, because it is not a section. Driving it here exercises opening,
+    /// querying, ranking and the row template - and puts a picture of it beside the
+    /// seventeen stages.
+    /// </remarks>
+    private async Task CapturePaletteAsync(string directory)
+    {
+        if (ViewModel is not { } viewModel) return;
+
+        OpenPalette();
+        viewModel.CommandPalette.Query = "trash";
+
+        await Dispatcher.Yield(DispatcherPriority.ContextIdle);
+        UpdateLayout();
+        await Dispatcher.Yield(DispatcherPriority.ContextIdle);
+
+        Save("palette", directory);
+
+        viewModel.CommandPalette.CloseCommand.Execute(null);
     }
 
     private void Save(string key, string directory)

@@ -99,10 +99,15 @@ public static class BrowserExtensionScanner
         }
     }
 
-    public static IReadOnlyList<BrowserExtension> Scan()
+    /// <param name="localAppData">
+    /// Overridden only by tests, which build a real profile shape under a temp root.
+    /// Without a seam the scanner can only run on a machine that happens to have
+    /// extensions installed, and this one has none.
+    /// </param>
+    public static IReadOnlyList<BrowserExtension> Scan(string? localAppData = null)
     {
         var found = new List<BrowserExtension>();
-        var local = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+        var local = localAppData ?? Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
 
         foreach (var (browser, segments) in Profiles)
         {

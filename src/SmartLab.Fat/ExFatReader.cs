@@ -179,6 +179,11 @@ public sealed class ExFatReader : IRawFileSystem
     {
         if (firstCluster < 2 || length <= 0) return [];
 
+        // exFAT stores a 64-bit size, so a corrupt entry can declare more bytes than
+        // exist on any device. See the note in Fat32Reader: an untrusted length must
+        // never become an unbounded allocation.
+        if (!RawFileSystem.IsPlausibleLength(length, _sectors.DeviceLength)) return [];
+
         var buffer = new byte[length];
         var written = 0;
 

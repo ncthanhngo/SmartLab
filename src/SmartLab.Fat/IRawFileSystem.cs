@@ -147,6 +147,35 @@ public interface IRawFileSystem
 /// <summary>Opens whichever supported filesystem a device holds.</summary>
 public static class RawFileSystem
 {
+    /// <summary>
+    /// Whether a size read off a directory entry is worth allocating for.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Every length the carve receives comes from a directory entry on a volume that
+    /// is damaged by definition - that is why the entry is being carved. A corrupt
+    /// size field is not an edge case here, it is the expected input, and
+    /// <c>new byte[length]</c> on one turns a bad four bytes into an
+    /// OutOfMemoryException that ends the whole recovery run.
+    /// </para>
+    /// <para>
+    /// Bounded by the device where its length is known, and by a ceiling where it is
+    /// not. Nothing on a removable volume this tool exists to rescue is larger than
+    /// the volume holding it.
+    /// </para>
+    /// </remarks>
+    /// <param name="deviceLength">Bytes on the device, or 0 when it cannot be read.</param>
+    public static bool IsPlausibleLength(long length, long deviceLength)
+    {
+        if (length <= 0) return false;
+
+        // Array.MaxLength is the hard limit regardless of what the device says.
+        if (length > Array.MaxLength) return false;
+
+        return deviceLength <= 0 || length <= deviceLength;
+    }
+
+
     public static bool TryOpen(Stream stream, out IRawFileSystem? fileSystem, out string? error)
     {
         if (Fat32Reader.TryOpen(stream, out var fat32, out var fatError))

@@ -83,7 +83,9 @@ public sealed partial class ExtensionsViewModel : ObservableObject
         {
             Status = "Reading extension manifests...";
 
-            var browser = await Task.Run(BrowserExtensionScanner.Scan).ConfigureAwait(true);
+            // Wrapped in a lambda rather than passed as a method group: the scanner
+            // takes an optional root for tests, which makes the group ambiguous.
+            var browser = await Task.Run(() => BrowserExtensionScanner.Scan()).ConfigureAwait(true);
             var shell = await Task.Run(ShellExtensionScanner.Scan).ConfigureAwait(true);
 
             foreach (var extension in browser) Extensions.Add(new ExtensionViewModel(extension));

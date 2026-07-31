@@ -24,6 +24,29 @@ internal sealed class SectorReader(Stream stream, int sectorSize)
     private long _cachedSectorIndex = -1;
 
     /// <summary>
+    /// How long the device is, or 0 when it will not say.
+    /// </summary>
+    /// <remarks>
+    /// Exposed so a carve can refuse a length no device could hold. Sizes are read
+    /// from directory entries on a damaged volume, where they are exactly as
+    /// trustworthy as the damage allows.
+    /// </remarks>
+    public long DeviceLength
+    {
+        get
+        {
+            try
+            {
+                return stream.CanSeek ? stream.Length : 0;
+            }
+            catch
+            {
+                return 0;
+            }
+        }
+    }
+
+    /// <summary>
     /// Reads <paramref name="destination"/>.Length bytes from <paramref name="offset"/>.
     /// </summary>
     /// <returns>False if the range is unreadable or runs past the end of the device.</returns>

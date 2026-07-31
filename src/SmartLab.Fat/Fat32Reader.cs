@@ -83,6 +83,13 @@ public sealed class Fat32Reader : IRawFileSystem
     {
         if (firstCluster < 2 || length <= 0) return [];
 
+        // The length came off a directory entry on a damaged volume, so it is exactly
+        // as trustworthy as the damage allows. Allocating it unbounded turns one
+        // corrupt size field into an OutOfMemoryException that takes the carve - and
+        // on a big enough value, the process - down with it. Refusing a length no
+        // device could hold costs one comparison.
+        if (!RawFileSystem.IsPlausibleLength(length, _sectors.DeviceLength)) return [];
+
         var buffer = new byte[length];
         var clusterSize = _boot.BytesPerCluster;
         var written = 0;

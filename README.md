@@ -488,6 +488,15 @@ the allocation bitmap on exFAT:
 | `Superseded` | In use by a live entry starting at the same cluster — the data is intact, just renamed. |
 | `Unknown` | Allocation state unreadable. Never reported as safe. |
 
+**A carve is capped just under 2 GB.** `ReadContiguous` builds one `byte[]`, and .NET
+caps an array below that, so a larger file is refused rather than attempted. Every
+length reaching the carve comes from a directory entry on a volume that is damaged by
+definition — a corrupt size field is the expected input, not an edge case — so
+`IsPlausibleLength` also refuses anything the device could not hold. Before that check
+a bad four bytes became an `OutOfMemoryException` part-way through a recovery run.
+Lifting the cap means streaming to the destination file instead of buffering, which is
+worth doing when a fragmented-file rebuild lands.
+
 `Superseded` exists because of a false negative caught on real hardware. After a
 rescue moved files to the volume root, their old entries were deleted while the
 new ones pointed at the same clusters. The allocation table honestly reports those
