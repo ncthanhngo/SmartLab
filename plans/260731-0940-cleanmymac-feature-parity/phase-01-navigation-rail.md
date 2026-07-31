@@ -5,10 +5,10 @@ take them today.
 
 ## Context
 
-- `src/UsbDoctor.App/MainWindow.xaml` — the rail is a `ListBox` styled by `NavList`,
+- `src/SmartLab.App/MainWindow.xaml` — the rail is a `ListBox` styled by `NavList`,
   76 px wide, items 60x54 with a glyph over an 8.5 pt label.
-- `src/UsbDoctor.App/MainViewModel.cs` — `NavSection` and the `Sections` collection.
-- `src/UsbDoctor.App/Themes/Controls.xaml` — `NavList`.
+- `src/SmartLab.App/MainViewModel.cs` — `NavSection` and the `Sections` collection.
+- `src/SmartLab.App/Themes/Controls.xaml` — `NavList`.
 
 ## The problem
 
@@ -51,15 +51,15 @@ path.
 
 | Action | Path |
 | --- | --- |
-| modify | `src/UsbDoctor.App/MainViewModel.cs` |
-| modify | `src/UsbDoctor.App/MainWindow.xaml` |
-| modify | `src/UsbDoctor.App/Themes/Controls.xaml` |
-| modify | `src/UsbDoctor.App/Themes/Palette.Dark.xaml` |
-| modify | `src/UsbDoctor.App/Themes/Palette.Light.xaml` |
-| create | `src/UsbDoctor.App/Views/SectionTemplateSelector.cs` |
-| create | `src/UsbDoctor.App/Views/SectionTemplates.xaml` |
-| create | `src/UsbDoctor.App/Views/*.xaml` — one per section |
-| create | `tests/UsbDoctor.Tests/NavigationTests.cs` |
+| modify | `src/SmartLab.App/MainViewModel.cs` |
+| modify | `src/SmartLab.App/MainWindow.xaml` |
+| modify | `src/SmartLab.App/Themes/Controls.xaml` |
+| modify | `src/SmartLab.App/Themes/Palette.Dark.xaml` |
+| modify | `src/SmartLab.App/Themes/Palette.Light.xaml` |
+| create | `src/SmartLab.App/Views/SectionTemplateSelector.cs` |
+| create | `src/SmartLab.App/Views/SectionTemplates.xaml` |
+| create | `src/SmartLab.App/Views/*.xaml` — one per section |
+| create | `tests/SmartLab.Tests/NavigationTests.cs` |
 
 ## Steps
 
@@ -89,7 +89,7 @@ path.
 
 ## Validation
 
-`UsbDoctor.App.exe --screenshot` at both the default and minimum window size, in both
+`SmartLab.App.exe --screenshot` at both the default and minimum window size, in both
 themes. Every rail entry must be reachable and no heading may clip.
 
 ## Risks and rollback

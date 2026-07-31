@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0-windows</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\SmartLab.Core\SmartLab.Core.csproj" />
+    <ProjectReference Include="..\SmartLab.Signatures\SmartLab.Signatures.csproj" />
+    <ProjectReference Include="..\SmartLab.Win32\SmartLab.Win32.csproj" />
+  </ItemGroup>
+
+</Project>

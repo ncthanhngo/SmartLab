@@ -1,0 +1,32 @@
+<Application x:Class="SmartLab.App.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             StartupUri="MainWindow.xaml">
+    <Application.Resources>
+        <ResourceDictionary>
+            <!--
+                Tokens must load before Controls and Logo, which resolve radii and
+                typefaces from it with StaticResource at parse time.
+
+                The palette listed here is only the starting one. ThemeManager
+                replaces this entry at startup and whenever the theme changes, which
+                works because every colour is referenced with DynamicResource.
+            -->
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="Themes/Tokens.xaml" />
+                <ResourceDictionary Source="Themes/Palette.Dark.xaml" />
+                <ResourceDictionary Source="Themes/Controls.xaml" />
+                <ResourceDictionary Source="Themes/Logo.xaml" />
+
+                <!-- Section stages, one dictionary per rail group. They resolve
+                     styles from Controls with StaticResource, so they load after it. -->
+                <ResourceDictionary Source="Views/Sections.Shell.xaml" />
+                <ResourceDictionary Source="Views/Sections.Cleanup.xaml" />
+                <ResourceDictionary Source="Views/Sections.Protection.xaml" />
+                <ResourceDictionary Source="Views/Sections.Applications.xaml" />
+                <ResourceDictionary Source="Views/Sections.Files.xaml" />
+                <ResourceDictionary Source="Views/Sections.Speed.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>

@@ -8,9 +8,9 @@ Depends on phase 01. Privacy is deliberately absent — see `plan.md`.
 
 - `README.md` design rule: "Do not reimplement antivirus. Signatures identify
   *hiding behaviour*; delegate malware removal to Defender via `MpCmdRun.exe`."
-- `src/UsbDoctor.Signatures/SignatureMatcher.cs` — the existing engine. It identifies
+- `src/SmartLab.Signatures/SignatureMatcher.cs` — the existing engine. It identifies
   worms by how they hide, not by what they are, and that stays its only job.
-- `src/UsbDoctor.Engine/VolumeScanner.cs` — where signature findings come from today.
+- `src/SmartLab.Engine/VolumeScanner.cs` — where signature findings come from today.
 
 The rule is documented but the delegation was never built. This phase builds it.
 
@@ -18,7 +18,7 @@ The rule is documented but the delegation was never built. This phase builds it.
 
 Two halves, kept visibly separate because they answer different questions.
 
-**Hiding behaviour** — what USB Doctor itself found: fake Recycle Bin folders, CLSID
+**Hiding behaviour** — what Smart Lab itself found: fake Recycle Bin folders, CLSID
 disguises, decoy shortcuts, `autorun.inf` launchers, Hidden+System user data. This is
 the existing signature engine's output, surfaced under a name that matches it.
 
@@ -46,12 +46,12 @@ verdict in its colour, as Repair's does, because there is no honest denominator 
 
 | Action | Path |
 | --- | --- |
-| create | `src/UsbDoctor.Maintenance/DefenderBridge.cs` |
-| create | `src/UsbDoctor.App/MalwareRemovalViewModel.cs` |
-| modify | `src/UsbDoctor.App/MainWindow.xaml` — one stage |
-| modify | `src/UsbDoctor.Cli/Program.cs` — a `defender` report verb |
+| create | `src/SmartLab.Maintenance/DefenderBridge.cs` |
+| create | `src/SmartLab.App/MalwareRemovalViewModel.cs` |
+| modify | `src/SmartLab.App/MainWindow.xaml` — one stage |
+| modify | `src/SmartLab.Cli/Program.cs` — a `defender` report verb |
 | modify | `README.md` — the rule stops being aspirational |
-| create | `tests/UsbDoctor.Tests/DefenderBridgeTests.cs` |
+| create | `tests/SmartLab.Tests/DefenderBridgeTests.cs` |
 
 ## Steps
 
@@ -82,5 +82,5 @@ does not control, and on it being enabled. That is the intended trade: the alter
 is reimplementing antivirus, which the codebase already ruled out.
 
 Naming a section "Malware Removal" raises what a user expects of it. The two-halves
-split is what keeps the claim honest — USB Doctor found the hiding, Defender made the
+split is what keeps the claim honest — Smart Lab found the hiding, Defender made the
 call.

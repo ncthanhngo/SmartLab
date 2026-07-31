@@ -1,5 +1,5 @@
 <#
-    Generates src/UsbDoctor.App/Assets/app.ico.
+    Generates src/SmartLab.App/Assets/app.ico.
 
     The Windows shell reads an executable's icon from a real .ico resource, so
     unlike the in-app wordmark this one cannot be vector geometry resolved at
@@ -19,7 +19,7 @@ $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.Drawing
 
 $root = Split-Path -Parent $PSScriptRoot
-$assets = Join-Path $root 'src\UsbDoctor.App\Assets'
+$assets = Join-Path $root 'src\SmartLab.App\Assets'
 $icoPath = Join-Path $assets 'app.ico'
 
 if (-not (Test-Path $assets)) { New-Item -ItemType Directory -Path $assets | Out-Null }

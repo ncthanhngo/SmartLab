@@ -6,9 +6,9 @@ Depends on phase 01.
 
 ## Context
 
-- `src/UsbDoctor.Maintenance/InstalledProgramScanner.cs` — reads all three uninstall
+- `src/SmartLab.Maintenance/InstalledProgramScanner.cs` — reads all three uninstall
   registry views. Updater matches against what it already finds.
-- `src/UsbDoctor.Maintenance/ProgramUninstaller.cs` — the precedent for shelling out
+- `src/SmartLab.Maintenance/ProgramUninstaller.cs` — the precedent for shelling out
   to something the vendor owns rather than doing it ourselves.
 
 ## Updater
@@ -49,15 +49,15 @@ directory, and an extension's stored state lives in it.
 
 | Action | Path |
 | --- | --- |
-| create | `src/UsbDoctor.Maintenance/WingetBridge.cs` |
-| create | `src/UsbDoctor.Maintenance/BrowserExtensionScanner.cs` |
-| create | `src/UsbDoctor.Maintenance/ShellExtensionScanner.cs` |
-| create | `src/UsbDoctor.App/UpdaterViewModel.cs` |
-| create | `src/UsbDoctor.App/ExtensionsViewModel.cs` |
-| modify | `src/UsbDoctor.App/MainWindow.xaml` — two stages |
-| modify | `src/UsbDoctor.Cli/Program.cs` |
-| create | `tests/UsbDoctor.Tests/WingetOutputTests.cs` |
-| create | `tests/UsbDoctor.Tests/ExtensionScannerTests.cs` |
+| create | `src/SmartLab.Maintenance/WingetBridge.cs` |
+| create | `src/SmartLab.Maintenance/BrowserExtensionScanner.cs` |
+| create | `src/SmartLab.Maintenance/ShellExtensionScanner.cs` |
+| create | `src/SmartLab.App/UpdaterViewModel.cs` |
+| create | `src/SmartLab.App/ExtensionsViewModel.cs` |
+| modify | `src/SmartLab.App/MainWindow.xaml` — two stages |
+| modify | `src/SmartLab.Cli/Program.cs` |
+| create | `tests/SmartLab.Tests/WingetOutputTests.cs` |
+| create | `tests/SmartLab.Tests/ExtensionScannerTests.cs` |
 
 ## Steps
 

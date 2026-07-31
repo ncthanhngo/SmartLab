@@ -1,0 +1,40 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <IsPackable>false</IsPackable>
+    <!-- Deliberately NOT UseWPF, even though this project references the WPF app to
+         reach the gauge geometry. Turning it on swaps in the WindowsDesktop SDK's
+         implicit-usings set, which drops System.IO and breaks every test that
+         touches a Stream. The project reference alone flows the WPF framework
+         reference, which is all the geometry test needs. -->
+    <!-- xunit analyzers surface style suggestions that should not fail the build. -->
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+    <PackageReference Include="xunit" Version="2.9.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
+  </ItemGroup>
+
+  <!-- Copied rather than referenced through the assembly: the palettes are compiled
+       to BAML and reading them back would need a WPF Application on an STA thread,
+       when all the parity test needs is the set of keys each file declares. -->
+  <ItemGroup>
+    <None Include="..\..\src\SmartLab.App\Themes\Palette.*.xaml"
+          Link="Themes\%(Filename)%(Extension)"
+          CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\SmartLab.App\SmartLab.App.csproj" />
+    <ProjectReference Include="..\..\src\SmartLab.Cli\SmartLab.Cli.csproj" />
+    <ProjectReference Include="..\..\src\SmartLab.Core\SmartLab.Core.csproj" />
+    <ProjectReference Include="..\..\src\SmartLab.Engine\SmartLab.Engine.csproj" />
+    <ProjectReference Include="..\..\src\SmartLab.Signatures\SmartLab.Signatures.csproj" />
+    <ProjectReference Include="..\..\src\SmartLab.Fat\SmartLab.Fat.csproj" />
+    <ProjectReference Include="..\..\src\SmartLab.Maintenance\SmartLab.Maintenance.csproj" />
+  </ItemGroup>
+
+</Project>

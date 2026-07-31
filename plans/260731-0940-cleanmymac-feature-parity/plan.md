@@ -1,6 +1,6 @@
 # CleanMyMac feature parity
 
-Grow USB Doctor from six sections to fifteen, matching the CleanMyMac sidebar with
+Grow Smart Lab from six sections to fifteen, matching the CleanMyMac sidebar with
 Windows equivalents.
 
 - **Status:** all seven phases implemented, 2026-07-31

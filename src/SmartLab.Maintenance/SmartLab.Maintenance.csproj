@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0-windows</TargetFramework>
+  </PropertyGroup>
+
+  <!-- The disk-usage sections walk trees, and they must use the resilient
+       enumeration in Core/Win32 rather than the framework's: one corrupt entry makes
+       Directory.EnumerateFileSystemEntries throw and lose every readable sibling. -->
+  <ItemGroup>
+    <ProjectReference Include="..\SmartLab.Core\SmartLab.Core.csproj" />
+  </ItemGroup>
+
+</Project>

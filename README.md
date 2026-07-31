@@ -1,4 +1,4 @@
-# USB Doctor
+# Smart Lab
 
 A read-only diagnostic and recovery-planning tool for damaged or compromised USB
 volumes on Windows.
@@ -13,7 +13,7 @@ The application icon is a shield holding a USB stick — the tool protects remov
 drives — with the EVSELab bolt added only at sizes where it still reads. This one
 *must* be a real file: the Windows shell reads an executable's icon from an `.ico`
 resource, so it cannot be resolved at runtime. `tools/build-icon.ps1` is the source
-of truth and regenerates `src/UsbDoctor.App/Assets/app.ico`; the `.ico` is
+of truth and regenerates `src/SmartLab.App/Assets/app.ico`; the `.ico` is
 committed so a clone builds without running it. The same file gives the executable,
 the window and the tray their icon, so none can drift from the others.
 
@@ -22,7 +22,7 @@ split is not a preference: GDI+ cannot decode PNG-compressed icon frames, so an
 all-PNG `.ico` throws the moment `NotifyIcon` reads it for the tray, while the
 shell needs PNG for the large sizes to keep the file from bloating.
 
-USB Doctor scans a volume, reports what it found, and proposes a plan. Producing
+Smart Lab scans a volume, reports what it found, and proposes a plan. Producing
 a plan never touches the disk — nothing executes until an operator reviews the
 findings and explicitly approves a subset of the proposed actions.
 
@@ -65,14 +65,14 @@ could read it. That lesson is the foundation of this codebase.
 ## Architecture
 
 ```
-UsbDoctor.App        WPF UI, runs unelevated               (not yet implemented)
+SmartLab.App        WPF UI, runs unelevated               (not yet implemented)
        | JSON-RPC over named pipe
-UsbDoctor.Engine     scan -> plan -> apply, elevates only when required
+SmartLab.Engine     scan -> plan -> apply, elevates only when required
        |
-       +-- UsbDoctor.Core         domain model, path handling, naming rules
-       +-- UsbDoctor.Win32        P/Invoke, resilient enumeration, write gate
-       +-- UsbDoctor.Signatures   threat rules loaded from JSON
-UsbDoctor.Cli        headless, same engine, for lab automation and CI
+       +-- SmartLab.Core         domain model, path handling, naming rules
+       +-- SmartLab.Win32        P/Invoke, resilient enumeration, write gate
+       +-- SmartLab.Signatures   threat rules loaded from JSON
+SmartLab.Cli        headless, same engine, for lab automation and CI
 ```
 
 Two properties hold the design together:
@@ -232,7 +232,7 @@ Requires the .NET SDK 8.0 or later.
 winget install Microsoft.DotNet.SDK.8
 dotnet build
 dotnet test
-dotnet run --project src/UsbDoctor.Cli -- scan E:
+dotnet run --project src/SmartLab.Cli -- scan E:
 ```
 
 `scan` exits `0` when clean and `3` when it found anomalies or threats, so lab
@@ -242,7 +242,7 @@ automation can branch on the result. Add `--json` for machine-readable output,
 ### Capturing the interface
 
 ```powershell
-UsbDoctor.App.exe --screenshot <dir>
+SmartLab.App.exe --screenshot <dir>
 ```
 
 Renders every section to PNG and exits, pausing on each one long enough for its
@@ -254,7 +254,7 @@ visual tree instead, so it does not care whether the window is visible, obscured
 on a locked session.
 
 It renders in whichever theme is currently stored, so capturing both means running
-it twice. Wait for each run: `UsbDoctor.App.exe` is a GUI subsystem binary, so
+it twice. Wait for each run: `SmartLab.App.exe` is a GUI subsystem binary, so
 PowerShell's `&` returns immediately and two runs will overlap and capture the same
 theme twice. Use `Start-Process -Wait`.
 
@@ -356,7 +356,7 @@ the transcript entirely.
 
 ## Disk cleanup
 
-`Cleanup` in the app, `usbdoctor clean` for a read-only report.
+`Cleanup` in the app, `smartlab clean` for a read-only report.
 
 The catalogue is deliberately short. Every entry is a location whose entire purpose
 is to hold disposable data, which is what makes deleting it defensible. The long
@@ -387,12 +387,12 @@ than assumed empty.
 ## Uninstalling
 
 Two separate jobs, both under `Uninstall` in the app and readable from
-`usbdoctor uninstall`.
+`smartlab uninstall`.
 
-**Removing USB Doctor.** The trace list is written out explicitly in
+**Removing Smart Lab.** The trace list is written out explicitly in
 `SelfTraceScanner` rather than discovered by searching for the app's name. A search
 would be incomplete — it cannot know a `Run` value is ours — and dangerous, since
-anything else on the machine with `UsbDoctor` in its path would be swept up too.
+anything else on the machine with `SmartLab` in its path would be swept up too.
 
 Rescued data, quarantined samples and carved files are listed with their sizes but
 **start unticked**. Someone clicking Uninstall is asking to remove a program, not to
@@ -436,7 +436,7 @@ at the end is the part that moves.
 
 ## Recovering deleted files
 
-`usbdoctor raw <drive> --deleted-only --recover <dir>` carves deleted entries back
+`smartlab raw <drive> --deleted-only --recover <dir>` carves deleted entries back
 out. Deletion clears the allocation-table entries, so the chain describing where a
 file actually lived is gone; reading forward from the starting cluster is the only
 option left, and it is correct exactly when the file was not fragmented. Every

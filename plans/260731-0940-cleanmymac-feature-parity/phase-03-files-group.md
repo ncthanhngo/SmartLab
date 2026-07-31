@@ -7,15 +7,15 @@ Depends on phase 01.
 
 ## Context
 
-- `src/UsbDoctor.Win32/Io/Win32VolumeReader.cs` — resilient `FindFirstFileExW`
+- `src/SmartLab.Win32/Io/Win32VolumeReader.cs` — resilient `FindFirstFileExW`
   enumeration. All three features walk trees; none of them may reimplement this.
-- `src/UsbDoctor.App/Controls/RadialGauge.cs` — the precedent for a control rendered
+- `src/SmartLab.App/Controls/RadialGauge.cs` — the precedent for a control rendered
   directly rather than templated.
-- `src/UsbDoctor.Core/Paths/ExtendedPath.cs` — every path stays in this form.
+- `src/SmartLab.Core/Paths/ExtendedPath.cs` — every path stays in this form.
 
 ## Shared foundation
 
-One walker in `UsbDoctor.Maintenance`, producing a directory tree with sizes, feeding
+One walker in `SmartLab.Maintenance`, producing a directory tree with sizes, feeding
 all three. Written once because Space Lens needs the whole tree, Large & Old Files
 needs a filtered leaf set, and Shredder needs neither but shares the enumeration.
 
@@ -65,18 +65,18 @@ sampling rule — every twelfth entry, throttled again by the consumer.
 
 | Action | Path |
 | --- | --- |
-| create | `src/UsbDoctor.Maintenance/DirectoryTreeWalker.cs` |
-| create | `src/UsbDoctor.Maintenance/LargeOldFileScanner.cs` |
-| create | `src/UsbDoctor.Maintenance/SecureDelete.cs` |
-| create | `src/UsbDoctor.App/Controls/Treemap.cs` |
-| create | `src/UsbDoctor.App/SpaceLensViewModel.cs` |
-| create | `src/UsbDoctor.App/LargeOldFilesViewModel.cs` |
-| create | `src/UsbDoctor.App/ShredderViewModel.cs` |
-| modify | `src/UsbDoctor.App/MainWindow.xaml` — three stages |
-| modify | `src/UsbDoctor.Cli/Program.cs` — read-only reports |
-| create | `tests/UsbDoctor.Tests/TreemapTests.cs` |
-| create | `tests/UsbDoctor.Tests/LargeOldFileTests.cs` |
-| create | `tests/UsbDoctor.Tests/SecureDeleteTests.cs` |
+| create | `src/SmartLab.Maintenance/DirectoryTreeWalker.cs` |
+| create | `src/SmartLab.Maintenance/LargeOldFileScanner.cs` |
+| create | `src/SmartLab.Maintenance/SecureDelete.cs` |
+| create | `src/SmartLab.App/Controls/Treemap.cs` |
+| create | `src/SmartLab.App/SpaceLensViewModel.cs` |
+| create | `src/SmartLab.App/LargeOldFilesViewModel.cs` |
+| create | `src/SmartLab.App/ShredderViewModel.cs` |
+| modify | `src/SmartLab.App/MainWindow.xaml` — three stages |
+| modify | `src/SmartLab.Cli/Program.cs` — read-only reports |
+| create | `tests/SmartLab.Tests/TreemapTests.cs` |
+| create | `tests/SmartLab.Tests/LargeOldFileTests.cs` |
+| create | `tests/SmartLab.Tests/SecureDeleteTests.cs` |
 
 ## Steps
 

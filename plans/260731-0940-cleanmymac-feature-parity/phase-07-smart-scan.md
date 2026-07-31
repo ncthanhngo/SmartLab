@@ -55,11 +55,11 @@ colour, so the rail's colours and the summary agree.
 
 | Action | Path |
 | --- | --- |
-| create | `src/UsbDoctor.App/SmartScanViewModel.cs` |
-| modify | `src/UsbDoctor.App/MainViewModel.cs` — expose section view models to it |
-| modify | `src/UsbDoctor.App/MainWindow.xaml` — the stage |
+| create | `src/SmartLab.App/SmartScanViewModel.cs` |
+| modify | `src/SmartLab.App/MainViewModel.cs` — expose section view models to it |
+| modify | `src/SmartLab.App/MainWindow.xaml` — the stage |
 | modify | `README.md` |
-| create | `tests/UsbDoctor.Tests/SmartScanTests.cs` |
+| create | `tests/SmartLab.Tests/SmartScanTests.cs` |
 
 ## Steps
 

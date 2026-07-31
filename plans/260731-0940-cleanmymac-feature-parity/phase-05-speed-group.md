@@ -7,7 +7,7 @@ Depends on phase 01, and its Maintenance half depends on the elevated worker
 
 ## Context
 
-- `src/UsbDoctor.App/StartupRegistration.cs` — already writes the per-user Run key
+- `src/SmartLab.App/StartupRegistration.cs` — already writes the per-user Run key
   for this app, and documents why never the machine-wide one.
 - `README.md` roadmap item 1 — "Elevated worker + named-pipe RPC, needed before
   format and repair, so the UI itself never runs as Administrator."
@@ -74,14 +74,14 @@ starting this phase, not during it.
 
 | Action | Path |
 | --- | --- |
-| create | `src/UsbDoctor.Maintenance/StartupItemScanner.cs` |
-| create | `src/UsbDoctor.Maintenance/StartupItemToggle.cs` |
-| create | `src/UsbDoctor.Maintenance/RepairCommand.cs` |
-| create | `src/UsbDoctor.App/OptimizationViewModel.cs` |
-| create | `src/UsbDoctor.App/MaintenanceViewModel.cs` |
-| modify | `src/UsbDoctor.App/MainWindow.xaml` — two stages |
-| modify | `src/UsbDoctor.Cli/Program.cs` — read-only startup report |
-| create | `tests/UsbDoctor.Tests/StartupItemTests.cs` |
+| create | `src/SmartLab.Maintenance/StartupItemScanner.cs` |
+| create | `src/SmartLab.Maintenance/StartupItemToggle.cs` |
+| create | `src/SmartLab.Maintenance/RepairCommand.cs` |
+| create | `src/SmartLab.App/OptimizationViewModel.cs` |
+| create | `src/SmartLab.App/MaintenanceViewModel.cs` |
+| modify | `src/SmartLab.App/MainWindow.xaml` — two stages |
+| modify | `src/SmartLab.Cli/Program.cs` — read-only startup report |
+| create | `tests/SmartLab.Tests/StartupItemTests.cs` |
 
 ## Steps
 

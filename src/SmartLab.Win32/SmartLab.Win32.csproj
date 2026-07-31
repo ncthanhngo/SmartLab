@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0-windows</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\SmartLab.Core\SmartLab.Core.csproj" />
+    <ProjectReference Include="..\SmartLab.Fat\SmartLab.Fat.csproj" />
+  </ItemGroup>
+
+</Project>

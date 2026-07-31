@@ -6,10 +6,10 @@ Depends on phase 01.
 
 ## Context
 
-- `src/UsbDoctor.Maintenance/JunkCategory.cs` — the catalogue and its rules.
-- `src/UsbDoctor.Maintenance/RecycleBin.cs` — already queries and empties bins.
-- `src/UsbDoctor.App/CleanupViewModel.cs` — the pattern each new section follows.
-- `tests/UsbDoctor.Tests/CleanupTests.cs` — the safety assertions to extend.
+- `src/SmartLab.Maintenance/JunkCategory.cs` — the catalogue and its rules.
+- `src/SmartLab.Maintenance/RecycleBin.cs` — already queries and empties bins.
+- `src/SmartLab.App/CleanupViewModel.cs` — the pattern each new section follows.
+- `tests/SmartLab.Tests/CleanupTests.cs` — the safety assertions to extend.
 
 ## Trash Bins
 
@@ -47,15 +47,15 @@ store on Windows, so this maps to Outlook's opened-attachment cache and nothing 
 
 | Action | Path |
 | --- | --- |
-| create | `src/UsbDoctor.Maintenance/OutlookCache.cs` |
-| create | `src/UsbDoctor.App/MailAttachmentsViewModel.cs` |
-| create | `src/UsbDoctor.App/TrashBinsViewModel.cs` |
-| modify | `src/UsbDoctor.Maintenance/RecycleBin.cs` — per-drive enumeration |
-| modify | `src/UsbDoctor.Maintenance/JunkCategory.cs` — drop `recycle-bin` |
-| modify | `src/UsbDoctor.App/MainWindow.xaml` — two stages |
-| modify | `src/UsbDoctor.Cli/Program.cs` — read-only reporting for both |
-| modify | `tests/UsbDoctor.Tests/CleanupTests.cs` |
-| create | `tests/UsbDoctor.Tests/MailAttachmentTests.cs` |
+| create | `src/SmartLab.Maintenance/OutlookCache.cs` |
+| create | `src/SmartLab.App/MailAttachmentsViewModel.cs` |
+| create | `src/SmartLab.App/TrashBinsViewModel.cs` |
+| modify | `src/SmartLab.Maintenance/RecycleBin.cs` — per-drive enumeration |
+| modify | `src/SmartLab.Maintenance/JunkCategory.cs` — drop `recycle-bin` |
+| modify | `src/SmartLab.App/MainWindow.xaml` — two stages |
+| modify | `src/SmartLab.Cli/Program.cs` — read-only reporting for both |
+| modify | `tests/SmartLab.Tests/CleanupTests.cs` |
+| create | `tests/SmartLab.Tests/MailAttachmentTests.cs` |
 
 ## Steps
 
