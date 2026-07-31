@@ -317,14 +317,29 @@ and leaves nothing behind.
 Four of these carry rules worth stating outright, because in each case the obvious
 implementation would have been the wrong one.
 
-**Smart Scan never applies anything.** It runs the read-only half of six sections and
-points at whichever one owns each finding. Not behind a confirmation, not behind the
-Dry run toggle — there is no write command on it at all, and a test over its public
-surface fails if one appears. A single button that cleans, disables, removes and
-upgrades across a whole machine is exactly what plan-then-approve exists to prevent.
-It also never sums bytes with package counts into one health score: a blended figure
-would let a worm hide behind a tidy temp folder. A section that could not run reports
-as skipped, never as clean.
+**Home is two presses, never one.** Run measures the whole machine and changes
+nothing; the button then becomes Confirm and acts only on the rows still ticked in the
+list that scan produced. That is the engine's plan-then-approve wearing a single big
+button, and it is why the first word is Run rather than Fix.
+
+What keeps it safe is the shape of the verb rather than its absence. Measuring and
+acting are separate commands — a test names the five that exist, so a sixth fails the
+build — apply is impossible before a scan completes, and no phase ever claims to be
+both scanning and reviewing. Each section's Dry run toggle is untouched: confirming
+here is consent to run that section's verb, not permission to override the guard the
+section put in front of it.
+
+**Applying never re-scans.** Each apply works from the state its own measure left
+behind — Cleanup cleans the categories it measured, Trash Bins empties the bins it
+counted, Repair applies the plan its scan produced. Re-walking the machine would not
+only be slower, it would act on a different machine than the one the operator
+reviewed.
+
+Home also never sums bytes with package counts into one health score: a blended figure
+would let a worm hide behind a tidy temp folder. The three pillars stay in their own
+units — reclaimable space, threats, tasks. A section that could not run reports as
+skipped, never as clean, and a skipped section is never actionable: it could not look,
+so it has nothing to act on.
 
 **Malware delegates.** The signature engine identifies *hiding behaviour* and nothing
 else; naming a program is Defender's job, asked through `MpCmdRun.exe`. The two halves
