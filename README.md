@@ -149,12 +149,20 @@ locking need Administrator, but the UI must not run elevated.
   layout settles: a capture taken the instant bindings resolve catches a
   half-drawn ring.
 - The shell is two pieces, one stacked on the other, not one surface split by a
-  line. The window itself is the big card, so the stage needs no border of its own;
-  the rail is a smaller card laid on top, clear of every edge, with a shadow that
-  lands on the piece underneath. The rail is two borders — the outer paints the fill
-  and casts the shadow, the inner clips the contents. They cannot be one: WPF applies
-  `Clip` after `Effect`, so a card that clipped itself would cut off its own shadow,
-  and a rounded `Border` does not clip what it contains.
+  line. The window is transparent and the app has a shape of its own: a big rounded
+  card carrying the interface, and the rail hanging off its left edge and over its
+  face. The rail is a sibling of the big card rather than a child — that is the
+  whole mechanism, since a child cannot overhang its parent — so the margins around
+  the big card are not padding but where the shadows land and where the resize grip
+  lives. Maximised they collapse to nothing and the corners square off, or the app
+  reads as a window that failed to maximise.
+- Each card is two borders — the outer paints the fill and casts the shadow, the
+  inner clips the contents. They cannot be one: WPF applies `Clip` after `Effect`,
+  so a card that clipped itself would cut off its own shadow, and a rounded `Border`
+  does not clip what it contains.
+- `AllowsTransparency` costs ClearType: WPF renders text on a layered window with
+  greyscale antialiasing. It is the price of the shape, and the reason the type
+  scale is set where it is rather than a step smaller.
 - Reference every colour with `DynamicResource`, never `StaticResource`. The two
   palettes are swapped whole at runtime; a static reference is resolved once when
   the element is parsed and keeps the colour it was born with. Radii, typefaces

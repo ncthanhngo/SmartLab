@@ -8,11 +8,16 @@
         MinHeight="600" MinWidth="960"
         Icon="Assets/app.ico"
         WindowStyle="None" ResizeMode="CanResize"
+        AllowsTransparency="True" Background="Transparent"
+        StateChanged="OnWindowStateChanged"
         TextOptions.TextFormattingMode="Ideal"
         FontFamily="{StaticResource UiFont}">
 
+    <!-- The resize grip lives in the transparent margin around the card, which is
+         why it is wider than a window border would normally be: it is the only part
+         of the window the pointer can find outside the card's own edge. -->
     <shell:WindowChrome.WindowChrome>
-        <shell:WindowChrome CaptionHeight="40" ResizeBorderThickness="6"
+        <shell:WindowChrome CaptionHeight="40" ResizeBorderThickness="10"
                             GlassFrameThickness="0" UseAeroCaptionButtons="False" />
     </shell:WindowChrome.WindowChrome>
 
@@ -30,17 +35,34 @@
         <KeyBinding Key="K" Modifiers="Control" Command="{Binding OpenPaletteCommand}" />
     </Window.InputBindings>
 
-    <!-- The window is the big card. There is no ground behind it any more: a margin
-         all the way round left a frame nobody was using, so the card was widened to
-         the window's own edges and the rail is the only piece stacked on it. -->
-    <Window.Background>
-        <LinearGradientBrush StartPoint="0,0" EndPoint="0.35,1">
-            <GradientStop Color="{DynamicResource ShellTopColor}" Offset="0" />
-            <GradientStop Color="{DynamicResource ShellBottomColor}" Offset="1" />
-        </LinearGradientBrush>
-    </Window.Background>
+    <!-- ==================== the two cards ====================
 
-    <Grid>
+         The window itself is transparent. What the app looks like is two rounded
+         cards stacked on whatever is behind it: the big one carries the whole
+         interface, and the rail hangs off its left edge, over the top of it. The
+         margins around the big card are not padding - they are where the shadows
+         land and where the resize grip lives.
+
+         The cost of a transparent window is ClearType: WPF renders text on a
+         layered window with greyscale antialiasing instead. It is the only way to
+         give the app a shape of its own rather than a rectangle. -->
+    <Grid x:Name="Root">
+
+        <!-- ===== the big card ===== -->
+        <Border x:Name="Shell" Margin="30,16,22,26" CornerRadius="18">
+            <Border.Background>
+                <LinearGradientBrush StartPoint="0,0" EndPoint="0.35,1">
+                    <GradientStop Color="{DynamicResource ShellTopColor}" Offset="0" />
+                    <GradientStop Color="{DynamicResource ShellBottomColor}" Offset="1" />
+                </LinearGradientBrush>
+            </Border.Background>
+            <Border.Effect>
+                <DropShadowEffect Color="{DynamicResource CardShadowColor}"
+                                  BlurRadius="30" ShadowDepth="7" Direction="270"
+                                  Opacity="0.42" RenderingBias="Performance" />
+            </Border.Effect>
+
+            <Border x:Name="ShellClip" CornerRadius="18" SizeChanged="OnCardSizeChanged">
         <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="40" />
@@ -94,43 +116,43 @@
                 </StackPanel>
             </Grid>
 
-            <!-- ==================== body ====================
+            <!-- ==================== the stage ====================
+                 One host. Only the selected section's template is built, so a stage
+                 costs nothing until someone navigates to it. Inset past the rail,
+                 which hangs over this card rather than sitting beside it, so
+                 nothing a section draws ends up behind it. -->
+            <ContentControl x:Name="Stage" Grid.Row="1" Margin="196,0,0,0"
+                            Content="{Binding SelectedSection}"
+                            ContentTemplateSelector="{StaticResource SectionTemplates}" />
+        </Grid>
+            </Border>
+        </Border>
 
-                 Two pieces, one stacked on the other. The window itself is the big
-                 card, so the stage needs no border of its own; the rail is a smaller
-                 card laid on top of it, clear of every edge, with a shadow that
-                 lands on the piece underneath. -->
-            <Grid Grid.Row="1">
+        <!-- ===== the rail =====
+             A sibling of the big card rather than a child of it, which is the whole
+             point: it hangs off the card's left edge and over its face, so the two
+             read as pieces stacked on each other rather than one divided in two.
 
-                <!-- ===== the stage =====
-                     One host. Only the selected section's template is built, so a
-                     stage costs nothing until someone navigates to it. Inset past
-                     the rail, so nothing a section draws hides behind it. -->
-                <ContentControl Margin="230,0,0,0"
-                                Content="{Binding SelectedSection}"
-                                ContentTemplateSelector="{StaticResource SectionTemplates}" />
+             Two borders again: the outer one paints the fill and casts the shadow,
+             the inner one clips its contents to the same corner. WPF applies Clip
+             after Effect, so a card that clipped itself would cut off its own
+             shadow, and a rounded Border does not clip what it contains.
 
-                <!-- ===== the rail =====
-                     Two borders: the outer one paints the fill and casts the shadow,
-                     the inner one clips its contents to the same corner. It has to be
-                     split that way - WPF applies Clip after Effect, so a card that
-                     clipped itself would cut off its own shadow, and a rounded Border
-                     does not clip what it contains.
+             Labelled and grouped. Fifteen glyphs at 46 px overflowed every window
+             height, and navigation that scrolls cannot be remembered; at 32 px with
+             names the whole list fits without a scrollbar. -->
+        <Border x:Name="RailCard" Width="204" HorizontalAlignment="Left"
+                Margin="6,54,0,32"
+                CornerRadius="{StaticResource CardRadius}"
+                Background="{DynamicResource SidebarBrush}">
+            <Border.Effect>
+                <DropShadowEffect Color="{DynamicResource CardShadowColor}"
+                                  BlurRadius="26" ShadowDepth="6" Direction="300"
+                                  Opacity="0.5" RenderingBias="Performance" />
+            </Border.Effect>
 
-                     Labelled and grouped. Fifteen glyphs at 46 px overflowed every
-                     window height, and navigation that scrolls cannot be remembered;
-                     at 32 px with names the whole list fits without a scrollbar. -->
-                <Border Width="204" HorizontalAlignment="Left" Margin="12,0,0,14"
-                        CornerRadius="{StaticResource CardRadius}"
-                        Background="{DynamicResource SidebarBrush}">
-                    <Border.Effect>
-                        <DropShadowEffect Color="{DynamicResource CardShadowColor}"
-                                          BlurRadius="26" ShadowDepth="6" Direction="300"
-                                          Opacity="0.55" RenderingBias="Performance" />
-                    </Border.Effect>
-
-                    <Border CornerRadius="{StaticResource CardRadius}"
-                            SizeChanged="OnCardSizeChanged">
+            <Border CornerRadius="{StaticResource CardRadius}"
+                    SizeChanged="OnCardSizeChanged">
                     <ScrollViewer VerticalScrollBarVisibility="Auto"
                                   HorizontalScrollBarVisibility="Disabled">
                         <ScrollViewer.Resources>
@@ -217,16 +239,19 @@
                             </ListBox.ItemTemplate>
                         </ListBox>
                     </ScrollViewer>
-                    </Border>
-                </Border>
-            </Grid>
-        </Grid>
+            </Border>
+        </Border>
 
         <!-- ==================== command palette ====================
-             Over everything, because it is reached from everywhere. -->
+             Over everything, because it is reached from everywhere. Bounded to the
+             big card and clipped to its corner: a backdrop that covered the whole
+             window would darken the transparent margin, which on screen is whatever
+             the app happens to be sitting on. -->
+        <Border x:Name="PaletteBounds" Margin="30,16,22,26" CornerRadius="18"
+                SizeChanged="OnCardSizeChanged" Background="Transparent"
+                Visibility="{Binding CommandPalette.IsOpen, Converter={StaticResource BoolToVisibility}}">
         <Grid x:Name="PaletteLayer" Background="#99000000"
-              MouseLeftButtonDown="OnPaletteBackdropClicked"
-              Visibility="{Binding CommandPalette.IsOpen, Converter={StaticResource BoolToVisibility}}">
+              MouseLeftButtonDown="OnPaletteBackdropClicked">
             <Border Width="560" VerticalAlignment="Top" Margin="0,110,0,0"
                     Background="{DynamicResource SurfaceBrush}"
                     BorderBrush="{DynamicResource HairlineBrush}" BorderThickness="1"
@@ -307,5 +332,6 @@
                 </DockPanel>
             </Border>
         </Grid>
+        </Border>
     </Grid>
 </Window>

@@ -45,6 +45,51 @@ public partial class MainWindow : Window
     private void OnCloseClicked(object sender, RoutedEventArgs e) => Close();
 
     /// <summary>
+    /// What the card's margins and corners are when the window is not maximised.
+    /// </summary>
+    /// <remarks>
+    /// Read from the XAML rather than repeated here, so the layout is stated once.
+    /// </remarks>
+    private Thickness? _restoredShellMargin;
+    private CornerRadius? _restoredShellCorner;
+
+    /// <summary>
+    /// Fills the screen when maximised and floats when restored.
+    /// </summary>
+    /// <remarks>
+    /// The window is transparent, so the margins around the big card are real screen
+    /// space rather than padding. Maximised they would leave a band of desktop down
+    /// every side and a rounded corner where the screen's own corner is, which reads
+    /// as a window that failed to maximise rather than as a card.
+    /// </remarks>
+    private void OnWindowStateChanged(object? sender, EventArgs e)
+    {
+        _restoredShellMargin ??= Shell.Margin;
+        _restoredShellCorner ??= Shell.CornerRadius;
+
+        var maximised = WindowState == WindowState.Maximized;
+
+        var margin = maximised ? new Thickness(0) : _restoredShellMargin.Value;
+        var corner = maximised ? new CornerRadius(0) : _restoredShellCorner.Value;
+
+        Shell.Margin = margin;
+        Shell.CornerRadius = corner;
+        ShellClip.CornerRadius = corner;
+        PaletteBounds.Margin = margin;
+        PaletteBounds.CornerRadius = corner;
+
+        // The rail hangs off the card's left edge, so its own inset moves with it:
+        // against the screen edge that overhang would be cut in half. The stage
+        // follows, because what it has to clear is the rail's right edge.
+        RailCard.Margin = maximised
+            ? new Thickness(14, 48, 0, 18)
+            : new Thickness(6, 54, 0, 32);
+
+        Stage.Margin = new Thickness(
+            RailCard.Margin.Left + RailCard.Width + 16 - margin.Left, 0, 0, 0);
+    }
+
+    /// <summary>
     /// Clips a card to its own corner radius.
     /// </summary>
     /// <remarks>
