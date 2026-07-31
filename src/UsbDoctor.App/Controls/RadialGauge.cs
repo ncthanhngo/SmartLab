@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Windows;
 using System.Windows.Media;
+using System.Windows.Media.Animation;
 
 // WinForms is referenced for the tray icon, which puts System.Drawing in scope and
 // makes Brush, Point and Size ambiguous. The aliases pin them to WPF's versions.
@@ -26,11 +27,41 @@ namespace UsbDoctor.App.Controls;
 /// people read a dial. Round caps, because a flat cap on a thick ring reads as a
 /// cut rather than a value.
 /// </para>
+/// <para>
+/// The arc sweeps to a new value rather than jumping to it. A dial that snaps
+/// states its number without ever showing that it changed, and the moment the
+/// figure lands is the only moment the operator is looking at it.
+/// </para>
 /// </remarks>
 public sealed class RadialGauge : FrameworkElement
 {
+    /// <summary>How long a full 0-to-1 sweep takes.</summary>
+    private static readonly TimeSpan FullSweep = TimeSpan.FromMilliseconds(620);
+
+    /// <summary>
+    /// Floor on the sweep, so a small correction still reads as movement.
+    /// </summary>
+    /// <remarks>
+    /// Below roughly a tenth of a second the eye registers a jump rather than a
+    /// travel, which would make a ring that re-measures during a scan flicker.
+    /// </remarks>
+    private static readonly TimeSpan MinimumSweep = TimeSpan.FromMilliseconds(140);
+
     public static readonly DependencyProperty PercentProperty = DependencyProperty.Register(
         nameof(Percent), typeof(double), typeof(RadialGauge),
+        new FrameworkPropertyMetadata(0.0, OnPercentChanged));
+
+    /// <summary>
+    /// What is actually drawn: the animated value chasing <see cref="Percent"/>.
+    /// </summary>
+    /// <remarks>
+    /// A separate property because an animation has to own the value it drives.
+    /// Animating <see cref="Percent"/> itself would leave the binding fighting the
+    /// storyboard - a bound value that is also animated is read back as the animated
+    /// one, so the next update would start from wherever the sweep happened to be.
+    /// </remarks>
+    public static readonly DependencyProperty RenderedPercentProperty = DependencyProperty.Register(
+        nameof(RenderedPercent), typeof(double), typeof(RadialGauge),
         new FrameworkPropertyMetadata(0.0, FrameworkPropertyMetadataOptions.AffectsRender));
 
     public static readonly DependencyProperty ThicknessProperty = DependencyProperty.Register(
@@ -52,6 +83,13 @@ public sealed class RadialGauge : FrameworkElement
         set => SetValue(PercentProperty, value);
     }
 
+    /// <summary>The value on screen this instant, mid-sweep.</summary>
+    public double RenderedPercent
+    {
+        get => (double)GetValue(RenderedPercentProperty);
+        set => SetValue(RenderedPercentProperty, value);
+    }
+
     public double Thickness
     {
         get => (double)GetValue(ThicknessProperty);
@@ -68,6 +106,50 @@ public sealed class RadialGauge : FrameworkElement
     {
         get => (Brush)GetValue(ValueBrushProperty);
         set => SetValue(ValueBrushProperty, value);
+    }
+
+    /// <summary>
+    /// How long the ring should take to travel between two values.
+    /// </summary>
+    /// <remarks>
+    /// Proportional to the distance, so the sweep reads at one speed rather than at
+    /// one duration: a ring nudged from 0.62 to 0.64 as a category is ticked must
+    /// not take as long as one filling from empty, or the interface feels sluggish
+    /// exactly where it is doing the least.
+    /// </remarks>
+    public static TimeSpan DurationFor(double from, double to)
+    {
+        var distance = Math.Abs(Math.Clamp(to, 0, 1) - Math.Clamp(from, 0, 1));
+        if (distance <= 0) return TimeSpan.Zero;
+
+        var scaled = FullSweep * distance;
+
+        return scaled < MinimumSweep ? MinimumSweep : scaled;
+    }
+
+    private static void OnPercentChanged(DependencyObject source, DependencyPropertyChangedEventArgs e)
+    {
+        var gauge = (RadialGauge)source;
+
+        var from = gauge.RenderedPercent;
+        var to = (double)e.NewValue;
+        var duration = DurationFor(from, to);
+
+        if (duration == TimeSpan.Zero)
+        {
+            // Clearing the animation first: a held storyboard outranks a local
+            // value, so setting the property under one has no visible effect.
+            gauge.BeginAnimation(RenderedPercentProperty, null);
+            gauge.RenderedPercent = to;
+            return;
+        }
+
+        // Eased out rather than linear. A ring decelerating into its final value
+        // reads as settling on a measurement; a constant sweep reads as a timer.
+        gauge.BeginAnimation(RenderedPercentProperty, new DoubleAnimation(from, to, duration)
+        {
+            EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut },
+        });
     }
 
     /// <summary>
@@ -100,7 +182,7 @@ public sealed class RadialGauge : FrameworkElement
         context.DrawEllipse(
             null, new Pen(TrackBrush, thickness), centre, radius, radius);
 
-        var percent = Math.Clamp(Percent, 0, 1);
+        var percent = Math.Clamp(RenderedPercent, 0, 1);
         if (percent <= 0) return;
 
         var pen = new Pen(ValueBrush, thickness)

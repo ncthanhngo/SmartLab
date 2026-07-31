@@ -71,4 +71,50 @@ public sealed class RadialGaugeTests
 
         Assert.Equal(Radius, distance, 1e-9);
     }
+
+    // ---- the sweep --------------------------------------------------------------
+
+    [Fact]
+    public void ALongerTravel_TakesLonger()
+    {
+        // The ring moves at a speed, not on a timer. Without this a category being
+        // ticked would take as long to register as a gauge filling from empty.
+        var full = RadialGauge.DurationFor(0, 1);
+        var half = RadialGauge.DurationFor(0, 0.5);
+
+        Assert.True(half < full);
+    }
+
+    [Fact]
+    public void NoChange_DoesNotSweep()
+    {
+        Assert.Equal(TimeSpan.Zero, RadialGauge.DurationFor(0.4, 0.4));
+    }
+
+    [Fact]
+    public void ATinyChange_StillLastsLongEnoughToBeSeenMoving()
+    {
+        // A one-percent nudge scaled strictly by distance would last a few
+        // milliseconds, which reads as the number flickering rather than the ring
+        // travelling.
+        var tiny = RadialGauge.DurationFor(0.62, 0.63);
+
+        Assert.True(tiny >= TimeSpan.FromMilliseconds(100));
+    }
+
+    [Fact]
+    public void FallingTakesAsLongAsRising()
+    {
+        // Emptying happens when the operator unticks something, and an emptying ring
+        // that snaps back would read as the value having been discarded.
+        Assert.Equal(RadialGauge.DurationFor(0.2, 0.8), RadialGauge.DurationFor(0.8, 0.2));
+    }
+
+    [Fact]
+    public void ValuesBeyondTheRange_TravelOnlyAsFarAsTheRingCan()
+    {
+        // Percent is clamped when drawn, so a caller handing over 3.0 must not buy
+        // three times the sweep for a ring that stops at full.
+        Assert.Equal(RadialGauge.DurationFor(0, 1), RadialGauge.DurationFor(0, 3));
+    }
 }
