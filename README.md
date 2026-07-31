@@ -232,7 +232,7 @@ succeeded" and "the volume is clean" are different claims.
 | Startup items, Windows repair tools | implemented, unit tested |
 | Malware Removal (Defender delegation) | implemented, unit tested |
 | Smart Scan | implemented, unit tested |
-| Boot repair (diskpart / bootsect) | implemented, unit tested; the check runs in every capture, the two writes not yet run against a real stick |
+| Boot repair (diskpart / bootsect) | implemented, unit tested; the check runs in every capture, and everything the writes compose is asserted — only the elevated run itself is unverified |
 | Auto-scan on USB insert | implemented; decoding unit-tested, plug event not yet verified |
 | Raw FAT32 + exFAT sector readers | implemented, validated on live drives |
 | Deleted-file carving (`raw --recover`) | implemented, verified byte-for-byte |
@@ -437,6 +437,18 @@ drives only, never the volume Windows is installed on, and `C:` outright whateve
 Windows reports it as. The check is re-run against the live selection at the moment of
 writing, not only when the fixes were offered, because the drive dropdown can have
 moved in between. Nothing is pre-ticked.
+
+Both writes compose their command in a function of their own so the text can be
+asserted rather than described. `DiskpartScript` must be exactly *select disk*,
+*select partition*, *active* — in that order, since diskpart's partition selection is
+relative to the selected disk, and two lines the other way round operate on whatever
+was selected last — and must never carry `clean`, `format` or `delete`.
+`BootsectCommand` must never carry `/force`, which dismounts the volume under whatever
+has it open: a repair that can do that can lose the data it was called to save. A
+partition WMI could not identify is refused rather than guessed at, which is the one
+path that would hand diskpart a disk number meaning nothing. What remains unverified
+is only the elevated run itself, which needs a stick and a person to approve the
+prompt.
 
 ### What reaches the network
 

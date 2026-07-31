@@ -204,12 +204,25 @@ public static class BootRepairRunner
         };
     }
 
+    /// <summary>
+    /// The diskpart script that sets one partition active.
+    /// </summary>
     /// <remarks>
-    /// The script names the disk and partition WMI reported for this drive letter, so
-    /// a stick that was unplugged and replaced between the scan and the apply cannot
-    /// silently redirect the write: diskpart is told which disk, and if the numbers no
-    /// longer describe a removable drive its own output says so.
+    /// Built by its own function so its text can be asserted. Every word of this is
+    /// what stands between marking a stick bootable and marking the wrong disk's
+    /// partition active: it names the disk and the partition WMI reported for this
+    /// drive letter, so a stick unplugged and replaced between the scan and the apply
+    /// cannot silently redirect the write.
     /// </remarks>
+    public static string DiskpartScript(int diskIndex, int partitionIndex) =>
+        $"select disk {diskIndex}{Environment.NewLine}" +
+        $"select partition {partitionIndex}{Environment.NewLine}" +
+        $"active{Environment.NewLine}";
+
+    /// <summary>The command line bootsect is given. Separated so it can be asserted.</summary>
+    public static string BootsectCommand(string bootsect, char driveLetter) =>
+        $"\"{bootsect}\" /nt60 {char.ToUpperInvariant(driveLetter)}: /mbr";
+
     private static async Task<BootRepairResult> MarkActiveAsync(
         BootFix fix, BootHealth health, CancellationToken ct)
     {
@@ -220,10 +233,9 @@ public static class BootRepairRunner
 
         try
         {
-            await File.WriteAllTextAsync(script,
-                $"select disk {health.DiskIndex}{Environment.NewLine}" +
-                $"select partition {health.PartitionIndex}{Environment.NewLine}" +
-                $"active{Environment.NewLine}", ct).ConfigureAwait(false);
+            await File.WriteAllTextAsync(
+                script, DiskpartScript(health.DiskIndex, health.PartitionIndex), ct)
+                .ConfigureAwait(false);
 
             var (ok, output) = await RunElevatedAsync($"diskpart.exe /s \"{script}\"", ct)
                 .ConfigureAwait(false);
@@ -249,11 +261,8 @@ public static class BootRepairRunner
                 "bootsect.exe was not found. It ships on Windows install media under \\boot and with " +
                 "the Windows ADK; this app will not write boot code itself.");
         }
-
-        var letter = char.ToUpperInvariant(volume.DriveLetter);
-
         var (ok, output) = await RunElevatedAsync(
-            $"\"{bootsect}\" /nt60 {letter}: /mbr", ct).ConfigureAwait(false);
+            BootsectCommand(bootsect, volume.DriveLetter), ct).ConfigureAwait(false);
 
         return new BootRepairResult(fix, ok, output);
     }
@@ -266,11 +275,14 @@ public static class BootRepairRunner
     /// drive being repaired is usually carrying the tool that repairs it. Falls back
     /// to PATH, which is where an ADK install puts it.
     /// </remarks>
-    public static string? FindBootsect(VolumeInfo volume)
+    public static string? FindBootsect(VolumeInfo volume) => FindBootsectIn(volume.Root);
+
+    /// <summary>The same search against any root, so it can be tested off a folder.</summary>
+    public static string? FindBootsectIn(string root)
     {
         try
         {
-            var onStick = Path.Combine(volume.Root, "boot", "bootsect.exe");
+            var onStick = Path.Combine(root, "boot", "bootsect.exe");
             if (File.Exists(onStick)) return onStick;
         }
         catch

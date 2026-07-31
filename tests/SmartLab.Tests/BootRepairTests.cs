@@ -156,6 +156,135 @@ public sealed class BootRepairRefusalTests
         Assert.Null(BootRepairRunner.Refuse(Volume('E', VolumeDriveType.Removable)));
     }
 
+    [Fact]
+    public void TheDiskpartScriptNamesTheDiskAndPartitionAndDoesNothingElse()
+    {
+        // Every word of this stands between marking a stick bootable and marking the
+        // wrong disk's partition active. "select disk" before "select partition"
+        // matters: diskpart's partition selection is relative to the selected disk,
+        // so the two lines in the other order operate on whatever was selected last.
+        var script = BootRepairRunner.DiskpartScript(diskIndex: 3, partitionIndex: 1);
+
+        var lines = script.Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries);
+
+        Assert.Equal(["select disk 3", "select partition 1", "active"], lines);
+    }
+
+    [Fact]
+    public void TheDiskpartScriptNeverCarriesAVerbThatDestroys()
+    {
+        var script = BootRepairRunner.DiskpartScript(0, 0);
+
+        foreach (var verb in new[] { "clean", "format", "delete", "convert", "create", "assign" })
+            Assert.DoesNotContain(verb, script, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void BootsectIsAskedForTheVolumeAndItsMbrAndNothingElse()
+    {
+        var command = BootRepairRunner.BootsectCommand(@"E:\boot\bootsect.exe", 'e');
+
+        Assert.Equal(@"""E:\boot\bootsect.exe"" /nt60 E: /mbr", command);
+
+        // /force takes the volume by dismounting it under whatever has it open. A
+        // repair that can do that is one that can lose the data it was called to save.
+        Assert.DoesNotContain("/force", command, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void BootsectIsFoundOnTheStickBeforeAnywhereElse()
+    {
+        // Windows install media carries it under \boot, so the drive being repaired is
+        // usually carrying the tool that repairs it.
+        var root = Path.Combine(Path.GetTempPath(), $"smartlab-boot-{Guid.NewGuid():N}");
+        var folder = Path.Combine(root, "boot");
+
+        try
+        {
+            Directory.CreateDirectory(folder);
+
+            var planted = Path.Combine(folder, "bootsect.exe");
+            File.WriteAllBytes(planted, [0x4D, 0x5A]);
+
+            Assert.Equal(planted, BootRepairRunner.FindBootsectIn(root));
+        }
+        finally
+        {
+            try { Directory.Delete(root, recursive: true); } catch { }
+        }
+    }
+
+    [Fact]
+    public void AnEmptyStickFallsBackRatherThanInventingAPath()
+    {
+        var root = Path.Combine(Path.GetTempPath(), $"smartlab-boot-{Guid.NewGuid():N}");
+
+        try
+        {
+            Directory.CreateDirectory(root);
+
+            // Null on a machine without the ADK, a real path on one with it. Either
+            // is correct; what must never happen is a path on the stick that is not
+            // there, which would be handed to an elevated shell.
+            if (BootRepairRunner.FindBootsectIn(root) is { } found)
+                Assert.True(File.Exists(found));
+        }
+        finally
+        {
+            try { Directory.Delete(root, recursive: true); } catch { }
+        }
+    }
+
+    [Theory]
+    [InlineData(BootFix.MarkActive)]
+    [InlineData(BootFix.WriteBootCode)]
+    public async Task ADryRunSaysWhatItWouldDoAndRunsNothing(string id)
+    {
+        // The apply path, driven for real. It returns before composing a command line,
+        // so this exercises the guard rather than describing it.
+        var volume = Volume('E', VolumeDriveType.Removable);
+        var fix = new BootFix(id, "Mark the partition active", "detail");
+
+        var health = new BootHealth(@"E:\", true, "FAT32", false, false, false,
+            true, true, true, true, true, DiskIndex: 3, PartitionIndex: 1);
+
+        var result = await BootRepairRunner.ApplyAsync(fix, volume, health, dryRun: true);
+
+        Assert.True(result.Succeeded);
+        Assert.StartsWith("Dry run:", result.Output, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task AFixedDiskIsRefusedEvenInADryRun()
+    {
+        var volume = Volume('D', VolumeDriveType.Fixed);
+        var fix = new BootFix(BootFix.MarkActive, "Mark the partition active", "detail");
+
+        var health = new BootHealth(@"D:\", false, "NTFS", false, false, false,
+            true, true, true, true, true, DiskIndex: 0, PartitionIndex: 1);
+
+        var result = await BootRepairRunner.ApplyAsync(fix, volume, health, dryRun: true);
+
+        Assert.False(result.Succeeded);
+        Assert.Contains("removable", result.Output, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task APartitionThatCouldNotBeIdentifiedIsNeverGuessedAt()
+    {
+        // The one path that would hand diskpart a disk number that means nothing.
+        var volume = Volume('E', VolumeDriveType.Removable);
+        var fix = new BootFix(BootFix.MarkActive, "Mark the partition active", "detail");
+
+        var health = new BootHealth(@"E:\", true, "FAT32", false, false, false,
+            true, true, true, true, true, DiskIndex: -1, PartitionIndex: -1);
+
+        var result = await BootRepairRunner.ApplyAsync(fix, volume, health, dryRun: false);
+
+        Assert.False(result.Succeeded);
+        Assert.Contains("could not be read", result.Output, StringComparison.OrdinalIgnoreCase);
+    }
+
     /// <summary>
     /// The scanner against this machine's own system drive.
     /// </summary>
