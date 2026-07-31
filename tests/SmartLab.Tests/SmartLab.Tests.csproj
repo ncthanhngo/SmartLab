@@ -27,6 +27,13 @@
           CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
+  <!-- Output these tools really produced, captured from a live machine. The
+       hand-written samples test the shapes the parsers were designed for; these test
+       the shapes the tools actually emit. -->
+  <ItemGroup>
+    <None Include="Fixtures\*.txt" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\..\src\SmartLab.App\SmartLab.App.csproj" />
     <ProjectReference Include="..\..\src\SmartLab.Cli\SmartLab.Cli.csproj" />

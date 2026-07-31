@@ -1,0 +1,3 @@
+Scan starting...
+Scan finished.
+Scanning C:\scratch\realdata found no threats.

@@ -1,0 +1,10 @@
+Name                                            Id                                Version    Available  Source
+--------------------------------------------------------------------------------------------------------------
+App Installer                                   Microsoft.AppInstaller            1.29.279.0 1.29.280.0 winget
+Git                                             Git.Git                           2.55.0.2   2.55.0.3   winget
+Microsoft Windows Desktop Runtime - 8.0.3 (x64) Microsoft.DotNet.DesktopRuntime.8 8.0.3      8.0.29     winget
+SumatraPDF                                      SumatraPDF.SumatraPDF             3.5.2      3.6.1      winget
+Typora                                          appmakes.Typora                   1.12.4     1.14.7     winget
+Visual Studio Build Tools 2026                  Microsoft.VisualStudio.BuildTools 18.7.3     18.8.2     winget
+Zalo 26.2.10                                    VNGCorp.Zalo                      26.2.10    26.5.20    winget
+7 upgrades available.
