@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <RootNamespace>SmartLab.Worker</RootNamespace>
+    <AssemblyName>SmartLab.Worker</AssemblyName>
+
+    <!--
+      Requires Administrator, which is the whole point: launching this is the one UAC
+      prompt, and every elevated command afterwards runs inside it. The UI itself
+      still runs as the invoking user and always will.
+    -->
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+
+    <!-- No window. The worker is driven entirely over its pipe. -->
+    <DisableWinExeOutputInference>true</DisableWinExeOutputInference>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\SmartLab.Maintenance\SmartLab.Maintenance.csproj" />
+  </ItemGroup>
+
+</Project>

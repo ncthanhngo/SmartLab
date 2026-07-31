@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<assembly manifestVersion="1.0" xmlns="urn:schemas-microsoft-com:asm.v1">
+
+  <assemblyIdentity version="1.0.0.0" name="SmartLab.Worker" />
+
+  <trustInfo xmlns="urn:schemas-microsoft-com:asm.v2">
+    <security>
+      <requestedPrivileges xmlns="urn:schemas-microsoft-com:asm.v3">
+        <!--
+          requireAdministrator, and this is the only binary in the product that asks
+          for it. Starting this process is the single UAC prompt; every elevated
+          command afterwards runs inside it, which is what lets their output be
+          captured at all - redirection does not cross an elevation boundary.
+
+          What this process will do is fixed at compile time. It accepts an id from
+          RepairCommand.All and nothing else, so the worst a forged request achieves
+          is one of four read-only Microsoft tools.
+        -->
+        <requestedExecutionLevel level="requireAdministrator" uiAccess="false" />
+      </requestedPrivileges>
+    </security>
+  </trustInfo>
+
+  <compatibility xmlns="urn:schemas-microsoft-com:compatibility.v1">
+    <application>
+      <supportedOS Id="{8e0f7a12-bfb3-4fe8-b9a5-48fd50a15a9a}" /><!-- Windows 10/11 -->
+    </application>
+  </compatibility>
+
+</assembly>

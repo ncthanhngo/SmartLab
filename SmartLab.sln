@@ -22,6 +22,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SmartLab.Fat", "src\SmartLa
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SmartLab.Maintenance", "src\SmartLab.Maintenance\SmartLab.Maintenance.csproj", "{E3F87809-15D8-46FE-B0DD-B086B4F586E2}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SmartLab.Worker", "src\SmartLab.Worker\SmartLab.Worker.csproj", "{2C02E6CC-7B7F-40FE-8ED7-F1AE07F575E4}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -64,6 +66,10 @@ Global
 		{E3F87809-15D8-46FE-B0DD-B086B4F586E2}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{E3F87809-15D8-46FE-B0DD-B086B4F586E2}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{E3F87809-15D8-46FE-B0DD-B086B4F586E2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2C02E6CC-7B7F-40FE-8ED7-F1AE07F575E4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2C02E6CC-7B7F-40FE-8ED7-F1AE07F575E4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2C02E6CC-7B7F-40FE-8ED7-F1AE07F575E4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2C02E6CC-7B7F-40FE-8ED7-F1AE07F575E4}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -72,5 +78,6 @@ Global
 		{B0E84B09-4BC7-4030-AC96-8A4581A95370} = {BB3AEEE1-DEE5-4E45-8EEE-E445887EDA67}
 		{E8404823-6A97-4BA4-BBAE-F846B7736E0E} = {BB3AEEE1-DEE5-4E45-8EEE-E445887EDA67}
 		{E3F87809-15D8-46FE-B0DD-B086B4F586E2} = {BB3AEEE1-DEE5-4E45-8EEE-E445887EDA67}
+		{2C02E6CC-7B7F-40FE-8ED7-F1AE07F575E4} = {BB3AEEE1-DEE5-4E45-8EEE-E445887EDA67}
 	EndGlobalSection
 EndGlobal

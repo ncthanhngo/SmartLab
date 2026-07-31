@@ -34,9 +34,18 @@ public sealed partial class RepairCommandViewModel(RepairCommand command) : Obse
 /// this app has no business interpreting, and a paraphrase of "found corrupt files it
 /// was unable to fix" is worse than the sentence itself.
 /// </para>
+/// <para>
+/// The three elevated commands run inside a single elevated worker process, started
+/// on the first one. One prompt covers the session: three in a row trains people to
+/// click through them, which is the opposite of what a consent dialog is for. It also
+/// means their output can be streamed live, since redirection works inside the
+/// worker and does not across an elevation boundary.
+/// </para>
 /// </remarks>
-public sealed partial class MaintenanceViewModel : ObservableObject
+public sealed partial class MaintenanceViewModel : ObservableObject, IAsyncDisposable
 {
+    private readonly ElevatedWorkerClient _worker = new();
+
     public MaintenanceViewModel()
     {
         foreach (var command in RepairCommand.All)
@@ -57,8 +66,8 @@ public sealed partial class MaintenanceViewModel : ObservableObject
     [ObservableProperty] private string _headline = "Nothing run yet";
 
     [ObservableProperty] private string _headlineDetail =
-        "Four repair tools Windows ships with. Three need Administrator, so each one raises its " +
-        "own prompt - this app never runs elevated.";
+        "Four repair tools Windows ships with. Three run inside one elevated worker, so you are " +
+        "asked once - this app never runs elevated.";
 
     private bool CanRun() => !IsBusy;
 
@@ -84,7 +93,26 @@ public sealed partial class MaintenanceViewModel : ObservableObject
 
         try
         {
-            var result = await RepairCommandRunner.RunAsync(row.Command).ConfigureAwait(true);
+            // Started on demand rather than at launch: an app that raises a UAC prompt
+            // on startup teaches the user that the prompt means nothing.
+            if (row.NeedsElevation && !_worker.IsRunning)
+            {
+                Status = "Waiting for the Administrator prompt. One prompt covers every " +
+                         "command in this section.";
+
+                var start = await _worker.StartAsync().ConfigureAwait(true);
+
+                if (!start.Started)
+                {
+                    row.Outcome = start.Refused ? "cancelled" : "worker unavailable";
+                    Status = start.Error ?? "The elevated worker did not start.";
+                    return;
+                }
+            }
+
+            var result = row.NeedsElevation
+                ? await _worker.RunAsync(row.Command, line => Transcript.Add(line)).ConfigureAwait(true)
+                : await RepairCommandRunner.RunAsync(row.Command).ConfigureAwait(true);
 
             if (!result.Started)
             {
@@ -93,8 +121,13 @@ public sealed partial class MaintenanceViewModel : ObservableObject
                 return;
             }
 
-            foreach (var line in result.Output.Split('\n', StringSplitOptions.RemoveEmptyEntries))
-                Transcript.Add(line.TrimEnd());
+            // The elevated path already added each line as it arrived; the direct one
+            // returns everything at once.
+            if (!row.NeedsElevation)
+            {
+                foreach (var line in result.Output.Split('\n', StringSplitOptions.RemoveEmptyEntries))
+                    Transcript.Add(line.TrimEnd());
+            }
 
             row.Outcome = result.ExitCode == 0 ? "completed" : $"exit code {result.ExitCode}";
 
@@ -123,14 +156,21 @@ public sealed partial class MaintenanceViewModel : ObservableObject
         (Headline, HeadlineDetail) = Summarise(CompletedCount, Commands.Count);
     }
 
+    /// <summary>Stops the elevated worker when the window goes.</summary>
+    /// <remarks>
+    /// An idle elevated process left running on the machine is exactly what asking for
+    /// one prompt instead of three is meant to avoid becoming permanent.
+    /// </remarks>
+    public ValueTask DisposeAsync() => _worker.DisposeAsync();
+
     /// <summary>The heading above the dial.</summary>
     public static (string Headline, string Detail) Summarise(int completed, int total)
     {
         if (completed == 0)
         {
             return ("Nothing run yet",
-                "Four repair tools Windows ships with. Three need Administrator, so each one raises " +
-                "its own prompt - this app never runs elevated.");
+                "Four repair tools Windows ships with. Three run inside one elevated worker, so " +
+                "you are asked once - this app never runs elevated.");
         }
 
         return ($"{completed} of {total} run",

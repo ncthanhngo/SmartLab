@@ -54,16 +54,15 @@ public sealed record RepairResult(RepairCommand Command, bool Started, int ExitC
 /// </summary>
 /// <remarks>
 /// <para>
-/// <b>Elevation.</b> The UI must never run as Administrator, so an elevated command is
-/// launched as a separate process through the shell's <c>runas</c> verb, with one UAC
-/// prompt each. Standard output cannot be redirected across that boundary, so the
-/// command is run under <c>cmd /c</c> with its output sent to a temp file that this
-/// process reads afterwards.
+/// This path is for the commands that need no elevation. Anything requiring
+/// Administrator goes through <see cref="ElevatedWorkerClient"/> instead, which runs
+/// it inside a single elevated worker - one prompt for the session, and output that
+/// can actually be captured, since redirection does not cross an elevation boundary.
 /// </para>
 /// <para>
-/// This is the interim arrangement. The roadmap's elevated worker with a named-pipe
-/// channel is the real answer, and when it exists this class should route through it
-/// and lose the temp file entirely.
+/// Output still goes through a transcript rather than a redirected pipe. These tools
+/// write in the OEM codepage and pad with nul bytes, and reading the file back is
+/// what lets that be dealt with in one place.
 /// </para>
 /// </remarks>
 public static class RepairCommandRunner
@@ -76,11 +75,7 @@ public static class RepairCommandRunner
 
         try
         {
-            var info = command.NeedsElevation
-                ? Elevated(command, transcript)
-                : Direct(command, transcript);
-
-            using var process = Process.Start(info);
+            using var process = Process.Start(Direct(command, transcript));
 
             if (process is null)
                 return new RepairResult(command, Started: false, -1, string.Empty, "The command would not start.");
@@ -93,32 +88,13 @@ public static class RepairCommandRunner
         }
         catch (Exception ex)
         {
-            // A refused UAC prompt lands here. It is a choice the user made, not a
-            // fault, and the section says so rather than reporting a failure.
-            var refused = ex is System.ComponentModel.Win32Exception { NativeErrorCode: 1223 };
-
-            return new RepairResult(
-                command, Started: false, -1, string.Empty,
-                refused ? "Cancelled at the Administrator prompt." : ex.Message);
+            return new RepairResult(command, Started: false, -1, string.Empty, ex.Message);
         }
         finally
         {
             try { if (File.Exists(transcript)) File.Delete(transcript); } catch { }
         }
     }
-
-    /// <remarks>
-    /// UseShellExecute with the runas verb is what raises the UAC prompt. It also
-    /// rules out redirection, which is why the transcript exists.
-    /// </remarks>
-    private static ProcessStartInfo Elevated(RepairCommand command, string transcript) =>
-        new("cmd.exe", $"/c \"{command.Executable} {command.Arguments} > \"{transcript}\" 2>&1\"")
-        {
-            UseShellExecute = true,
-            Verb = "runas",
-            CreateNoWindow = false,
-            WindowStyle = ProcessWindowStyle.Hidden,
-        };
 
     private static ProcessStartInfo Direct(RepairCommand command, string transcript) =>
         new("cmd.exe", $"/c \"{command.Executable} {command.Arguments} > \"{transcript}\" 2>&1\"")

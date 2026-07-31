@@ -50,6 +50,10 @@
   <ItemGroup>
     <ProjectReference Include="..\SmartLab.Engine\SmartLab.Engine.csproj" />
     <ProjectReference Include="..\SmartLab.Maintenance\SmartLab.Maintenance.csproj" />
+
+    <!-- Built and copied beside the app so Repair OS can launch it. The only binary
+         in the product that asks for Administrator. -->
+    <ProjectReference Include="..\SmartLab.Worker\SmartLab.Worker.csproj" />
   </ItemGroup>
 
 </Project>

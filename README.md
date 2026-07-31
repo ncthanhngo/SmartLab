@@ -347,12 +347,29 @@ reboot, which is not something a button labelled "check" should decide. Output i
 shown verbatim, because these commands report findings this app has no business
 interpreting.
 
-Three of the four need Administrator, and the UI must never run elevated. Until the
-roadmap's elevated worker exists, each is launched separately through the shell's
-`runas` verb with its own UAC prompt, writing to a temp transcript this process reads
-back — output cannot be redirected across an elevation boundary. **This is interim.**
-When the elevated worker lands, `RepairCommandRunner` should route through it and lose
-the transcript entirely.
+### The elevated worker
+
+Three of those four need Administrator, and the UI must never run elevated. They run
+inside `SmartLab.Worker`, the only binary in the product whose manifest asks for it.
+
+Starting the worker is **one** prompt, and it covers the session. Three prompts in a
+row was not merely inconvenient: it trains people to click through them, which is the
+opposite of what a consent dialog is for. It is also the only way the output can be
+captured at all — redirection does not cross an elevation boundary, so before this the
+commands wrote to a temp file that was read back after they finished. Now each line is
+streamed as it arrives, which matters when SFC runs for minutes.
+
+What crosses the pipe decides what an attacker gains by reaching it, so **only a
+command id crosses it** — never a path, an argument or a command line. The worst a
+forged request achieves is one of four fixed, read-only Microsoft tools. The pipe name
+travels on a command line and is readable by any local process, so the name is not the
+control: the pipe's DACL is, and it admits only the account that consented to the
+prompt, plus SYSTEM. The worker exits when the window closes or when nobody connects
+within a minute, because an idle elevated process waiting on a pipe is a standing
+invitation.
+
+`WorkerProtocolTests` asserts that `WorkerRequest` carries an id and nothing else, so
+widening that surface fails the build rather than shipping quietly.
 
 ## Disk cleanup
 
@@ -472,13 +489,14 @@ by SHA-256.
 
 ## Roadmap
 
-1. **Elevated worker + named-pipe RPC** — needed before format and repair, so the
-   UI itself never runs as Administrator.
-2. **Format / repair** — behind two independent guards: the backup must verify,
+The elevated worker that used to head this list is built — see *The elevated worker*
+above. Format and repair can now be written against it rather than waiting for it.
+
+1. **Format / repair** — behind two independent guards: the backup must verify,
    and the target must prove it is a removable volume of the expected size.
-3. **Resume from the journal** — the records are already written; nothing reads
+2. **Resume from the journal** — the records are already written; nothing reads
    them back yet.
-4. **Fragmented-file recovery** — grading tells you whether a contiguous read is
+3. **Fragmented-file recovery** — grading tells you whether a contiguous read is
    safe, but not how to reassemble a file that was fragmented. Reconstructing a
    plausible chain from free-cluster runs is the remaining hard problem.
 
