@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.IO;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
@@ -9,6 +10,9 @@ using UsbDoctor.Win32.Devices;
 using Application = System.Windows.Application;
 using Drawing = System.Drawing;
 using Forms = System.Windows.Forms;
+
+// WinForms is referenced for the tray icon, which makes ListBox ambiguous.
+using ListBox = System.Windows.Controls.ListBox;
 
 namespace UsbDoctor.App;
 
@@ -36,6 +40,20 @@ public partial class MainWindow : Window
         WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
 
     private void OnCloseClicked(object sender, RoutedEventArgs e) => Close();
+
+    /// <summary>
+    /// Keeps the selected rail entry on screen.
+    /// </summary>
+    /// <remarks>
+    /// The rail scrolls now that it holds seventeen sections, so arrowing through it
+    /// or selecting a section in code can otherwise land on a cell nobody can see -
+    /// the stage changes and the rail appears not to have moved.
+    /// </remarks>
+    private void OnSectionSelected(object sender, SelectionChangedEventArgs e)
+    {
+        if (sender is ListBox rail && rail.SelectedItem is { } selected)
+            rail.ScrollIntoView(selected);
+    }
 
     // ---- volume watching --------------------------------------------------------
 
@@ -130,6 +148,38 @@ public partial class MainWindow : Window
                         viewModel.Uninstall.ScanSelfCommand.Execute(null);
                         await viewModel.Uninstall.ScanProgramsCommand.ExecuteAsync(null).ConfigureAwait(true);
                         break;
+                    case "trash":
+                        viewModel.TrashBins.MeasureCommand.Execute(null);
+                        break;
+                    case "mail":
+                        await viewModel.Mail.ScanCommand.ExecuteAsync(null).ConfigureAwait(true);
+                        break;
+                    case "spacelens":
+                        // A shallow folder, because a capture must not spend minutes
+                        // walking a whole profile before it can render.
+                        viewModel.SpaceLens.RootFolder = AppContext.BaseDirectory;
+                        await viewModel.SpaceLens.MeasureCommand.ExecuteAsync(null).ConfigureAwait(true);
+                        break;
+                    case "large":
+                        viewModel.LargeFiles.RootFolder = AppContext.BaseDirectory;
+                        viewModel.LargeFiles.MinimumMegabytes = "0";
+                        viewModel.LargeFiles.MinimumMonths = "0";
+                        await viewModel.LargeFiles.ScanCommand.ExecuteAsync(null).ConfigureAwait(true);
+                        break;
+                    case "shredder":
+                        viewModel.Shredder.Folder = AppContext.BaseDirectory;
+                        viewModel.Shredder.AddFolderCommand.Execute(null);
+                        break;
+                    case "optimize":
+                        viewModel.Optimization.ScanCommand.Execute(null);
+                        break;
+                    case "extensions":
+                        await viewModel.Extensions.ScanCommand.ExecuteAsync(null).ConfigureAwait(true);
+                        break;
+
+                    // Updater, Malware and Smart Scan are deliberately not populated.
+                    // Each shells out to something slow - winget, Defender, or all of
+                    // the above - and a capture run should not take twenty minutes.
                 }
 
                 // Two passes at ContextIdle: the first lets bindings propagate, the
@@ -138,6 +188,11 @@ public partial class MainWindow : Window
                 await Dispatcher.Yield(DispatcherPriority.ContextIdle);
                 UpdateLayout();
                 await Dispatcher.Yield(DispatcherPriority.ContextIdle);
+
+                // The gauges sweep to their value rather than snapping to it, so a
+                // capture taken the instant layout settles catches a half-drawn ring.
+                // Longer than the longest sweep the control will run.
+                await Task.Delay(800).ConfigureAwait(true);
 
                 Save(section.Key, directory);
             }

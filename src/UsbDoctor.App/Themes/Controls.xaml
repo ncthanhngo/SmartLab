@@ -181,6 +181,43 @@
         </Setter>
     </Style>
 
+    <!-- Group heading in the rail. Seventeen undifferentiated glyphs is a wall; the
+         headings are what let the eye jump to a region rather than read every cell.
+
+         Blank-suppressed: the sections that stand outside a group carry an empty
+         group name, so the heading collapses rather than each of them needing a
+         special case in the rail's template. -->
+    <Style x:Key="NavGroupLabel" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="7.5" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="{DynamicResource TextMutedBrush}" />
+        <Setter Property="HorizontalAlignment" Value="Center" />
+        <Setter Property="Margin" Value="0,10,0,3" />
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding Name}" Value="">
+                <Setter Property="Visibility" Value="Collapsed" />
+                <Setter Property="Margin" Value="0,4,0,0" />
+            </DataTrigger>
+        </Style.Triggers>
+    </Style>
+
+    <GroupStyle x:Key="NavGroups">
+        <GroupStyle.ContainerStyle>
+            <Style TargetType="GroupItem">
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="GroupItem">
+                            <StackPanel>
+                                <TextBlock Text="{Binding Name}" Style="{StaticResource NavGroupLabel}" />
+                                <ItemsPresenter />
+                            </StackPanel>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+        </GroupStyle.ContainerStyle>
+    </GroupStyle>
+
     <!-- ============================ inputs ============================ -->
 
     <Style x:Key="PathBox" TargetType="TextBox">

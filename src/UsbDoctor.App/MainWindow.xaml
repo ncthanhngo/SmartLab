@@ -1,9 +1,9 @@
-﻿<Window x:Class="UsbDoctor.App.MainWindow"
+<Window x:Class="UsbDoctor.App.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
-        xmlns:ctl="clr-namespace:UsbDoctor.App.Controls"
         xmlns:local="clr-namespace:UsbDoctor.App"
+        xmlns:views="clr-namespace:UsbDoctor.App.Views"
         Title="USB Doctor" Height="740" Width="1120"
         MinHeight="600" MinWidth="900"
         Icon="Assets/app.ico"
@@ -19,6 +19,10 @@
     <Window.DataContext>
         <local:MainViewModel />
     </Window.DataContext>
+
+    <Window.Resources>
+        <views:SectionTemplateSelector x:Key="SectionTemplates" />
+    </Window.Resources>
 
     <Window.Background>
         <LinearGradientBrush StartPoint="0,0" EndPoint="0.35,1">
@@ -39,8 +43,9 @@
             <Control Style="{StaticResource LogoLockup}" HorizontalAlignment="Left"
                      Margin="18,0,0,0" VerticalAlignment="Center" />
 
-            <TextBlock Text="USB Doctor" VerticalAlignment="Center" HorizontalAlignment="Center"
-                       FontSize="12.5" Foreground="{DynamicResource TextMutedBrush}" />
+            <TextBlock Text="{Binding SelectedSection.Title}" VerticalAlignment="Center"
+                       HorizontalAlignment="Center" FontSize="12.5"
+                       Foreground="{DynamicResource TextMutedBrush}" />
 
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right"
                         VerticalAlignment="Center" Margin="0,0,6,0"
@@ -57,775 +62,87 @@
         <!-- ==================== body ==================== -->
         <Grid Grid.Row="1">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="76" />
+                <!-- Eight wider than it was: the rail now scrolls, and a scrollbar
+                     laid over the cells clips the longer labels. -->
+                <ColumnDefinition Width="84" />
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
 
             <!-- ===== glyph rail =====
                  Navigation shrinks to icons so the stage keeps the width. The
                  subtitles that used to explain each section move into the stage
-                 heading, where there is room to say more than a rail ever had. -->
+                 heading, where there is room to say more than a rail ever had.
+
+                 Seventeen sections do not fit at any window height, so the rail
+                 scrolls and groups. Grouping turns off virtualisation, which at
+                 seventeen items costs nothing - but this rail must not later be
+                 pointed at a long list without turning it back on. -->
             <Border Grid.Column="0" Background="{DynamicResource SidebarBrush}"
                     BorderBrush="{DynamicResource SidebarHairlineBrush}" BorderThickness="0,0,1,0">
-                <ListBox Style="{StaticResource NavList}" ItemsSource="{Binding Sections}"
-                         SelectedItem="{Binding SelectedSection}" Margin="0,10,0,0"
-                         VerticalAlignment="Top">
-                    <ListBox.ItemTemplate>
-                        <DataTemplate>
-                            <Border x:Name="Cell" Width="60" Height="54" CornerRadius="12"
-                                    Background="Transparent" HorizontalAlignment="Center">
-                                <StackPanel VerticalAlignment="Center">
-                                    <TextBlock x:Name="Glyph" Text="{Binding Glyph}"
-                                               FontFamily="Segoe MDL2 Assets" FontSize="17"
-                                               Foreground="{Binding Accent}"
-                                               HorizontalAlignment="Center" />
-                                    <TextBlock x:Name="Label" Text="{Binding Title}"
-                                               FontSize="8.5" Margin="0,4,0,0"
-                                               HorizontalAlignment="Center"
-                                               Foreground="{DynamicResource TextMutedBrush}" />
-                                </StackPanel>
-                            </Border>
+                <ScrollViewer VerticalScrollBarVisibility="Auto"
+                              HorizontalScrollBarVisibility="Disabled">
+                    <ScrollViewer.Resources>
+                        <!-- Implicit, because a ScrollViewer builds its own scrollbars
+                             and there is no element here to hang a keyed style on. -->
+                        <Style TargetType="ScrollBar" BasedOn="{StaticResource SlimScrollBar}" />
+                    </ScrollViewer.Resources>
 
-                            <DataTemplate.Triggers>
-                                <DataTrigger Value="True"
-                                             Binding="{Binding IsMouseOver,
-                                                 RelativeSource={RelativeSource AncestorType=ListBoxItem}}">
-                                    <Setter TargetName="Cell" Property="Background" Value="{DynamicResource SidebarHoverBrush}" />
-                                    <Setter TargetName="Label" Property="Foreground"
-                                            Value="{DynamicResource TextSecondaryBrush}" />
-                                </DataTrigger>
-                                <DataTrigger Value="True"
-                                             Binding="{Binding IsSelected,
-                                                 RelativeSource={RelativeSource AncestorType=ListBoxItem}}">
-                                    <Setter TargetName="Cell" Property="Background"
-                                            Value="{Binding SelectedFill}" />
-                                    <Setter TargetName="Label" Property="Foreground"
-                                            Value="{DynamicResource TextPrimaryBrush}" />
-                                </DataTrigger>
-                            </DataTemplate.Triggers>
-                        </DataTemplate>
-                    </ListBox.ItemTemplate>
-                </ListBox>
+                    <ListBox x:Name="Rail" Style="{StaticResource NavList}"
+                             ItemsSource="{Binding GroupedSections.View}"
+                             SelectedItem="{Binding SelectedSection}"
+                             SelectionChanged="OnSectionSelected"
+                             Margin="0,4,0,10" VerticalAlignment="Top">
+                        <ListBox.GroupStyle>
+                            <StaticResource ResourceKey="NavGroups" />
+                        </ListBox.GroupStyle>
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <Border x:Name="Cell" Width="66" Height="46" CornerRadius="11"
+                                        Background="Transparent" HorizontalAlignment="Center"
+                                        ToolTip="{Binding Subtitle}">
+                                    <StackPanel VerticalAlignment="Center">
+                                        <TextBlock x:Name="Glyph" Text="{Binding Glyph}"
+                                                   FontFamily="Segoe MDL2 Assets" FontSize="15"
+                                                   Foreground="{Binding Accent}"
+                                                   HorizontalAlignment="Center" />
+                                        <TextBlock x:Name="Label" Text="{Binding Title}"
+                                                   FontSize="8" Margin="0,3,0,0"
+                                                   HorizontalAlignment="Center"
+                                                   TextTrimming="CharacterEllipsis" MaxWidth="62"
+                                                   Foreground="{DynamicResource TextMutedBrush}" />
+                                    </StackPanel>
+                                </Border>
+
+                                <DataTemplate.Triggers>
+                                    <DataTrigger Value="True"
+                                                 Binding="{Binding IsMouseOver,
+                                                     RelativeSource={RelativeSource AncestorType=ListBoxItem}}">
+                                        <Setter TargetName="Cell" Property="Background" Value="{DynamicResource SidebarHoverBrush}" />
+                                        <Setter TargetName="Label" Property="Foreground"
+                                                Value="{DynamicResource TextSecondaryBrush}" />
+                                    </DataTrigger>
+                                    <DataTrigger Value="True"
+                                                 Binding="{Binding IsSelected,
+                                                     RelativeSource={RelativeSource AncestorType=ListBoxItem}}">
+                                        <Setter TargetName="Cell" Property="Background"
+                                                Value="{Binding SelectedFill}" />
+                                        <Setter TargetName="Label" Property="Foreground"
+                                                Value="{DynamicResource TextPrimaryBrush}" />
+                                    </DataTrigger>
+                                </DataTemplate.Triggers>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </ScrollViewer>
             </Border>
 
-            <!-- ===== stage ===== -->
-            <Grid Grid.Column="1" Margin="26,10,26,8">
-
-                <!-- ================= Repair ================= -->
-                <DockPanel>
-                    <DockPanel.Style>
-                        <Style TargetType="DockPanel">
-                            <Setter Property="Visibility" Value="Collapsed" />
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding SelectedSection.Key}" Value="repair">
-                                    <Setter Property="Visibility" Value="Visible" />
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </DockPanel.Style>
-
-                    <!-- drive strip: only the volume sections need one, so it lives
-                         with them rather than permanently in the chrome -->
-                    <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,10">
-                        <TextBlock Text="DRIVE" Style="{StaticResource CaptionText}"
-                                   VerticalAlignment="Center" Margin="0,0,10,0" FontWeight="SemiBold" />
-                        <ComboBox Style="{StaticResource DriveCombo}" Width="250"
-                                  ItemsSource="{Binding Drives}" SelectedItem="{Binding SelectedDrive}">
-                            <ComboBox.ItemTemplate>
-                                <DataTemplate>
-                                    <TextBlock Foreground="{DynamicResource TextPrimaryBrush}">
-                                        <Run Text="{Binding Root, Mode=OneWay}" />
-                                        <Run Text="{Binding Label, Mode=OneWay}" />
-                                        <Run Text="{Binding FileSystem, Mode=OneWay}"
-                                             Foreground="{DynamicResource TextMutedBrush}" />
-                                    </TextBlock>
-                                </DataTemplate>
-                            </ComboBox.ItemTemplate>
-                        </ComboBox>
-                        <Button Content="Refresh" Style="{StaticResource GhostButton}"
-                                Command="{Binding RefreshDrivesCommand}" Margin="8,0,0,0" />
-                        <CheckBox Style="{StaticResource ToggleCheck}" Margin="18,0,0,0"
-                                  Content="Scan on insert" IsChecked="{Binding AutoScanOnInsert}" />
-                    </StackPanel>
-
-                    <!-- findings and actions sit below the stage -->
-                    <Grid DockPanel.Dock="Bottom" Height="210" Margin="0,14,0,0">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="14" />
-                            <ColumnDefinition Width="1.15*" />
-                        </Grid.ColumnDefinitions>
-
-                        <Border Grid.Column="0" Style="{StaticResource Card}" Padding="14">
-                            <DockPanel>
-                                <TextBlock DockPanel.Dock="Top" Text="Findings"
-                                           Style="{StaticResource SectionTitle}" />
-                                <ListBox Style="{StaticResource PlainList}" ItemsSource="{Binding Findings}"
-                                         FontFamily="{StaticResource MonoFont}" FontSize="11">
-                                    <ListBox.ItemTemplate>
-                                        <DataTemplate>
-                                            <TextBlock Text="{Binding}" TextWrapping="Wrap"
-                                                       Foreground="{DynamicResource TextSecondaryBrush}" />
-                                        </DataTemplate>
-                                    </ListBox.ItemTemplate>
-                                </ListBox>
-                            </DockPanel>
-                        </Border>
-
-                        <Border Grid.Column="2" Style="{StaticResource Card}" Padding="14">
-                            <DockPanel>
-                                <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal"
-                                            Margin="0,10,0,0">
-                                    <Button Content="Apply selected" Style="{StaticResource PrimaryButton}"
-                                            Command="{Binding ApplyCommand}" />
-                                    <CheckBox Style="{StaticResource ToggleCheck}" Content="Dry run"
-                                              IsChecked="{Binding DryRun}" Margin="14,0,0,0"
-                                              FontWeight="SemiBold" />
-                                </StackPanel>
-                                <TextBlock DockPanel.Dock="Top" Text="Proposed actions"
-                                           Style="{StaticResource SectionTitle}" />
-                                <ListBox Style="{StaticResource PlainList}" ItemsSource="{Binding Actions}">
-                                    <ListBox.ItemTemplate>
-                                        <DataTemplate>
-                                            <Border Background="{DynamicResource SurfaceRaisedBrush}"
-                                                    CornerRadius="{StaticResource ControlRadius}"
-                                                    Padding="11,9" Margin="0,0,0,5">
-                                                <StackPanel Orientation="Horizontal">
-                                                    <CheckBox Style="{StaticResource RowCheck}"
-                                                              IsChecked="{Binding IsSelected}"
-                                                              VerticalAlignment="Top" Margin="0,2,10,0" />
-                                                    <StackPanel>
-                                                        <StackPanel Orientation="Horizontal">
-                                                            <TextBlock Text="{Binding Kind}" FontSize="12"
-                                                                       FontWeight="SemiBold"
-                                                                       Foreground="{DynamicResource TextPrimaryBrush}" />
-                                                            <TextBlock Text="irreversible" FontSize="10"
-                                                                       Margin="8,0,0,0" FontWeight="SemiBold"
-                                                                       VerticalAlignment="Center"
-                                                                       Foreground="{DynamicResource DangerBrush}"
-                                                                       Visibility="{Binding IsDestructive,
-                                                                           Converter={StaticResource BoolToVisibility}}" />
-                                                        </StackPanel>
-                                                        <TextBlock Text="{Binding Description}"
-                                                                   Style="{StaticResource CaptionText}"
-                                                                   MaxWidth="420" Margin="0,3,0,0" />
-                                                    </StackPanel>
-                                                </StackPanel>
-                                            </Border>
-                                        </DataTemplate>
-                                    </ListBox.ItemTemplate>
-                                </ListBox>
-                            </DockPanel>
-                        </Border>
-                    </Grid>
-
-                    <!-- centre stage -->
-                    <Border Style="{StaticResource Card}" Padding="20">
-                        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
-                            <Grid Width="176" Height="176" HorizontalAlignment="Center">
-                                <ctl:RadialGauge Thickness="13"
-                                                 Percent="{Binding Source={x:Static local:MainViewModel.RepairGaugePercent}}"
-                                                 TrackBrush="{DynamicResource GaugeTrackBrush}">
-                                    <ctl:RadialGauge.Style>
-                                        <Style TargetType="ctl:RadialGauge">
-                                            <Setter Property="ValueBrush" Value="{DynamicResource TextMutedBrush}" />
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding HeadlineTone}" Value="good">
-                                                    <Setter Property="ValueBrush" Value="{DynamicResource AccentBrush}" />
-                                                </DataTrigger>
-                                                <DataTrigger Binding="{Binding HeadlineTone}" Value="warning">
-                                                    <Setter Property="ValueBrush" Value="{DynamicResource WarningBrush}" />
-                                                </DataTrigger>
-                                                <DataTrigger Binding="{Binding HeadlineTone}" Value="danger">
-                                                    <Setter Property="ValueBrush" Value="{DynamicResource DangerBrush}" />
-                                                </DataTrigger>
-                                                <DataTrigger Binding="{Binding IsScanning}" Value="True">
-                                                    <Setter Property="ValueBrush" Value="{DynamicResource InfoBrush}" />
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </ctl:RadialGauge.Style>
-                                </ctl:RadialGauge>
-
-                                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
-                                    <!-- Text has to come from a setter, not an attribute: a locally
-                                         set value outranks a trigger, so an attribute here would
-                                         freeze the number at the threat count during the scan. -->
-                                    <TextBlock HorizontalAlignment="Center"
-                                               Foreground="{DynamicResource TextPrimaryBrush}">
-                                        <TextBlock.Style>
-                                            <Style TargetType="TextBlock">
-                                                <Setter Property="FontSize" Value="40" />
-                                                <Setter Property="FontWeight" Value="SemiBold" />
-                                                <Setter Property="Text" Value="{Binding ThreatCount}" />
-                                                <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding IsScanning}" Value="True">
-                                                        <Setter Property="Text"
-                                                                Value="{Binding ScanEntries, StringFormat={}{0:N0}}" />
-                                                        <Setter Property="FontSize" Value="30" />
-                                                    </DataTrigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </TextBlock.Style>
-                                    </TextBlock>
-                                    <TextBlock HorizontalAlignment="Center">
-                                        <TextBlock.Style>
-                                            <Style TargetType="TextBlock" BasedOn="{StaticResource CaptionText}">
-                                                <Setter Property="Text" Value="threats" />
-                                                <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding IsScanning}" Value="True">
-                                                        <Setter Property="Text" Value="entries scanned" />
-                                                    </DataTrigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </TextBlock.Style>
-                                    </TextBlock>
-                                </StackPanel>
-                            </Grid>
-
-                            <TextBlock Text="{Binding Headline}" Style="{StaticResource DisplayText}"
-                                       FontSize="22" HorizontalAlignment="Center" Margin="0,16,0,0" />
-                            <TextBlock Text="{Binding HeadlineDetail}" Style="{StaticResource BodyText}"
-                                       TextAlignment="Center" MaxWidth="430" Margin="0,6,0,0" />
-
-                            <TextBlock Text="{Binding ScanningPath}" Margin="0,8,0,0"
-                                       FontFamily="{StaticResource MonoFont}" FontSize="11"
-                                       Foreground="{DynamicResource AccentBrush}"
-                                       HorizontalAlignment="Center" MaxWidth="460"
-                                       TextTrimming="WordEllipsis" FlowDirection="RightToLeft"
-                                       Visibility="{Binding IsScanning,
-                                           Converter={StaticResource BoolToVisibility}}" />
-
-                            <Button Content="Scan" Style="{StaticResource PrimaryButton}"
-                                    Command="{Binding ScanCommand}" Margin="0,16,0,0"
-                                    Padding="34,10" HorizontalAlignment="Center" />
-                        </StackPanel>
-                    </Border>
-                </DockPanel>
-
-                <!-- ================= Cleanup ================= -->
-                <DockPanel DataContext="{Binding Cleanup}">
-                    <DockPanel.Style>
-                        <Style TargetType="DockPanel">
-                            <Setter Property="Visibility" Value="Collapsed" />
-                            <Style.Triggers>
-                                <DataTrigger Value="cleanup"
-                                             Binding="{Binding DataContext.SelectedSection.Key,
-                                                 RelativeSource={RelativeSource AncestorType=Window}}">
-                                    <Setter Property="Visibility" Value="Visible" />
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </DockPanel.Style>
-
-                    <Border DockPanel.Dock="Bottom" Style="{StaticResource Card}"
-                            Background="{DynamicResource SurfaceSunkenBrush}" Padding="14,10"
-                            Margin="0,12,0,0">
-                        <TextBlock Text="{Binding Status}" Style="{StaticResource BodyText}" />
-                    </Border>
-
-                    <Grid DockPanel.Dock="Bottom" Height="230" Margin="0,14,0,0">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="1.5*" />
-                            <ColumnDefinition Width="14" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
-
-                        <Border Grid.Column="0" Style="{StaticResource Card}" Padding="14">
-                            <DockPanel>
-                                <TextBlock DockPanel.Dock="Top" Text="What to clean"
-                                           Style="{StaticResource SectionTitle}" />
-                                <ListBox Style="{StaticResource PlainList}" ItemsSource="{Binding Categories}">
-                                    <ListBox.ItemTemplate>
-                                        <DataTemplate>
-                                            <Border Background="{DynamicResource SurfaceRaisedBrush}"
-                                                    CornerRadius="{StaticResource ControlRadius}"
-                                                    Padding="11,9" Margin="0,0,0,5">
-                                                <Grid>
-                                                    <Grid.ColumnDefinitions>
-                                                        <ColumnDefinition Width="Auto" />
-                                                        <ColumnDefinition Width="*" />
-                                                        <ColumnDefinition Width="Auto" />
-                                                    </Grid.ColumnDefinitions>
-
-                                                    <CheckBox Grid.Column="0" Style="{StaticResource RowCheck}"
-                                                              IsChecked="{Binding IsSelected}"
-                                                              VerticalAlignment="Top" Margin="0,2,11,0" />
-
-                                                    <StackPanel Grid.Column="1">
-                                                        <StackPanel Orientation="Horizontal">
-                                                            <TextBlock Text="{Binding Name}" FontSize="12"
-                                                                       FontWeight="SemiBold"
-                                                                       Foreground="{DynamicResource TextPrimaryBrush}" />
-                                                            <Border Background="{DynamicResource SurfaceSunkenBrush}"
-                                                                    CornerRadius="4" Padding="6,1" Margin="8,0,0,0"
-                                                                    Visibility="{Binding NeedsElevation,
-                                                                        Converter={StaticResource BoolToVisibility}}">
-                                                                <TextBlock Text="admin" FontSize="10"
-                                                                           Foreground="{DynamicResource InfoBrush}" />
-                                                            </Border>
-                                                        </StackPanel>
-                                                        <TextBlock Text="{Binding Detail}"
-                                                                   Style="{StaticResource CaptionText}"
-                                                                   Margin="0,3,0,0" />
-                                                        <TextBlock Text="{Binding Caution}" FontSize="10.5"
-                                                                   Margin="0,3,0,0" TextWrapping="Wrap"
-                                                                   Foreground="{DynamicResource WarningBrush}"
-                                                                   Visibility="{Binding HasCaution,
-                                                                       Converter={StaticResource BoolToVisibility}}" />
-                                                    </StackPanel>
-
-                                                    <StackPanel Grid.Column="2" Margin="10,0,0,0"
-                                                                VerticalAlignment="Center">
-                                                        <TextBlock Text="{Binding SizeText}" FontSize="12"
-                                                                   HorizontalAlignment="Right"
-                                                                   Foreground="{DynamicResource TextPrimaryBrush}" />
-                                                        <TextBlock HorizontalAlignment="Right"
-                                                                   Style="{StaticResource CaptionText}"
-                                                                   Text="{Binding Files, StringFormat={}{0:N0} files}"
-                                                                   Visibility="{Binding Measured,
-                                                                       Converter={StaticResource BoolToVisibility}}" />
-                                                    </StackPanel>
-                                                </Grid>
-                                            </Border>
-                                        </DataTemplate>
-                                    </ListBox.ItemTemplate>
-                                </ListBox>
-                            </DockPanel>
-                        </Border>
-
-                        <Border Grid.Column="2" Style="{StaticResource Card}" Padding="14">
-                            <DockPanel>
-                                <TextBlock DockPanel.Dock="Top" Text="Log"
-                                           Style="{StaticResource SectionTitle}" />
-                                <ListBox Style="{StaticResource PlainList}" ItemsSource="{Binding Log}"
-                                         FontFamily="{StaticResource MonoFont}" FontSize="11">
-                                    <ListBox.ItemTemplate>
-                                        <DataTemplate>
-                                            <TextBlock Text="{Binding}" TextWrapping="Wrap"
-                                                       Foreground="{DynamicResource TextSecondaryBrush}" />
-                                        </DataTemplate>
-                                    </ListBox.ItemTemplate>
-                                </ListBox>
-                            </DockPanel>
-                        </Border>
-                    </Grid>
-
-                    <!-- centre stage -->
-                    <Border Style="{StaticResource Card}" Padding="20">
-                        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
-                            <Grid Width="176" Height="176" HorizontalAlignment="Center">
-                                <ctl:RadialGauge Thickness="13" Percent="{Binding GaugePercent}"
-                                                 TrackBrush="{DynamicResource GaugeTrackBrush}"
-                                                 ValueBrush="{DynamicResource AccentCleanupBrush}" />
-                                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
-                                    <TextBlock Text="{Binding TotalText}" FontSize="34"
-                                               FontWeight="SemiBold" HorizontalAlignment="Center"
-                                               Foreground="{DynamicResource TextPrimaryBrush}" />
-                                    <TextBlock Text="reclaimable" Style="{StaticResource CaptionText}"
-                                               HorizontalAlignment="Center" />
-                                </StackPanel>
-                            </Grid>
-
-                            <TextBlock Text="Disk cleanup" Style="{StaticResource DisplayText}"
-                                       FontSize="22" HorizontalAlignment="Center" Margin="0,16,0,0" />
-                            <TextBlock Style="{StaticResource BodyText}" TextAlignment="Center"
-                                       MaxWidth="430" Margin="0,6,0,0"
-                                       Text="The ring shows how much of what was found is ticked. Only ticked categories are cleaned." />
-
-                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center"
-                                        Margin="0,16,0,0">
-                                <Button Content="Analyse" Style="{StaticResource PrimaryButton}"
-                                        Command="{Binding AnalyseCommand}" Padding="30,10" />
-                                <Button Content="Clean" Style="{StaticResource GhostButton}"
-                                        Command="{Binding CleanCommand}" Margin="10,0,0,0" />
-                                <CheckBox Style="{StaticResource ToggleCheck}" Content="Dry run"
-                                          IsChecked="{Binding DryRun}" Margin="16,0,0,0"
-                                          FontWeight="SemiBold" />
-                            </StackPanel>
-                        </StackPanel>
-                    </Border>
-                </DockPanel>
-
-                <!-- ================= Deleted files ================= -->
-                <DockPanel>
-                    <DockPanel.Style>
-                        <Style TargetType="DockPanel">
-                            <Setter Property="Visibility" Value="Collapsed" />
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding SelectedSection.Key}" Value="deleted">
-                                    <Setter Property="Visibility" Value="Visible" />
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </DockPanel.Style>
-
-                    <Border DockPanel.Dock="Top" Style="{StaticResource Card}" Margin="0,0,0,12">
-                        <StackPanel>
-                            <TextBlock Text="Deleted files" Style="{StaticResource DisplayText}"
-                                       FontSize="20" />
-                            <TextBlock Style="{StaticResource BodyText}" Margin="0,4,0,12"
-                                       Text="Reads the device directly, below the mounted filesystem." />
-                            <StackPanel Orientation="Horizontal">
-                                <ComboBox Style="{StaticResource DriveCombo}" Width="210"
-                                          ItemsSource="{Binding Drives}" SelectedItem="{Binding SelectedDrive}">
-                                    <ComboBox.ItemTemplate>
-                                        <DataTemplate>
-                                            <TextBlock Foreground="{DynamicResource TextPrimaryBrush}">
-                                                <Run Text="{Binding Root, Mode=OneWay}" />
-                                                <Run Text="{Binding Label, Mode=OneWay}" />
-                                            </TextBlock>
-                                        </DataTemplate>
-                                    </ComboBox.ItemTemplate>
-                                </ComboBox>
-                                <Button Content="Read deleted entries" Style="{StaticResource PrimaryButton}"
-                                        Command="{Binding ReadDeletedCommand}" Margin="10,0,0,0" />
-                                <TextBlock Text="Recover to" Style="{StaticResource BodyText}"
-                                           VerticalAlignment="Center" Margin="16,0,10,0" />
-                                <TextBox Style="{StaticResource PathBox}" Text="{Binding RecoverTo}" Width="300" />
-                                <Button Content="Recover ticked" Style="{StaticResource GhostButton}"
-                                        Command="{Binding RecoverDeletedCommand}" Margin="10,0,0,0" />
-                            </StackPanel>
-                        </StackPanel>
-                    </Border>
-
-                    <Border DockPanel.Dock="Bottom" Style="{StaticResource Card}"
-                            Background="{DynamicResource SurfaceSunkenBrush}" Padding="14,10"
-                            Margin="0,12,0,0">
-                        <TextBlock Text="{Binding RawStatus}" Style="{StaticResource BodyText}" />
-                    </Border>
-
-                    <!-- Grouped by verdict rather than listed flat. The verdict is what
-                         decides whether carving is worth attempting, so it is the axis
-                         the operator triages on - a flat table makes them read every
-                         row to find the recoverable ones. -->
-                    <Border Style="{StaticResource Card}" Padding="14">
-                        <ScrollViewer VerticalScrollBarVisibility="Auto"
-                                      HorizontalScrollBarVisibility="Disabled">
-                            <ItemsControl ItemsSource="{Binding GroupedDeletedEntries.View}">
-                                <ItemsControl.GroupStyle>
-                                    <StaticResource ResourceKey="InsetGroups" />
-                                </ItemsControl.GroupStyle>
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate>
-                                        <Border Style="{StaticResource InsetRow}">
-                                            <Grid>
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="Auto" />
-                                                    <ColumnDefinition Width="*" />
-                                                    <ColumnDefinition Width="Auto" />
-                                                </Grid.ColumnDefinitions>
-
-                                                <CheckBox Grid.Column="0" Style="{StaticResource RowCheck}"
-                                                          IsChecked="{Binding IsSelected}"
-                                                          IsEnabled="{Binding CanRecover}"
-                                                          VerticalAlignment="Center" Margin="0,0,12,0" />
-
-                                                <StackPanel Grid.Column="1">
-                                                    <TextBlock Text="{Binding Path}" FontSize="11.5"
-                                                               FontFamily="{StaticResource MonoFont}"
-                                                               Foreground="{DynamicResource TextPrimaryBrush}"
-                                                               TextTrimming="CharacterEllipsis" />
-                                                    <TextBlock Text="{Binding Summary}" FontSize="10.5"
-                                                               Margin="0,2,0,0" TextTrimming="CharacterEllipsis"
-                                                               Foreground="{DynamicResource TextMutedBrush}" />
-                                                </StackPanel>
-
-                                                <TextBlock Grid.Column="2" Text="{Binding SizeText}"
-                                                           FontSize="11" Margin="12,0,0,0"
-                                                           VerticalAlignment="Center"
-                                                           Foreground="{DynamicResource TextSecondaryBrush}" />
-                                            </Grid>
-                                        </Border>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                        </ScrollViewer>
-                    </Border>
-                </DockPanel>
-
-                <!-- ================= Uninstall ================= -->
-                <DockPanel DataContext="{Binding Uninstall}">
-                    <DockPanel.Style>
-                        <Style TargetType="DockPanel">
-                            <Setter Property="Visibility" Value="Collapsed" />
-                            <Style.Triggers>
-                                <DataTrigger Value="uninstall"
-                                             Binding="{Binding DataContext.SelectedSection.Key,
-                                                 RelativeSource={RelativeSource AncestorType=Window}}">
-                                    <Setter Property="Visibility" Value="Visible" />
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </DockPanel.Style>
-
-                    <Border DockPanel.Dock="Bottom" Style="{StaticResource Card}"
-                            Background="{DynamicResource SurfaceSunkenBrush}" Padding="14,10"
-                            Margin="0,12,0,0">
-                        <TextBlock Text="{Binding Status}" Style="{StaticResource BodyText}" />
-                    </Border>
-
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="14" />
-                            <ColumnDefinition Width="1.1*" />
-                        </Grid.ColumnDefinitions>
-
-                        <Border Grid.Column="0" Style="{StaticResource Card}" Padding="16">
-                            <DockPanel>
-                                <StackPanel DockPanel.Dock="Top">
-                                    <TextBlock Text="Remove USB Doctor"
-                                               Style="{StaticResource DisplayText}" FontSize="18" />
-                                    <TextBlock Style="{StaticResource CaptionText}" Margin="0,5,0,12"
-                                               Text="Your rescued data and quarantined samples are listed but start unticked - they may be the only copy left." />
-                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
-                                        <Button Content="Find traces" Style="{StaticResource PrimaryButton}"
-                                                Command="{Binding ScanSelfCommand}" />
-                                        <Button Content="Remove ticked" Style="{StaticResource GhostButton}"
-                                                Command="{Binding RemoveSelfCommand}" Margin="10,0,0,0" />
-                                        <CheckBox Style="{StaticResource ToggleCheck}" Content="Dry run"
-                                                  IsChecked="{Binding DryRun}" Margin="14,0,0,0"
-                                                  FontWeight="SemiBold" />
-                                    </StackPanel>
-                                </StackPanel>
-
-                                <ListBox Style="{StaticResource PlainList}" ItemsSource="{Binding SelfTraces}">
-                                    <ListBox.ItemTemplate>
-                                        <DataTemplate>
-                                            <Border Background="{DynamicResource SurfaceRaisedBrush}"
-                                                    CornerRadius="{StaticResource ControlRadius}"
-                                                    Padding="11,9" Margin="0,0,0,5">
-                                                <Grid>
-                                                    <Grid.ColumnDefinitions>
-                                                        <ColumnDefinition Width="Auto" />
-                                                        <ColumnDefinition Width="*" />
-                                                        <ColumnDefinition Width="Auto" />
-                                                    </Grid.ColumnDefinitions>
-                                                    <CheckBox Grid.Column="0" Style="{StaticResource RowCheck}"
-                                                              IsChecked="{Binding IsSelected}"
-                                                              VerticalAlignment="Top" Margin="0,2,11,0" />
-                                                    <StackPanel Grid.Column="1">
-                                                        <StackPanel Orientation="Horizontal">
-                                                            <TextBlock Text="{Binding Description}" FontSize="12"
-                                                                       FontWeight="SemiBold"
-                                                                       Foreground="{DynamicResource TextPrimaryBrush}" />
-                                                            <TextBlock Text="your data" FontSize="10"
-                                                                       Margin="8,0,0,0" FontWeight="SemiBold"
-                                                                       VerticalAlignment="Center"
-                                                                       Foreground="{DynamicResource WarningBrush}"
-                                                                       Visibility="{Binding IsUserData,
-                                                                           Converter={StaticResource BoolToVisibility}}" />
-                                                        </StackPanel>
-                                                        <TextBlock Text="{Binding Location}"
-                                                                   FontFamily="{StaticResource MonoFont}"
-                                                                   FontSize="10.5" Margin="0,3,0,0"
-                                                                   Foreground="{DynamicResource TextMutedBrush}"
-                                                                   TextTrimming="CharacterEllipsis" />
-                                                    </StackPanel>
-                                                    <TextBlock Grid.Column="2" Text="{Binding SizeText}"
-                                                               Style="{StaticResource CaptionText}"
-                                                               VerticalAlignment="Center" Margin="10,0,0,0" />
-                                                </Grid>
-                                            </Border>
-                                        </DataTemplate>
-                                    </ListBox.ItemTemplate>
-                                </ListBox>
-                            </DockPanel>
-                        </Border>
-
-                        <Border Grid.Column="2" Style="{StaticResource Card}" Padding="16">
-                            <DockPanel>
-                                <StackPanel DockPanel.Dock="Top">
-                                    <TextBlock Text="Installed programs"
-                                               Style="{StaticResource DisplayText}" FontSize="18" />
-                                    <TextBlock Style="{StaticResource CaptionText}" Margin="0,5,0,12"
-                                               Text="Runs the vendor's own uninstaller, then reports what it left behind." />
-                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
-                                        <Button Content="List programs" Style="{StaticResource PrimaryButton}"
-                                                Command="{Binding ScanProgramsCommand}" />
-                                        <Button Content="Uninstall selected" Style="{StaticResource GhostButton}"
-                                                Command="{Binding UninstallProgramCommand}" Margin="10,0,0,0" />
-                                    </StackPanel>
-                                </StackPanel>
-
-                                <StackPanel DockPanel.Dock="Bottom" Margin="0,10,0,0">
-                                    <TextBlock Text="Leftovers" Style="{StaticResource SectionTitle}"
-                                               Margin="0,0,0,6" />
-                                    <ListBox Style="{StaticResource PlainList}"
-                                             ItemsSource="{Binding Leftovers}" MaxHeight="110">
-                                        <ListBox.ItemTemplate>
-                                            <DataTemplate>
-                                                <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
-                                                    <CheckBox Style="{StaticResource RowCheck}"
-                                                              IsChecked="{Binding IsSelected}" Margin="0,0,10,0" />
-                                                    <TextBlock Text="{Binding Location}"
-                                                               FontFamily="{StaticResource MonoFont}" FontSize="10.5"
-                                                               Foreground="{DynamicResource TextSecondaryBrush}"
-                                                               TextTrimming="CharacterEllipsis" MaxWidth="360" />
-                                                </StackPanel>
-                                            </DataTemplate>
-                                        </ListBox.ItemTemplate>
-                                    </ListBox>
-                                    <Button Content="Clean ticked leftovers" Style="{StaticResource GhostButton}"
-                                            Command="{Binding CleanLeftoversCommand}"
-                                            HorizontalAlignment="Left" Margin="0,8,0,0" />
-                                </StackPanel>
-
-                                <!-- Grouped by who the program was installed for, because
-                                     that is what decides whether removing it will be
-                                     refused: this app runs as the invoking user. -->
-                                <ListBox Style="{StaticResource InsetList}"
-                                         ItemsSource="{Binding GroupedPrograms.View}"
-                                         SelectedItem="{Binding SelectedProgram}">
-                                    <ListBox.GroupStyle>
-                                        <StaticResource ResourceKey="InsetGroups" />
-                                    </ListBox.GroupStyle>
-                                    <ListBox.ItemTemplate>
-                                        <DataTemplate>
-                                            <Border x:Name="Row" Style="{StaticResource InsetRow}">
-                                                <Grid>
-                                                    <Grid.ColumnDefinitions>
-                                                        <ColumnDefinition Width="*" />
-                                                        <ColumnDefinition Width="Auto" />
-                                                        <ColumnDefinition Width="Auto" />
-                                                    </Grid.ColumnDefinitions>
-
-                                                    <TextBlock x:Name="Name" Grid.Column="0"
-                                                               Text="{Binding DisplayName}" FontSize="11.5"
-                                                               VerticalAlignment="Center"
-                                                               TextTrimming="CharacterEllipsis"
-                                                               Foreground="{DynamicResource TextSecondaryBrush}" />
-
-                                                    <TextBlock Grid.Column="1" Text="{Binding Version}"
-                                                               FontSize="10.5" Margin="12,0,0,0"
-                                                               VerticalAlignment="Center"
-                                                               TextTrimming="CharacterEllipsis" MaxWidth="90"
-                                                               Foreground="{DynamicResource TextMutedBrush}" />
-
-                                                    <TextBlock Grid.Column="2" Text="{Binding SizeText}"
-                                                               FontSize="10.5" Margin="12,0,0,0" MinWidth="52"
-                                                               TextAlignment="Right" VerticalAlignment="Center"
-                                                               Foreground="{DynamicResource TextMutedBrush}" />
-                                                </Grid>
-                                            </Border>
-
-                                            <DataTemplate.Triggers>
-                                                <DataTrigger Value="True"
-                                                             Binding="{Binding IsMouseOver,
-                                                                 RelativeSource={RelativeSource AncestorType=ListBoxItem}}">
-                                                    <Setter TargetName="Row" Property="Background"
-                                                            Value="{DynamicResource SurfaceRaisedBrush}" />
-                                                </DataTrigger>
-                                                <DataTrigger Value="True"
-                                                             Binding="{Binding IsSelected,
-                                                                 RelativeSource={RelativeSource AncestorType=ListBoxItem}}">
-                                                    <Setter TargetName="Row" Property="Background"
-                                                            Value="{DynamicResource AccentSoftBrush}" />
-                                                    <Setter TargetName="Name" Property="Foreground"
-                                                            Value="{DynamicResource TextPrimaryBrush}" />
-                                                </DataTrigger>
-                                            </DataTemplate.Triggers>
-                                        </DataTemplate>
-                                    </ListBox.ItemTemplate>
-                                </ListBox>
-                            </DockPanel>
-                        </Border>
-                    </Grid>
-                </DockPanel>
-
-                <!-- ================= Settings ================= -->
-                <StackPanel>
-                    <StackPanel.Style>
-                        <Style TargetType="StackPanel">
-                            <Setter Property="Visibility" Value="Collapsed" />
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding SelectedSection.Key}" Value="settings">
-                                    <Setter Property="Visibility" Value="Visible" />
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </StackPanel.Style>
-
-                    <Border Style="{StaticResource Card}" Padding="22" Margin="0,0,0,14">
-                        <StackPanel>
-                            <TextBlock Text="Appearance" Style="{StaticResource DisplayText}" FontSize="20" />
-                            <TextBlock Style="{StaticResource BodyText}" Margin="0,4,0,18"
-                                       Text="Both themes are chosen rather than inverted, so neither is the other one turned inside out." />
-
-                            <CheckBox Style="{StaticResource ToggleCheck}" Margin="0,0,0,4"
-                                      Content="Light theme" IsChecked="{Binding IsLightTheme}" />
-                            <TextBlock Style="{StaticResource CaptionText}" Margin="43,0,0,0"
-                                       Text="Follows Windows the first time you run the app, then remembers what you pick here." />
-                        </StackPanel>
-                    </Border>
-
-                    <Border Style="{StaticResource Card}" Padding="22">
-                        <StackPanel>
-                            <TextBlock Text="Watching" Style="{StaticResource DisplayText}" FontSize="20" />
-                            <TextBlock Style="{StaticResource BodyText}" Margin="0,4,0,18"
-                                       Text="How USB Doctor behaves when you are not looking at it." />
-
-                            <CheckBox Style="{StaticResource ToggleCheck}" Margin="0,0,0,4"
-                                      Content="Scan automatically when a USB is plugged in"
-                                      IsChecked="{Binding AutoScanOnInsert}" />
-                            <TextBlock Style="{StaticResource CaptionText}" Margin="43,0,0,16"
-                                       Text="The drive that started this project had carried its worm for six days before anyone looked." />
-
-                            <CheckBox Style="{StaticResource ToggleCheck}" Margin="0,0,0,4"
-                                      Content="Keep watching in the tray when the window is closed"
-                                      IsChecked="{Binding KeepWatchingInTray}" />
-                            <TextBlock Style="{StaticResource CaptionText}" Margin="43,0,0,16"
-                                       Text="Watching runs on the window's message loop, so closing would otherwise stop it. Exit from the tray menu." />
-
-                            <CheckBox Style="{StaticResource ToggleCheck}" Margin="0,0,0,4"
-                                      Content="Start with Windows" IsChecked="{Binding StartWithWindows}" />
-                            <TextBlock Style="{StaticResource CaptionText}" Margin="43,0,0,0"
-                                       Text="Registers for this user only, starting in the tray. Never machine-wide." />
-                        </StackPanel>
-                    </Border>
-                </StackPanel>
-
-                <!-- ================= About ================= -->
-                <Grid>
-                    <Grid.Style>
-                        <Style TargetType="Grid">
-                            <Setter Property="Visibility" Value="Collapsed" />
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding SelectedSection.Key}" Value="about">
-                                    <Setter Property="Visibility" Value="Visible" />
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </Grid.Style>
-
-                    <Border Style="{StaticResource Card}" Padding="36"
-                            HorizontalAlignment="Center" VerticalAlignment="Center" MinWidth="450">
-                        <StackPanel HorizontalAlignment="Center">
-                            <Control Style="{StaticResource LogoMark}" HorizontalAlignment="Center" />
-                            <TextBlock Text="USB Doctor" Style="{StaticResource DisplayText}"
-                                       HorizontalAlignment="Center" Margin="0,14,0,0" />
-                            <Control Style="{StaticResource LogoLockup}" HorizontalAlignment="Center"
-                                     Margin="0,8,0,0" />
-                            <TextBlock Style="{StaticResource BodyText}" TextAlignment="Center"
-                                       Margin="0,18,0,0" MaxWidth="380"
-                                       Text="Triage and recovery for USB drives whose files have disappeared. Built from a real worm infection: the data was not hidden, it was moved into a folder named with a single invisible character." />
-                            <Border Background="{DynamicResource SurfaceSunkenBrush}"
-                                    CornerRadius="{StaticResource ControlRadius}"
-                                    Padding="16,12" Margin="0,20,0,0">
-                                <StackPanel>
-                                    <TextBlock Style="{StaticResource CaptionText}" HorizontalAlignment="Center"
-                                               Text="{Binding Source={x:Static local:MainViewModel.AppVersion},
-                                                              StringFormat='Version {0}'}" />
-                                    <TextBlock HorizontalAlignment="Center" Margin="0,4,0,0" FontSize="12.5"
-                                               Foreground="{DynamicResource AccentBrush}"
-                                               Text="{Binding Source={x:Static local:MainViewModel.AppAuthor}}" />
-                                </StackPanel>
-                            </Border>
-                        </StackPanel>
-                    </Border>
-                </Grid>
-            </Grid>
+            <!-- ===== stage =====
+                 One host rather than seventeen panels taking turns being visible.
+                 Only the selected section's template is built, so a stage costs
+                 nothing until someone navigates to it. -->
+            <ContentControl Grid.Column="1" Margin="26,10,26,8"
+                            Content="{Binding SelectedSection}"
+                            ContentTemplateSelector="{StaticResource SectionTemplates}" />
         </Grid>
 
         <!-- ==================== status ==================== -->

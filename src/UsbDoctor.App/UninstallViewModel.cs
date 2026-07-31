@@ -64,6 +64,27 @@ public sealed partial class UninstallViewModel : ObservableObject
     [ObservableProperty] private string _status =
         "Scan to see what USB Doctor has put on this machine.";
 
+    // ---- the dial ----------------------------------------------------------------
+
+    /// <summary>The number in the dial: traces USB Doctor has left on this machine.</summary>
+    [ObservableProperty] private int _traceCount;
+
+    /// <summary>
+    /// Share of the traces found that are currently ticked.
+    /// </summary>
+    /// <remarks>
+    /// Ticked rather than found, for the same reason Cleanup's ring is: what the
+    /// button would actually remove. The gap between a full list and a part-filled
+    /// ring is precisely the rescued data left unticked on purpose.
+    /// </remarks>
+    [ObservableProperty] private double _gaugePercent;
+
+    [ObservableProperty] private string _headline = "Not scanned yet";
+
+    [ObservableProperty] private string _headlineDetail =
+        "Removes USB Doctor itself, or runs another program's own uninstaller and " +
+        "reports what it left behind.";
+
     // ---- removing USB Doctor itself ---------------------------------------------
 
     public ObservableCollection<TraceItemViewModel> SelfTraces { get; } = [];
@@ -76,7 +97,20 @@ public sealed partial class UninstallViewModel : ObservableObject
         var scanner = new SelfTraceScanner(_probe, UninstallPaths.ForCurrentUser(InstallDirectory));
         var traces = scanner.Scan();
 
-        foreach (var trace in traces) SelfTraces.Add(new TraceItemViewModel(trace));
+        foreach (var trace in traces)
+        {
+            var row = new TraceItemViewModel(trace);
+
+            // The ring follows the ticks, so it has to hear about each one.
+            row.PropertyChanged += (_, e) =>
+            {
+                if (e.PropertyName == nameof(TraceItemViewModel.IsSelected)) UpdateSelfSummary();
+            };
+
+            SelfTraces.Add(row);
+        }
+
+        UpdateSelfSummary();
 
         var userData = traces.Where(t => t.IsUserData).Sum(t => t.SizeBytes);
 
@@ -86,6 +120,45 @@ public sealed partial class UninstallViewModel : ObservableObject
               (userData > 0
                   ? $" {userData / 1024.0 / 1024 / 1024:F2} GB of that is your rescued data, left unticked."
                   : string.Empty);
+    }
+
+    /// <summary>Keeps the dial and its heading matching the trace list.</summary>
+    private void UpdateSelfSummary()
+    {
+        TraceCount = SelfTraces.Count;
+
+        var ticked = SelfTraces.Count(t => t.IsSelected);
+        GaugePercent = TraceCount > 0 ? (double)ticked / TraceCount : 0;
+
+        (Headline, HeadlineDetail) = SummariseTraces(
+            TraceCount, ticked, SelfTraces.Count(t => t.IsUserData));
+    }
+
+    /// <summary>
+    /// The heading above the uninstall dial.
+    /// </summary>
+    /// <remarks>
+    /// The user-data count is called out whenever any is present, ticked or not.
+    /// That is the one fact on this screen worth interrupting for: the rescued files
+    /// may be the only copy left of a drive that has since been formatted, and a
+    /// heading that only said "12 traces" would let them go quietly with the rest.
+    /// </remarks>
+    public static (string Headline, string Detail) SummariseTraces(int total, int ticked, int userData)
+    {
+        if (total == 0)
+        {
+            return ("Not scanned yet",
+                "Removes USB Doctor itself, or runs another program's own uninstaller and " +
+                "reports what it left behind.");
+        }
+
+        var detail = $"{ticked} of {total} ticked for removal." +
+                     (userData > 0
+                         ? $" {userData} of them hold your rescued data and start unticked - that " +
+                           "may be the only copy left."
+                         : string.Empty);
+
+        return (ticked == 0 ? "Nothing ticked" : "Ready to remove", detail);
     }
 
     [RelayCommand]
@@ -117,6 +190,8 @@ public sealed partial class UninstallViewModel : ObservableObject
             var row = SelfTraces.FirstOrDefault(t => t.Trace == result.Trace);
             if (row is not null) SelfTraces.Remove(row);
         }
+
+        UpdateSelfSummary();
 
         Status = $"{removed} removed" +
                  (deferred > 0 ? ", the application folder goes when you close the app" : string.Empty) +

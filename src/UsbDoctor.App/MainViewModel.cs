@@ -1,4 +1,4 @@
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.IO;
 using System.Media;
@@ -108,7 +108,13 @@ public sealed partial class DeletedEntryViewModel(
 /// </remarks>
 /// <param name="Glyph">Segoe MDL2 Assets code point, so the rail needs no image assets.</param>
 /// <param name="AccentKey">Palette key holding this section's hue as a hex string.</param>
-public sealed class NavSection(string key, string title, string subtitle, string glyph, string accentKey)
+/// <param name="Group">
+/// Heading this section sits under in the rail, or empty for the few that stand on
+/// their own. Empty rather than null so the heading template can suppress itself on
+/// a blank string instead of every ungrouped section needing a special case.
+/// </param>
+public sealed class NavSection(
+    string key, string title, string subtitle, string glyph, string accentKey, string group = "")
     : ObservableObject
 {
     public string Key { get; } = key;
@@ -116,6 +122,7 @@ public sealed class NavSection(string key, string title, string subtitle, string
     public string Subtitle { get; } = subtitle;
     public string Glyph { get; } = glyph;
     public string AccentKey { get; } = accentKey;
+    public string Group { get; } = group;
 
     /// <summary>Full-strength accent, for the glyph itself.</summary>
     public Brush Accent => Frozen(1.0);
@@ -165,15 +172,59 @@ public sealed partial class MainViewModel : ObservableObject
     /// are unreadable in a diff, unmatchable by a text search, and silently mangled
     /// by anything that re-encodes the file.
     /// </remarks>
+    /// <remarks>
+    /// Declaration order is display order. The rail groups these without sorting them,
+    /// so a section moved in this list moves on screen, and a group's position is
+    /// decided by where its first member appears.
+    /// </remarks>
     public ObservableCollection<NavSection> Sections { get; } =
     [
-        new("repair", "Repair", "Find and undo hiding", Glyph(0xE72E), "NavRepairHex"),
-        new("deleted", "Deleted files", "Carve what was erased", Glyph(0xE74C), "NavDeletedHex"),
-        new("cleanup", "Cleanup", "Reclaim disk space", Glyph(0xE74E), "NavCleanupHex"),
-        new("uninstall", "Uninstall", "Apps and leftovers", Glyph(0xE74D), "NavUninstallHex"),
-        new("settings", "Settings", "Watching and startup", Glyph(0xE713), "NavSettingsHex"),
-        new("about", "About", "Version and author", Glyph(0xE946), "NavAboutHex"),
+        new("smart", "Smart Scan", "Everything, measured", Glyph(0xE9D9), "NavSmartHex"),
+
+        new("cleanup", "System Junk", "Reclaim disk space", Glyph(0xE74E), "NavCleanupHex", GroupCleanup),
+        new("mail", "Mail", "Outlook attachment cache", Glyph(0xE715), "NavMailHex", GroupCleanup),
+        new("trash", "Trash Bins", "Per-drive recycle bins", Glyph(0xE74D), "NavTrashHex", GroupCleanup),
+
+        new("repair", "Repair", "Find and undo hiding", Glyph(0xE72E), "NavRepairHex", GroupProtection),
+        new("malware", "Malware", "Signatures and Defender", Glyph(0xE730), "NavMalwareHex", GroupProtection),
+
+        new("optimize", "Startup", "What runs at logon", Glyph(0xE945), "NavOptimizeHex", GroupSpeed),
+        new("maintenance", "Repair OS", "Windows' own repair tools", Glyph(0xE90F), "NavMaintenanceHex", GroupSpeed),
+
+        new("uninstall", "Uninstall", "Apps and leftovers", Glyph(0xECC9), "NavUninstallHex", GroupApplications),
+        new("updater", "Updater", "Upgrades through winget", Glyph(0xE777), "NavUpdaterHex", GroupApplications),
+        new("extensions", "Add-ons", "Browser and shell", Glyph(0xEA86), "NavExtensionsHex", GroupApplications),
+
+        new("spacelens", "Space Lens", "Where the space went", Glyph(0xE9D2), "NavSpaceLensHex", GroupFiles),
+        new("large", "Large & Old", "Big files nobody opens", Glyph(0xE8B7), "NavLargeHex", GroupFiles),
+        new("deleted", "Deleted", "Carve what was erased", Glyph(0xE74C), "NavDeletedHex", GroupFiles),
+        new("shredder", "Shredder", "Overwrite beyond recovery", Glyph(0xE75C), "NavShredderHex", GroupFiles),
+
+        new("settings", "Settings", "Watching and startup", Glyph(0xE713), "NavSettingsHex", GroupApp),
+        new("about", "About", "Version and author", Glyph(0xE946), "NavAboutHex", GroupApp),
     ];
+
+    // Written once so a typo cannot silently split one group into two.
+    public const string GroupCleanup = "Cleanup";
+    public const string GroupProtection = "Protection";
+    public const string GroupSpeed = "Speed";
+    public const string GroupApplications = "Applications";
+    public const string GroupFiles = "Files";
+
+    /// <summary>
+    /// Settings and About, which belong to the application rather than to a job.
+    /// </summary>
+    /// <remarks>
+    /// They carry a heading rather than standing ungrouped, because a collection view
+    /// gathers every member of a group in one place: leaving these blank like Smart
+    /// Scan would put all three in one group and drag Settings and About to the top
+    /// of the rail, next to a section they have nothing to do with.
+    /// </remarks>
+    public const string GroupApp = "App";
+
+    /// <summary>Every group heading the rail may show, in the order they appear.</summary>
+    public static IReadOnlyList<string> Groups { get; } =
+        [GroupCleanup, GroupProtection, GroupSpeed, GroupApplications, GroupFiles, GroupApp];
 
     private static string Glyph(int codePoint) => ((char)codePoint).ToString();
 
@@ -181,6 +232,34 @@ public sealed partial class MainViewModel : ObservableObject
     public UninstallViewModel Uninstall { get; } = new();
 
     public CleanupViewModel Cleanup { get; } = new();
+
+    public TrashBinsViewModel TrashBins { get; } = new();
+
+    public MailAttachmentsViewModel Mail { get; } = new();
+
+    public SpaceLensViewModel SpaceLens { get; } = new();
+
+    public LargeOldFilesViewModel LargeFiles { get; } = new();
+
+    public ShredderViewModel Shredder { get; } = new();
+
+    public UpdaterViewModel Updater { get; } = new();
+
+    public ExtensionsViewModel Extensions { get; } = new();        public OptimizationViewModel Optimization { get; } = new();
+
+    public MaintenanceViewModel Maintenance { get; } = new();
+
+    public MalwareRemovalViewModel Malware { get; } = new();
+
+    /// <summary>
+    /// The front door, which orchestrates the others.
+    /// </summary>
+    /// <remarks>
+    /// Built with a reference back to this view model rather than to seven separate
+    /// ones, because what it runs is the read-only half of each section and those
+    /// halves already live here.
+    /// </remarks>
+    public SmartScanViewModel SmartScan { get; }
 
     [ObservableProperty] private NavSection? _selectedSection;
 
@@ -277,9 +356,25 @@ public sealed partial class MainViewModel : ObservableObject
         foreach (var section in Sections) section.OnThemeChanged();
     }
 
+    /// <summary>
+    /// <see cref="Sections"/> under their group headings.
+    /// </summary>
+    /// <remarks>
+    /// Grouped but deliberately not sorted. A collection view places groups in the
+    /// order their first member appears, so declaration order in <see cref="Sections"/>
+    /// is the whole layout - adding a sort description here would reorder the rail
+    /// alphabetically and put Applications above Cleanup.
+    /// </remarks>
+    public CollectionViewSource GroupedSections { get; } = new();
+
     public MainViewModel()
     {
+        SmartScan = new SmartScanViewModel(this);
+
         SelectedSection = Sections[0];
+
+        GroupedSections.Source = Sections;
+        GroupedSections.GroupDescriptions.Add(new PropertyGroupDescription(nameof(NavSection.Group)));
 
         GroupedDeletedEntries.Source = DeletedEntries;
         GroupedDeletedEntries.SortDescriptions.Add(new SortDescription(
@@ -453,6 +548,11 @@ public sealed partial class MainViewModel : ObservableObject
 
             UpdateHeadline(drive, _plan);
 
+            // The Malware section shows these beside Defender's verdict. Handed over
+            // rather than re-derived, so both screens describe the same scan.
+            Malware.AcceptHidingFindings(Findings);
+            Malware.ScanPath = drive.Root;
+
             Status = Findings.Count == 0
                 ? "Clean - nothing found."
                 : $"{_plan.Threats.Count} threat(s), {_plan.Anomalies.Count} anomaly(ies), " +
@@ -619,6 +719,25 @@ public sealed partial class MainViewModel : ObservableObject
 
     [ObservableProperty] private string _rawStatus = "Reads the device directly to find deleted files.";
 
+    /// <summary>The number in the deleted-files dial: entries worth carving.</summary>
+    [ObservableProperty] private int _recoverableCount;
+
+    /// <summary>
+    /// Share of the deleted entries found that can still be carved back.
+    /// </summary>
+    /// <remarks>
+    /// A real proportion, like Cleanup's and unlike Repair's: the denominator is
+    /// known once the walk finishes, so the ring can state how much of what was lost
+    /// is still there rather than merely that a scan happened.
+    /// </remarks>
+    [ObservableProperty] private double _deletedGaugePercent;
+
+    [ObservableProperty] private string _deletedHeadline = "Nothing read yet";
+
+    [ObservableProperty] private string _deletedHeadlineDetail =
+        "Reads the device directly, below the mounted filesystem, to find entries " +
+        "the volume no longer lists.";
+
     private bool CanReadRaw() => SelectedDrive is not null && !IsBusy;
 
     [RelayCommand(CanExecute = nameof(CanReadRaw))]
@@ -628,6 +747,10 @@ public sealed partial class MainViewModel : ObservableObject
 
         IsBusy = true;
         DeletedEntries.Clear();
+
+        // Empties the ring before the read, so it sweeps up to the new figure
+        // instead of stepping sideways from the previous drive's.
+        UpdateDeletedHeadline();
 
         try
         {
@@ -643,6 +766,7 @@ public sealed partial class MainViewModel : ObservableObject
 
             foreach (var item in found) DeletedEntries.Add(item);
             RecoverDeletedCommand.NotifyCanExecuteChanged();
+            UpdateDeletedHeadline();
 
             RawStatus = found.Count == 0
                 ? "No deleted entries found."
@@ -658,6 +782,44 @@ public sealed partial class MainViewModel : ObservableObject
             IsBusy = false;
         }
     }
+
+    /// <summary>
+    /// Sets the deleted-files dial and its heading from what the read found.
+    /// </summary>
+    private void UpdateDeletedHeadline()
+    {
+        var total = DeletedEntries.Count;
+        RecoverableCount = DeletedEntries.Count(e => e.CanRecover);
+        DeletedGaugePercent = total > 0 ? (double)RecoverableCount / total : 0;
+
+        (DeletedHeadline, DeletedHeadlineDetail) = SummariseDeleted(total, RecoverableCount);
+    }
+
+    /// <summary>
+    /// The heading above the deleted-files dial.
+    /// </summary>
+    /// <remarks>
+    /// Nothing found and nothing recoverable are deliberately different sentences.
+    /// An empty list means the deletions are not in the directory structures at all;
+    /// a full list with no recoverable entries means they are there and their data
+    /// is gone. Collapsing the two would tell an operator to stop looking in the
+    /// one case where a different tool might still help.
+    /// </remarks>
+    public static (string Headline, string Detail) SummariseDeleted(int total, int recoverable) =>
+        (total, recoverable) switch
+        {
+            (0, _) => ("Nothing read yet",
+                "Reads the device directly, below the mounted filesystem, to find entries " +
+                "the volume no longer lists."),
+
+            (_, 0) => ("Found, but gone",
+                $"{total} deleted entr(ies) are still in the directory structures, but their " +
+                "clusters have been reused. Nothing here can be carved back intact."),
+
+            _ => ("Recoverable files found",
+                $"{recoverable} of {total} deleted entr(ies) can be carved back. Recovery assumes " +
+                "the data was not fragmented, so every file has to be verified."),
+        };
 
     /// <summary>
     /// Walks the raw filesystem and grades every deleted entry.
@@ -786,10 +948,15 @@ public sealed partial class MainViewModel : ObservableObject
 
     partial void OnSelectedDriveChanged(VolumeInfo? value)
     {
+        // The Shredder must never destroy data on the volume this section is reading
+        // back, so it is told which one that is rather than left to guess.
+        Shredder.VolumeBeingRecovered = value?.Root;
+
         ScanCommand.NotifyCanExecuteChanged();
         ApplyCommand.NotifyCanExecuteChanged();
         ReadDeletedCommand.NotifyCanExecuteChanged();
         DeletedEntries.Clear();
+        UpdateDeletedHeadline();
 
         // Counts belong to the drive that was scanned, so they cannot be carried
         // over to a different one. Showing the previous drive's numbers against
