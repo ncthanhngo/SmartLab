@@ -96,7 +96,7 @@ public sealed partial class AboutViewModel(MainViewModel shell) : ObservableObje
                 "Malware: Scan every drive sweeps the whole machine, one drive at a time, so each drive gets its own verdict rather than disappearing into a single answer. Drives that are not ready are skipped and said to be skipped; network drives and optical media are left alone, since one is not in this machine and the other cannot be cleaned.",
                 "Malware: Remove what it found asks Defender to clear every threat it still has active, behind one prompt for Administrator, and then reads the list back before claiming anything.",
                 "Uninstall: the list fills itself in when the section opens, each row carrying the program's own icon, and says what it is doing while it does it.",
-                "Repair: the Dry run toggle is gone, because the scan was already the dry run - it walks the volume, writes nothing, and leaves the list you tick before Apply.",
+                "The Dry run toggles are gone, because the measure was already the dry run. Analyse, Measure, Scan, Check and asking winget all read the machine and write nothing, and each leaves a list to tick through; the acting verb beside them stays dead until one has run. Wipe keeps its toggle, being the one section nothing measures for.",
             ],
             Fixed:
             [
