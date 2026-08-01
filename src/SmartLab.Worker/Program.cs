@@ -31,12 +31,20 @@ internal static class Program
 
     private static async Task<int> Main(string[] args)
     {
+        // The one job that names what it acts on. It still crosses the boundary as
+        // catalogue ids rather than paths, and it runs to completion and exits rather
+        // than serving a pipe - there is nothing here for a second request to reach.
+        if (ValueOf(args, ElevatedCleanup.Switch) is { } categoryIds)
+            return ElevatedCleanup.Run(categoryIds, Console.Out);
+
         var pipeName = ValueOf(args, "--pipe");
         var ownerSid = ValueOf(args, "--owner");
 
         if (pipeName is null || ownerSid is null)
         {
-            await Console.Error.WriteLineAsync("Usage: SmartLab.Worker --pipe <name> --owner <sid>")
+            await Console.Error.WriteLineAsync(
+                "Usage: SmartLab.Worker --pipe <name> --owner <sid>\n" +
+                $"       SmartLab.Worker {ElevatedCleanup.Switch} <category-id>[,<category-id>...]")
                 .ConfigureAwait(false);
 
             return 2;

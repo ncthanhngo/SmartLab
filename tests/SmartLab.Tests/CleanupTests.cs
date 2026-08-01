@@ -191,6 +191,10 @@ public class JunkScannerTests
         Assert.Contains("Administrator", refused.Detail, StringComparison.Ordinal);
         Assert.DoesNotContain("Administrator", locked.Detail, StringComparison.Ordinal);
         Assert.Contains("in use", locked.Detail, StringComparison.Ordinal);
+
+        // The flag, not the sentence, is what decides whether a UAC prompt is offered.
+        Assert.True(refused.RefusedPermission);
+        Assert.False(locked.RefusedPermission);
     }
 
     [Fact]
@@ -201,6 +205,48 @@ public class JunkScannerTests
         var result = Win32TraceRemover.Describe(Contents(), removed: 40, locked: 2, refused: 0);
 
         Assert.Equal(RemovalOutcome.Removed, result.Outcome);
+    }
+
+    [Fact]
+    public void Only_category_ids_cross_the_elevation_boundary()
+    {
+        // The property the whole design rests on. The elevated process derives the
+        // folder from the catalogue itself, so a forged argument can only name a
+        // category this app was already prepared to empty - never a path of its own.
+        var arguments = ElevatedCleanup.BuildArguments(["windows-temp", "windows-update"]);
+
+        Assert.DoesNotContain(":", arguments, StringComparison.Ordinal);
+        Assert.DoesNotContain("\\", arguments, StringComparison.Ordinal);
+        Assert.Equal("--clean windows-temp,windows-update", arguments);
+    }
+
+    [Fact]
+    public void An_id_that_is_not_in_the_catalogue_is_dropped()
+    {
+        // Both sides check. This one keeps a typo from reaching an elevated process;
+        // the worker's own Resolve is the check that matters, since this side is the
+        // one an attacker would replace.
+        Assert.Equal(string.Empty, ElevatedCleanup.BuildArguments(["../../windows", "no-such-category"]));
+        Assert.Empty(ElevatedCleanup.Resolve("no-such-category"));
+        Assert.Empty(ElevatedCleanup.Resolve(null));
+    }
+
+    [Fact]
+    public void A_resolved_category_is_the_catalogue_entry_itself()
+    {
+        var resolved = Assert.Single(ElevatedCleanup.Resolve("windows-update"));
+
+        Assert.Equal("windows-update", resolved.Id);
+        Assert.True(resolved.NeedsElevation);
+        Assert.NotEmpty(resolved.Locations);
+    }
+
+    [Fact]
+    public void Naming_nothing_asks_for_no_prompt()
+    {
+        // An empty argument string is what stops the section raising UAC for a job
+        // with nothing in it.
+        Assert.Equal(string.Empty, ElevatedCleanup.BuildArguments([]));
     }
 
     [Fact]

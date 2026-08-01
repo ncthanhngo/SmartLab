@@ -172,6 +172,18 @@ public sealed partial class CleanupViewModel : ObservableObject
 
             var failed = results.Count(r => !r.Succeeded);
 
+            // What was refused rather than merely locked is what Administrator can
+            // still do something about, so it is what the second button offers.
+            Refused = chosen
+                .Where(c => results.Any(r =>
+                    r.RefusedPermission &&
+                    c.Category.Locations.Contains(r.Trace.Location, StringComparer.OrdinalIgnoreCase)))
+                .Select(c => c.Category.Id)
+                .ToArray();
+
+            CleanAsAdministratorCommand.NotifyCanExecuteChanged();
+            OnPropertyChanged(nameof(HasRefusals));
+
             // Re-measure rather than assume. Locked files are normal here, so the
             // number that matters is what is left, not what was attempted.
             var after = await Task.Run(() => _scanner.Scan(chosen.Select(c => c.Category)))
@@ -206,6 +218,100 @@ public sealed partial class CleanupViewModel : ObservableObject
         {
             Status = $"Clean failed: {ex.Message}";
             Progress.Finish("alert", "Clean failed", ex.Message);
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    /// <summary>Category ids the last clean was refused permission to empty.</summary>
+    private IReadOnlyList<string> Refused { get; set; } = [];
+
+    /// <summary>Whether anything is waiting on Administrator, for the button to show at all.</summary>
+    public bool HasRefusals => Refused.Count > 0;
+
+    private bool CanCleanAsAdministrator() => !IsBusy && Refused.Count > 0;
+
+    /// <summary>
+    /// Empties what was refused, as Administrator.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Offered only after a clean has been refused, never before: the section cannot
+    /// know that <c>C:\Windows\Temp</c> will refuse this account until it has asked,
+    /// and a prompt raised on a suspicion is a prompt people learn to click through.
+    /// </para>
+    /// <para>
+    /// The work happens inside the worker, the one binary whose manifest asks for
+    /// Administrator, and only category ids cross to it. The interface stays
+    /// unelevated, which is the rule this whole application is built around.
+    /// </para>
+    /// </remarks>
+    [RelayCommand(CanExecute = nameof(CanCleanAsAdministrator))]
+    private async Task CleanAsAdministratorAsync()
+    {
+        var arguments = ElevatedCleanup.BuildArguments(Refused);
+
+        if (arguments.Length == 0 || !ElevatedWorkerClient.IsInstalled)
+        {
+            Status = "The elevated worker is not beside this build, so nothing was asked of it.";
+            return;
+        }
+
+        IsBusy = true;
+
+        Progress.Begin($"Emptying {Refused.Count} categor(ies) as Administrator");
+
+        try
+        {
+            Status = "Asking for Administrator...";
+
+            var (ok, output) = await ElevatedProcess
+                .RunAsync($"\"{ElevatedWorkerClient.WorkerPath}\" {arguments}", TimeSpan.FromMinutes(30))
+                .ConfigureAwait(true);
+
+            foreach (var line in output.Split('\n', StringSplitOptions.RemoveEmptyEntries))
+                Log.Add(line.TrimEnd());
+
+            var categories = Categories
+                .Where(c => Refused.Contains(c.Category.Id))
+                .ToArray();
+
+            var after = await Task.Run(() => _scanner.Scan(categories.Select(c => c.Category)))
+                .ConfigureAwait(true);
+
+            foreach (var finding in after)
+                Categories.First(c => c.Category.Id == finding.Category.Id).Apply(finding);
+
+            UpdateTotal();
+
+            // What is left decides the verdict, not the exit code: a refused prompt and
+            // a folder that emptied itself both come back without one worth trusting.
+            var left = categories.Sum(c => c.Bytes);
+
+            Status = ok && left == 0
+                ? "Emptied as Administrator."
+                : ok
+                    ? "Ran as Administrator, and some of it is still there - see the log below."
+                    : "Administrator was refused or the run failed. Nothing else was tried.";
+
+            Progress.Finish(
+                ok && left == 0 ? "good" : ok ? "warning" : "alert",
+                ok && left == 0 ? "Emptied" : ok ? "Partly emptied" : "Not run",
+                Status);
+
+            if (ok && left == 0)
+            {
+                Refused = [];
+                CleanAsAdministratorCommand.NotifyCanExecuteChanged();
+            OnPropertyChanged(nameof(HasRefusals));
+            }
+        }
+        catch (Exception ex)
+        {
+            Status = $"Elevated clean failed: {ex.Message}";
+            Progress.Finish("alert", "Elevated clean failed", ex.Message);
         }
         finally
         {
@@ -258,5 +364,10 @@ public sealed partial class CleanupViewModel : ObservableObject
     }
 
     partial void OnAnalysedChanged(bool value) => CleanCommand.NotifyCanExecuteChanged();
-    partial void OnIsBusyChanged(bool value) => CleanCommand.NotifyCanExecuteChanged();
+
+    partial void OnIsBusyChanged(bool value)
+    {
+        CleanCommand.NotifyCanExecuteChanged();
+        CleanAsAdministratorCommand.NotifyCanExecuteChanged();
+    }
 }

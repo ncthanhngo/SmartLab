@@ -164,9 +164,11 @@ public sealed class Win32TraceRemover(bool dryRun, string? runningFromDirectory 
 
         var detail = string.Join(", ", parts);
 
-        return removed == 0 && (refused > 0 || locked > 0)
-            ? new RemovalResult(trace, RemovalOutcome.Failed, detail)
-            : new RemovalResult(trace, RemovalOutcome.Removed, detail);
+        var outcome = removed == 0 && (refused > 0 || locked > 0)
+            ? RemovalOutcome.Failed
+            : RemovalOutcome.Removed;
+
+        return new RemovalResult(trace, outcome, detail) { RefusedPermission = refused > 0 };
     }
 
     private static RemovalResult EmptyRecycleBin(AppTrace trace) =>

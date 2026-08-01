@@ -57,6 +57,20 @@ public sealed record AppTrace(TraceKind Kind, string Location, string Descriptio
     /// </remarks>
     public bool IsUserData { get; init; }
 
+    /// <summary>
+    /// How this trace was found, which is what decides whether it arrives ticked.
+    /// </summary>
+    /// <remarks>
+    /// Something registered by the program, or pointing into its own folder, is not a
+    /// guess. A name match might be another product from the same publisher, or a
+    /// runtime three programs share - so it is shown, labelled, and left for the
+    /// operator to tick.
+    /// </remarks>
+    public TraceEvidence Evidence { get; init; } = TraceEvidence.Registered;
+
+    /// <summary>True when this was found by name alone and nothing corroborates it.</summary>
+    public bool IsGuess => Evidence == TraceEvidence.NameMatch;
+
     public string SizeText => SizeBytes switch
     {
         0 => string.Empty,
@@ -74,4 +88,14 @@ public sealed record RemovalResult(AppTrace Trace, RemovalOutcome Outcome, strin
 {
     public bool Succeeded => Outcome is RemovalOutcome.Removed
         or RemovalOutcome.NotFound or RemovalOutcome.SkippedDryRun or RemovalOutcome.Deferred;
+
+    /// <summary>
+    /// Something was refused rather than merely in use.
+    /// </summary>
+    /// <remarks>
+    /// A flag rather than a phrase read back out of <see cref="Detail"/>: this is what
+    /// decides whether a caller offers to raise a UAC prompt, and a decision that
+    /// important must not rest on the wording of a sentence written for a person.
+    /// </remarks>
+    public bool RefusedPermission { get; init; }
 }
