@@ -424,6 +424,21 @@ raises errors to terminating, then reads the threat list back and exits non-zero
 anything still active. "The command returned" and "nothing is left" are as different as
 "could not run" and "clean", and for the same reason.
 
+That read-back waits up to thirty seconds rather than looking once. `IsActive` is
+Defender's bookkeeping, not the file's state: measured against a live EICAR detection, a
+threat whose file was already gone still read as active for seconds after
+`Remove-MpThreat` returned. A single look turned a removal that had worked into
+"anything it named is still there", and in a security screen a false alarm costs the
+same trust as a false clean.
+
+The same run corrected something more serious. A custom scan that finds a threat names
+nothing at all and exits **zero** once it has cleaned it — `Scanning E:\ found 1
+threats.` and then `Cleaning finished.` — so reading threat names and the exit code
+alone reported "Defender found nothing" for a drive it had just disinfected. The count
+line is what decides the verdict now, and a scan with a count but no names shows a row
+saying exactly that rather than an empty list under a headline that found something.
+`defender-threat-cleaned.txt` is that transcript, committed verbatim.
+
 **Wipe says what it cannot do.** On a solid-state drive, wear levelling writes the
 overwrite to a different physical block, so the original survives until the controller
 reuses it. The section detects the drive type and states this in its heading rather
