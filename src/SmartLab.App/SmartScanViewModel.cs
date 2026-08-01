@@ -232,9 +232,10 @@ public sealed partial class SmartScanViewModel(MainViewModel shell) : Observable
     }
 
     /// <remarks>
-    /// Dry run is left exactly as each section has it. A confirmation on this screen
-    /// is consent to run the section's verb, not permission to override the guard the
-    /// section put in front of it.
+    /// Each section's own guard is left exactly as it stands - a Dry run toggle where
+    /// there is one, and in Repair the plan its scan already produced. A confirmation
+    /// on this screen is consent to run the section's verb, not permission to override
+    /// what the section put in front of it.
     /// </remarks>
     private async Task ApplyOne(string key)
     {

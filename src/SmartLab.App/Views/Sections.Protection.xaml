@@ -17,9 +17,11 @@
                               RelativeSource={RelativeSource AncestorType=Window}}">
 
             <ctl:SectionFrame.Actions>
+                <!-- Two presses, and the first one is the dry run. Scanning walks the
+                     volume and writes nothing; the plan it leaves behind is the
+                     preview, so a toggle in front of Apply would only ask a second
+                     time for something the operator has already seen. -->
                 <StackPanel Orientation="Horizontal">
-                    <CheckBox Style="{StaticResource ToggleCheck}" Content="Dry run"
-                              IsChecked="{Binding DryRun}" Margin="0,0,16,0" FontWeight="SemiBold" />
                     <Button Content="Apply ticked" Style="{StaticResource GhostButton}"
                             Command="{Binding ApplyCommand}" Margin="0,0,8,0" />
                     <Button Content="Scan" Style="{StaticResource PrimaryButton}"
@@ -101,9 +103,10 @@
                      no longer starts a PC has fixed half the problem, so the verdict
                      sits in the same section rather than in one of its own.
 
-                     Its own Dry run and its own buttons: these writes land on a
-                     partition table, not on files, and must not travel with the tick
-                     of a proposed action above. -->
+                     Its own buttons: these writes land on a partition table, not on
+                     files, and must not travel with the tick of a proposed action
+                     above. Checking is the preview here, exactly as scanning is
+                     above it. -->
                 <Border DockPanel.Dock="Bottom" Style="{StaticResource Card}" Padding="15"
                         Margin="0,14,0,0" DataContext="{Binding Boot}">
                     <Grid>
@@ -168,9 +171,6 @@
 
                         <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center"
                                     Margin="16,0,0,0">
-                            <CheckBox Style="{StaticResource ToggleCheck}" Content="Dry run"
-                                      IsChecked="{Binding DryRun}" Margin="0,0,14,0"
-                                      FontWeight="SemiBold" />
                             <Button Content="Apply ticked" Style="{StaticResource GhostButton}"
                                     Command="{Binding ApplyCommand}" Margin="0,0,8,0" />
                             <Button Content="Check boot" Style="{StaticResource PrimaryButton}"

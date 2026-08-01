@@ -41,9 +41,6 @@ public sealed partial class BootViewModel(MainViewModel shell) : ObservableObjec
 
     [ObservableProperty] private bool _isBusy;
 
-    /// <summary>Opt-in, as everywhere else that writes.</summary>
-    [ObservableProperty] private bool _dryRun = true;
-
     [ObservableProperty] private bool _hasChecked;
 
     [ObservableProperty] private string _headline = "Not checked";
@@ -145,20 +142,21 @@ public sealed partial class BootViewModel(MainViewModel shell) : ObservableObjec
             {
                 Status = $"{row.Title} on {drive.Root}...";
 
+                // The check was the dry run, and a fix only exists here because that
+                // check offered it and the operator ticked it. Writing is the whole
+                // point of the second press.
                 var result = await BootRepairRunner
-                    .ApplyAsync(row.Fix, drive, health, DryRun)
+                    .ApplyAsync(row.Fix, drive, health, dryRun: false)
                     .ConfigureAwait(true);
 
                 row.Outcome = result.Output;
                 if (result.Succeeded) done++;
             }
 
-            Status = DryRun
-                ? $"Dry run: {chosen.Length} fix(es) would run. Untick 'Dry run' to apply."
-                : $"{done} of {chosen.Length} fix(es) applied. Each result is on its row.";
+            Status = $"{done} of {chosen.Length} fix(es) applied. Each result is on its row.";
 
             // What was true before an apply is not what is true after it.
-            if (!DryRun) await CheckAsync().ConfigureAwait(true);
+            await CheckAsync().ConfigureAwait(true);
         }
         catch (Exception ex)
         {

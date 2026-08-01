@@ -379,9 +379,6 @@ public sealed partial class MainViewModel : ObservableObject
     [ObservableProperty] private string _status = "Select a removable drive, then Scan.";
     [ObservableProperty] private bool _isBusy;
 
-    /// <summary>Writing is opt-in, matching the CLI.</summary>
-    [ObservableProperty] private bool _dryRun = true;
-
     [ObservableProperty] private string _quarantineRoot =
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "SmartLab", "quarantine");
 
@@ -687,7 +684,11 @@ public sealed partial class MainViewModel : ObservableObject
                 "SmartLab", $"journal-{plan.Volume.DriveLetter}.jsonl");
 
             await using var journal = new JsonlJournal(journalPath);
-            var gate = new Win32WriteGate(journal, DryRun);
+
+            // The scan was the dry run: it walked the volume, wrote nothing, and left
+            // the plan the operator is now ticking rows out of. Applying that plan is
+            // the second press, so it writes.
+            var gate = new Win32WriteGate(journal, dryRun: false);
             var executor = new PlanExecutor(
                 gate, journal, new RescueCopier(_reader, gate, journal), _reader);
 
@@ -707,20 +708,13 @@ public sealed partial class MainViewModel : ObservableObject
             var report = await Task.Run(
                 () => executor.ApplyAsync(plan.Approve(selected), options, progress)).ConfigureAwait(true);
 
-            Findings.Add(DryRun ? "--- DRY RUN, nothing was written ---" : "--- RESULTS ---");
+            Findings.Add("--- RESULTS ---");
 
             foreach (var outcome in report.Outcomes)
             {
                 Findings.Add($"[{(outcome.Result.Succeeded ? "ok" : "FAIL")}] " +
                              $"{outcome.Action.Kind}: {outcome.Action.Description}" +
                              (outcome.Note is null ? string.Empty : $" ({outcome.Note})"));
-            }
-
-            if (DryRun)
-            {
-                Status = $"Dry run complete: {report.Succeeded} action(s) would run. " +
-                         "Untick 'Dry run' to apply.";
-                return;
             }
 
             Status = $"{report.Succeeded} succeeded, {report.Failed} failed. Verifying...";

@@ -125,6 +125,11 @@ locking need Administrator, but the UI must not run elevated.
   because the thing it starts asks for itself: msiexec confirms, and so does almost
   every vendor's uninstaller. Two prompts in a row do not make an operator twice as
   careful — they teach them to click through both.
+- Repair has none either, and for the opposite reason: its first verb *is* the dry run.
+  Scan walks the volume, writes nothing, and leaves a list of proposed actions to tick
+  through; Check does the same for the boot half. A toggle in front of Apply would ask
+  a second time about a preview the operator has already read, and a preview nobody
+  can act on without a further step is a preview nobody trusts.
 - A `Reading` gets a proportion bar only when `ShowProportion` is set, and that is
   explicit rather than inferred from a non-zero value: a genuine 0% deserves its
   empty bar, and a figure with no denominator must never grow one by accident.
@@ -245,8 +250,9 @@ succeeded" and "the volume is clean" are different claims.
 | Format / repair action | **not implemented** |
 | Resume from the journal | **not implemented** |
 
-`apply` performs a dry run unless `--execute` is passed, and the UI ships with
-"Dry run" ticked. `scan` and `raw` cannot write at all.
+`apply` performs a dry run unless `--execute` is passed. In the UI the sections that
+act on one press ship with "Dry run" ticked; Repair has no toggle, because its scan is
+the dry run and Apply is the second press. `scan` and `raw` cannot write at all.
 
 ### Test fixtures
 
@@ -365,9 +371,10 @@ button, and it is why the first word is Run rather than Fix.
 What keeps it safe is the shape of the verb rather than its absence. Measuring and
 acting are separate commands — a test names the five that exist, so a sixth fails the
 build — apply is impossible before a scan completes, and no phase ever claims to be
-both scanning and reviewing. Each section's Dry run toggle is untouched: confirming
-here is consent to run that section's verb, not permission to override the guard the
-section put in front of it.
+both scanning and reviewing. Each section's own guard is untouched — a Dry run toggle
+where one exists, and in Repair the scan-then-apply shape itself: confirming here is
+consent to run that section's verb, not permission to override what the section put in
+front of it.
 
 **Applying never re-scans.** Each apply works from the state its own measure left
 behind — Temp & Cache cleans the categories it measured, Recycle Bins empties the bins it
@@ -440,7 +447,9 @@ The refusals are the feature's safety and are covered by their own tests: remova
 drives only, never the volume Windows is installed on, and `C:` outright whatever
 Windows reports it as. The check is re-run against the live selection at the moment of
 writing, not only when the fixes were offered, because the drive dropdown can have
-moved in between. Nothing is pre-ticked.
+moved in between. Nothing is pre-ticked, and the check is the preview: it writes
+nothing, and a fix can only be applied because that check offered it and somebody
+ticked it.
 
 Both writes compose their command in a function of their own so the text can be
 asserted rather than described. `DiskpartScript` must be exactly *select disk*,
@@ -625,7 +634,7 @@ resource, so it is a converter in the window rather than a property on the recor
 failures, since half the registered icon paths on a mature machine point at files that
 were uninstalled years ago.
 
-This section has **no dry run**, which is the one place in the app that does not. What
+This section has **no dry run**, and unlike Repair it has no preview press either. What
 stands between the click and the removal is the uninstaller's own confirmation —
 msiexec asks, and so does almost every vendor — and a second prompt of ours in front of
 it would only teach people to click through both. The button says what it will do, and
