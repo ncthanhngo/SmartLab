@@ -112,11 +112,22 @@ public static class DefenderBridge
     /// active" rather than "the command returned". Anything still active exits non-zero
     /// and is named in the output.
     /// </para>
+    /// <para>
+    /// The read-back waits, and that is not defensive padding. <c>IsActive</c> is
+    /// Defender's bookkeeping rather than the file's state: measured against a real
+    /// EICAR detection, a threat whose file was already gone still read as active for
+    /// seconds after <c>Remove-MpThreat</c> returned. Reading it once turns a removal
+    /// that worked into "anything it named is still there", which in a security screen
+    /// is exactly as bad as the false clean this whole file guards against.
+    /// </para>
     /// </remarks>
     public static string BuildRemoveCommand() =>
         "powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command " +
         "\"$ErrorActionPreference='Stop'; Remove-MpThreat; " +
-        "$active = @(Get-MpThreat | Where-Object IsActive); " +
+        "$deadline = (Get-Date).AddSeconds(30); " +
+        "do { $active = @(Get-MpThreat | Where-Object IsActive); " +
+        "if (-not $active) { break }; Start-Sleep -Seconds 2 } " +
+        "while ((Get-Date) -lt $deadline); " +
         "if ($active) { $active | Format-List ThreatName,IsActive; exit 2 } " +
         "else { 'No threat is still active.' }\"";
 

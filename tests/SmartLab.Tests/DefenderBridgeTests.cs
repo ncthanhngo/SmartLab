@@ -203,6 +203,18 @@ public sealed class DefenderBridgeTests
     }
 
     [Fact]
+    public void TheReadBackWaitsForDefendersBookkeeping()
+    {
+        // IsActive is Defender's record, not the file's state: against a real EICAR
+        // detection it read active for seconds after the file was already gone. Reading
+        // it once turns a removal that worked into "it is still there".
+        var command = DefenderBridge.BuildRemoveCommand();
+
+        Assert.Contains("Start-Sleep", command, StringComparison.Ordinal);
+        Assert.Contains("AddSeconds(30)", command, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void AStoppedSweepDoesNotClaimTheMachineIsClean()
     {
         var partial = MalwareRemovalViewModel.Describe(
