@@ -116,6 +116,51 @@ public sealed class UninstallFlowTests
             // rather than leaving the absence to be inferred.
             Assert.Empty(uninstall.Leftovers);
             Assert.Contains(uninstall.Activity, s => s.Tone == "good");
+
+            // The run ends somewhere, and says so. A bar that simply stops and a
+            // screen that simply goes quiet are the same thing to the person watching.
+            Assert.False(uninstall.IsRunning);
+            Assert.Equal(100, uninstall.ProgressPercent);
+            Assert.NotEmpty(uninstall.Completion);
+            Assert.True(uninstall.HasRun);
+
+            // The list re-reads itself. The stub was never in the registry, so a
+            // refresh that actually happened cannot leave it on screen - which is the
+            // same reason a program somebody just removed does not linger.
+            Assert.DoesNotContain(uninstall.Programs, p => p.DisplayName == "Stub");
+        });
+    }
+
+    /// <remarks>
+    /// The failure this covers looked like a bug in the removal itself: the program
+    /// was gone from the machine and still on screen, so the only way to believe the
+    /// uninstall had worked was to press Refresh and check.
+    /// </remarks>
+    [Fact]
+    public void AProgramThatIsStillListedAfterwardsIsReportedAsNotRemoved()
+    {
+        OnDispatcher(async () =>
+        {
+            var uninstall = new MainViewModel().Uninstall;
+
+            await uninstall.EnsureLoadedAsync();
+
+            // Something real, whose uninstaller is replaced by a command that exits
+            // cleanly without removing anything. That is exactly the shape of a
+            // vendor uninstaller the user cancelled.
+            var real = uninstall.Programs.FirstOrDefault(p => p.HasUninstaller);
+            if (real is null) return; // nothing on this machine to check it with
+
+            var pretend = real with { UninstallString = "cmd.exe /c exit 0", QuietUninstallString = null };
+
+            uninstall.Programs.Add(pretend);
+            uninstall.SelectedProgram = pretend;
+
+            await uninstall.UninstallProgramCommand.ExecuteAsync(null);
+
+            Assert.Equal("warning", uninstall.CompletionTone);
+            Assert.Equal("Not removed", uninstall.Completion);
+            Assert.Contains(uninstall.Activity, s => s.Text.Contains("still listed", StringComparison.Ordinal));
         });
     }
 

@@ -414,6 +414,31 @@ can be mistaken for a shallow scan, so the scan says which it is rather than lea
 the operator to guess — and "nothing was left behind" is a claim worth being able to
 check, which is why the places that came back clean are named too.
 
+**A band above the log carries the progress, then the verdict.** The percentage counts
+steps, not seconds — launch, scan the folder, scan the key, re-read the list — and each
+of those either has happened or has not, so the proportion is a fact. The one stretch
+with no denominator is waiting on the vendor's own uninstaller, which may finish in a
+second or sit on a dialog until somebody answers it; there the bar moves without
+stating a figure. Inventing one would be worse than showing none: a bar reading 60% for
+a minute teaches an operator that the number means nothing. Removing leftovers counts
+entries instead, which is a proportion in the plainest sense.
+
+The same band then holds the verdict, and keeps holding it — *Uninstalled cleanly*,
+*Uninstalled, with leftovers*, *Not removed*, *Could not start it* — because finishing
+is something to be told, not something to infer from a bar disappearing.
+
+**What decides that verdict is the registry, not the exit code.** The list re-reads
+itself as the last step of every removal, and whether the program's key is still there
+is the only honest answer to "did it work": vendors return zero for uninstallers the
+user cancelled, and non-zero for ones that removed everything. Re-reading is also what
+stops a program that is gone from sitting on screen until somebody presses Refresh —
+which, until it was fixed, made every successful removal look like it had failed.
+
+The leftovers panel stays put once a removal has run, including when it found nothing.
+A panel that hides itself cannot say "nothing was left behind", and a clean uninstall is
+exactly the case where the operator most wants to be told rather than left to notice an
+absence.
+
 This section has **no dry run**, and unlike Repair it has no preview press either. What
 stands between the click and the removal is the uninstaller's own confirmation —
 msiexec asks, and so does almost every vendor — and a second prompt of ours in front of
