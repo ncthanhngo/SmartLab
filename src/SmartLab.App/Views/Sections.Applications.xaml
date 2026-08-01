@@ -200,22 +200,61 @@
     <DataTemplate x:Key="section-updater">
         <ctl:SectionFrame Title="Updater" Status="{Binding Status}"
                           Progress="{Binding Progress}"
-                          Subtitle="Upgrades run through winget, which installed most of these. This app never downloads anything itself."
+                          Subtitle="Apps upgrade through winget, drivers through Windows Update. This app never downloads either itself."
                           DataContext="{Binding DataContext.Updater,
                               RelativeSource={RelativeSource AncestorType=Window}}">
 
             <ctl:SectionFrame.Actions>
-                <!-- Asking winget what is out of date is the dry run, and nothing is
-                     ticked that winget did not install. -->
-                <StackPanel Orientation="Horizontal">
-                    <Button Content="Upgrade ticked" Style="{StaticResource GhostButton}"
-                            Command="{Binding UpgradeTickedCommand}" Margin="0,0,8,0" />
-                    <Button Content="Check" Style="{StaticResource PrimaryButton}"
-                            Command="{Binding CheckCommand}" />
-                </StackPanel>
+                <!-- One pair of buttons per tab, not one pair that does whichever is
+                     showing. The two halves run different tools - winget on one side,
+                     Windows Update on the other - and a button whose meaning depends on
+                     a tab is how someone installs the thing they were not looking at. -->
+                <Grid>
+                    <!-- Asking winget what is out of date is the dry run, and nothing is
+                         ticked that winget did not install. -->
+                    <StackPanel Orientation="Horizontal"
+                                Visibility="{Binding ShowingApps,
+                                    Converter={StaticResource BoolToVisibility}}">
+                        <Button Content="Upgrade ticked" Style="{StaticResource GhostButton}"
+                                Command="{Binding UpgradeTickedCommand}" Margin="0,0,8,0" />
+                        <Button Content="Check" Style="{StaticResource PrimaryButton}"
+                                Command="{Binding CheckCommand}" />
+                    </StackPanel>
+
+                    <!-- Asking Windows Update what it has is the dry run. Installing
+                         loads kernel code, and raises the one Administrator prompt. -->
+                    <StackPanel Orientation="Horizontal"
+                                Visibility="{Binding ShowingDrivers,
+                                    Converter={StaticResource BoolToVisibility}}">
+                        <Button Content="Install ticked" Style="{StaticResource GhostButton}"
+                                Command="{Binding InstallDriversCommand}" Margin="0,0,8,0" />
+                        <Button Content="Check drivers" Style="{StaticResource PrimaryButton}"
+                                Command="{Binding CheckDriversCommand}" />
+                    </StackPanel>
+                </Grid>
             </ctl:SectionFrame.Actions>
 
             <DockPanel>
+                <Border DockPanel.Dock="Top" Style="{StaticResource TabStrip}" Margin="0,0,0,16">
+                    <StackPanel Orientation="Horizontal">
+                        <RadioButton Content="Apps" GroupName="UpdaterTab"
+                                     Style="{StaticResource TabPill}"
+                                     IsChecked="{Binding ShowingApps}" />
+                        <RadioButton Content="Drivers" GroupName="UpdaterTab"
+                                     Style="{StaticResource TabPill}"
+                                     IsChecked="{Binding ShowingDrivers}" />
+                    </StackPanel>
+                </Border>
+
+                <!-- Both bodies share one cell, so the hidden one costs no layout and
+                     the visible one fills the frame rather than sitting at its own
+                     natural width beside a gap. -->
+                <Grid>
+
+                <!-- ===== Apps ===== -->
+
+                <DockPanel Visibility="{Binding ShowingApps,
+                               Converter={StaticResource BoolToVisibility}}">
                 <StackPanel DockPanel.Dock="Top" Style="{StaticResource ReadingRow}" Margin="0,0,0,16">
                     <ctl:Reading Value="{Binding PackageCount}" Caption="OUT OF DATE"
                                  Proportion="{Binding GaugePercent}" ShowProportion="True"
@@ -284,6 +323,129 @@
                         </ItemsControl>
                     </ScrollViewer>
                 </Border>
+                </DockPanel>
+
+                <!-- ===== Drivers ===== -->
+
+                <DockPanel Visibility="{Binding ShowingDrivers,
+                               Converter={StaticResource BoolToVisibility}}">
+                    <StackPanel DockPanel.Dock="Top" Style="{StaticResource ReadingRow}"
+                                Margin="0,0,0,16">
+                        <ctl:Reading Value="{Binding DriverCount}" Caption="OUT OF DATE"
+                                     Proportion="{Binding DriverGaugePercent}" ShowProportion="True"
+                                     Tint="{DynamicResource AccentUpdaterBrush}" Width="180" />
+                    </StackPanel>
+
+                    <Border Style="{StaticResource Card}" Padding="0">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto"
+                                      HorizontalScrollBarVisibility="Disabled">
+                            <StackPanel>
+                                <ItemsControl ItemsSource="{Binding Drivers}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Style="{StaticResource InsetRow}" Padding="15,10">
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="Auto" />
+                                                        <ColumnDefinition Width="*" />
+                                                        <ColumnDefinition Width="Auto" />
+                                                        <ColumnDefinition Width="Auto" />
+                                                        <ColumnDefinition Width="Auto" />
+                                                    </Grid.ColumnDefinitions>
+
+                                                    <CheckBox Grid.Column="0" Style="{StaticResource RowCheck}"
+                                                              IsChecked="{Binding IsSelected}"
+                                                              VerticalAlignment="Center" Margin="0,0,13,0" />
+
+                                                    <StackPanel Grid.Column="1">
+                                                        <TextBlock Text="{Binding Device}" FontSize="13"
+                                                                   TextTrimming="CharacterEllipsis"
+                                                                   MaxWidth="300"
+                                                                   Foreground="{DynamicResource TextPrimaryBrush}" />
+                                                        <TextBlock Text="{Binding Provider}" FontSize="11.5"
+                                                                   Margin="0,2,0,0"
+                                                                   TextTrimming="CharacterEllipsis"
+                                                                   Foreground="{DynamicResource TextMutedBrush}" />
+                                                    </StackPanel>
+
+                                                    <TextBlock Grid.Column="2" Margin="14,0,0,0" FontSize="12"
+                                                               VerticalAlignment="Center"
+                                                               FontFamily="{StaticResource MonoFont}"
+                                                               Foreground="{DynamicResource TextMutedBrush}">
+                                                        <Run Text="{Binding Installed, Mode=OneWay}" />
+                                                        <Run Text="&#x2192;" />
+                                                        <Run Text="{Binding Available, Mode=OneWay}"
+                                                             Foreground="{DynamicResource AccentBrush}" />
+                                                    </TextBlock>
+
+                                                    <TextBlock Grid.Column="3" Text="{Binding Size}"
+                                                               FontSize="11.5" Margin="14,0,0,0" MinWidth="58"
+                                                               TextAlignment="Right" VerticalAlignment="Center"
+                                                               FontFamily="{StaticResource MonoFont}"
+                                                               Foreground="{DynamicResource TextMutedBrush}" />
+
+                                                    <TextBlock Grid.Column="4" Text="{Binding Outcome}"
+                                                               FontSize="11.5" Margin="14,0,0,0" MinWidth="76"
+                                                               TextAlignment="Right" VerticalAlignment="Center"
+                                                               Foreground="{DynamicResource WarningBrush}" />
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+
+                                <!-- Devices with no working driver, listed whether or not
+                                     Windows Update has anything for them. Not tickable:
+                                     what is left here is what this app cannot fix, and a
+                                     tick box would promise otherwise. -->
+                                <StackPanel Margin="15,14,15,4"
+                                            Visibility="{Binding HasUndrivenDevices,
+                                                Converter={StaticResource BoolToVisibility}}">
+                                    <TextBlock Text="WINDOWS IS NOT DRIVING THESE"
+                                               Style="{StaticResource GroupLabel}" />
+                                    <TextBlock Style="{StaticResource CaptionText}" Margin="0,2,0,0"
+                                               TextWrapping="Wrap"
+                                               Text="A driver above may cover one of these. Anything still listed after installing has no driver on Windows Update." />
+                                </StackPanel>
+
+                                <ItemsControl ItemsSource="{Binding UndrivenDevices}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Style="{StaticResource InsetRow}" Padding="15,10">
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*" />
+                                                        <ColumnDefinition Width="Auto" />
+                                                    </Grid.ColumnDefinitions>
+
+                                                    <StackPanel Grid.Column="0" Margin="30,0,0,0">
+                                                        <TextBlock Text="{Binding Name}" FontSize="13"
+                                                                   TextTrimming="CharacterEllipsis"
+                                                                   MaxWidth="320"
+                                                                   Foreground="{DynamicResource TextPrimaryBrush}" />
+                                                        <TextBlock Text="{Binding InstanceId}" FontSize="11"
+                                                                   FontFamily="{StaticResource MonoFont}"
+                                                                   Margin="0,2,0,0"
+                                                                   TextTrimming="CharacterEllipsis"
+                                                                   MaxWidth="320"
+                                                                   Foreground="{DynamicResource TextMutedBrush}" />
+                                                    </StackPanel>
+
+                                                    <TextBlock Grid.Column="1" Text="{Binding Problem}"
+                                                               FontSize="11.5" Margin="14,0,0,0"
+                                                               TextAlignment="Right" VerticalAlignment="Center"
+                                                               Foreground="{DynamicResource WarningBrush}" />
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </ScrollViewer>
+                    </Border>
+                </DockPanel>
+
+                </Grid>
             </DockPanel>
         </ctl:SectionFrame>
     </DataTemplate>

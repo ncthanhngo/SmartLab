@@ -31,11 +31,16 @@ internal static class Program
 
     private static async Task<int> Main(string[] args)
     {
-        // The one job that names what it acts on. It still crosses the boundary as
-        // catalogue ids rather than paths, and it runs to completion and exits rather
-        // than serving a pipe - there is nothing here for a second request to reach.
+        // The two jobs that name what they act on. Both still cross the boundary as
+        // ids rather than paths, and both run to completion and exit rather than
+        // serving a pipe - there is nothing here for a second request to reach.
         if (ValueOf(args, ElevatedCleanup.Switch) is { } categoryIds)
             return ElevatedCleanup.Run(categoryIds, Console.Out);
+
+        // Update identifiers, checked as GUIDs on both sides. The drivers themselves
+        // are found, fetched and signed by Windows Update; nothing here names a file.
+        if (ValueOf(args, ElevatedDriverInstall.Switch) is { } updateIds)
+            return ElevatedDriverInstall.Run(updateIds, Console.Out);
 
         var pipeName = ValueOf(args, "--pipe");
         var ownerSid = ValueOf(args, "--owner");
@@ -44,7 +49,8 @@ internal static class Program
         {
             await Console.Error.WriteLineAsync(
                 "Usage: SmartLab.Worker --pipe <name> --owner <sid>\n" +
-                $"       SmartLab.Worker {ElevatedCleanup.Switch} <category-id>[,<category-id>...]")
+                $"       SmartLab.Worker {ElevatedCleanup.Switch} <category-id>[,<category-id>...]\n" +
+                $"       SmartLab.Worker {ElevatedDriverInstall.Switch} <update-guid>[,<update-guid>...]")
                 .ConfigureAwait(false);
 
             return 2;

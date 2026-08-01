@@ -232,7 +232,7 @@ public sealed partial class MainViewModel : ObservableObject
         new("maintenance", "Repair OS", "Windows' own repair tools", Glyph(0xE90F), "NavMaintenanceHex", GroupSpeed),
 
         new("uninstall", "Uninstall", "Apps and leftovers", Glyph(0xECC9), "NavUninstallHex", GroupApplications),
-        new("updater", "Updater", "Upgrades through winget", Glyph(0xE777), "NavUpdaterHex", GroupApplications),
+        new("updater", "Updater", "Apps and drivers", Glyph(0xE777), "NavUpdaterHex", GroupApplications),
 
         new("spacelens", "Disk Map", "Where the space went", Glyph(0xE9D2), "NavSpaceLensHex", GroupFiles),
         new("large", "Big & Stale", "Big files nobody opens", Glyph(0xE8B7), "NavLargeHex", GroupFiles),

@@ -264,15 +264,30 @@ prompt.
 
 ### What reaches the network
 
-Two things, both on a button press and never on a timer.
+Three things, all on a button press and never on a timer.
 
-**Updater** shells out to `winget`, which downloads and installs the upgrade itself —
-one package at a time, each with its own result, because a batch that fails halfway
-leaves nobody able to say which packages actually changed. Packages winget merely
-recognises rather than installed arrive unticked: upgrading one of those replaces a
-hand-placed build with the store's. Machine-scope packages need an elevated winget,
-and when that is refused the row carries what winget said rather than a generic
+**Updater — Apps** shells out to `winget`, which downloads and installs the upgrade
+itself — one package at a time, each with its own result, because a batch that fails
+halfway leaves nobody able to say which packages actually changed. Packages winget
+merely recognises rather than installed arrive unticked: upgrading one of those
+replaces a hand-placed build with the store's. Machine-scope packages need an elevated
+winget, and when that is refused the row carries what winget said rather than a generic
 failure.
+
+**Updater — Drivers** asks the Windows Update Agent what drivers it has for this
+machine, and installs the ticked ones through it. A driver is kernel code; the only
+defensible source is the one that signs and publishes it, so nothing here fetches from
+a vendor page. Searching writes nothing and needs no elevation. Installing does, and
+goes through the worker behind one prompt — only update identifiers cross that
+boundary, and only if they are GUIDs, with the elevated half searching Windows Update
+again and installing only what that search returned.
+
+Windows Update publishes a driver's date but not its version, so the rows compare
+dates and carry the installed version beside the publisher rather than opposite the
+arrow. A device whose hardware id cannot be matched to an installed driver reads as
+unknown, not as undriven: the two are indistinguishable from here. Devices Windows is
+genuinely failing to drive come from Device Manager's error codes instead, listed
+separately and untickable, because what remains there is what this app cannot fix.
 
 **About** asks GitHub for the latest published release when someone presses *Check for
 updates*. It sends the request and nothing else, and downloads nothing. A tag that

@@ -15,7 +15,8 @@
 | WPF UI | implemented, fifteen sections ([what each one does](sections.md)) |
 | Recycle Bins | implemented, unit tested |
 | Disk Map, Big & Stale, Wipe | implemented, unit tested |
-| Updater (winget) | implemented, unit tested |
+| Updater — apps (winget) | implemented, unit tested |
+| Updater — drivers (Windows Update) | implemented, unit tested; the elevated install itself is unverified — it needs a machine with a driver actually offered |
 | Startup items, Windows repair tools | implemented, unit tested |
 | Malware Removal (Defender delegation) | implemented, unit tested |
 | Smart Scan | implemented, unit tested |

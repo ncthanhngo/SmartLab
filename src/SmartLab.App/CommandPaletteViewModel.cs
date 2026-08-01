@@ -216,6 +216,9 @@ public sealed partial class CommandPaletteViewModel(MainViewModel shell) : Obser
         yield return Action("Check for package upgrades", "Updater", "updater", shell.Updater.CheckCommand);
         yield return Action("Upgrade the ticked packages", "Updater", "updater", shell.Updater.UpgradeTickedCommand);
 
+        yield return Action("Check for driver updates", "Updater", "updater", shell.Updater.CheckDriversCommand);
+        yield return Action("Install the ticked drivers", "Updater", "updater", shell.Updater.InstallDriversCommand);
+
         yield return Action("Map where the space went", "Disk Map", "spacelens", shell.SpaceLens.MeasureCommand);
         yield return Action("Find big files nobody opens", "Big & Stale", "large", shell.LargeFiles.ScanCommand);
         yield return Action("Send the ticked files to the Recycle Bin", "Big & Stale", "large", shell.LargeFiles.RecycleTickedCommand);
