@@ -74,6 +74,9 @@ public sealed partial class LargeOldFilesViewModel : ObservableObject
         "Age is measured from when a file was last written. Windows stops updating " +
         "last-access time by default, so that clock cannot be trusted.";
 
+    /// <summary>What this section is doing, and what it did. Drawn by the frame.</summary>
+    public SectionProgress Progress { get; } = new();
+
     [RelayCommand]
     private async Task ScanAsync()
     {
@@ -85,6 +88,8 @@ public sealed partial class LargeOldFilesViewModel : ObservableObject
 
         IsBusy = true;
         Files.Clear();
+
+        Progress.Begin($"Walking {RootFolder}");
 
         try
         {
@@ -110,6 +115,7 @@ public sealed partial class LargeOldFilesViewModel : ObservableObject
 
                 lastUpdate = tick;
                 Status = $"Walking... {p.Directories:N0} folders, {p.Files:N0} files";
+                Progress.Unknown($"Walking... {p.Directories:N0} folders, {p.Files:N0} files");
             });
 
             await Task.Run(() => new DirectoryTreeWalker(_reader).WalkAsync(
@@ -138,10 +144,17 @@ public sealed partial class LargeOldFilesViewModel : ObservableObject
             Status = found.Count == 0
                 ? $"Nothing over {mb} MB and older than {MinimumMonths} month(s) under {RootFolder}."
                 : $"{found.Count} file(s) match. Nothing is ticked - these are your own files.";
+
+            Progress.Finish(found.Count == 0 ? "good" : "warning",
+                found.Count == 0 ? "Nothing matched" : $"{found.Count} file(s) match",
+                found.Count == 0
+                    ? $"Nothing under {RootFolder} is both that big and that old."
+                    : "Nothing is ticked. These are your own files, so each one is picked by hand.");
         }
         catch (Exception ex)
         {
             Status = $"Scan failed: {ex.Message}";
+            Progress.Finish("alert", "Scan failed", ex.Message);
         }
         finally
         {

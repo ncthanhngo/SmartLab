@@ -13,6 +13,7 @@
 
     <DataTemplate x:Key="section-spacelens">
         <ctl:SectionFrame Title="Disk Map" Status="{Binding Status}" IsCanvas="True"
+                          Progress="{Binding Progress}"
                           Subtitle="Measures every folder underneath and draws them by size. Reads sizes only - nothing is opened or changed."
                           DataContext="{Binding DataContext.SpaceLens,
                               RelativeSource={RelativeSource AncestorType=Window}}">
@@ -54,6 +55,7 @@
 
     <DataTemplate x:Key="section-large">
         <ctl:SectionFrame Title="Big &amp; Stale" Status="{Binding Status}"
+                          Progress="{Binding Progress}"
                           Subtitle="Age is time since last written, not since last opened - Windows stops updating that clock by default. Ticked files go to the Recycle Bin, not straight out."
                           DataContext="{Binding DataContext.LargeFiles,
                               RelativeSource={RelativeSource AncestorType=Window}}">
@@ -150,6 +152,7 @@
 
     <DataTemplate x:Key="section-deleted">
         <ctl:SectionFrame Title="Deleted files" Status="{Binding RawStatus}"
+                          Progress="{Binding DeletedProgress}"
                           Subtitle="Reads the device directly, below the mounted filesystem. Recovery assumes the data was not fragmented, so every result is a candidate."
                           DataContext="{Binding DataContext,
                               RelativeSource={RelativeSource AncestorType=Window}}">
@@ -247,6 +250,7 @@
 
     <DataTemplate x:Key="section-shredder">
         <ctl:SectionFrame Title="Wipe" Status="{Binding Status}"
+                          Progress="{Binding Progress}"
                           Subtitle="Overwrites a file and deletes it. There is no recovery afterwards, from here or anywhere else."
                           DataContext="{Binding DataContext.Shredder,
                               RelativeSource={RelativeSource AncestorType=Window}}">

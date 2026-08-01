@@ -414,7 +414,13 @@ can be mistaken for a shallow scan, so the scan says which it is rather than lea
 the operator to guess — and "nothing was left behind" is a claim worth being able to
 check, which is why the places that came back clean are named too.
 
-**A band above the log carries the progress, then the verdict.** The percentage counts
+**The band under the header is the frame's, not this section's.** Every section with a
+job longer than an instant hands one over — Repair's scan, Defender's sweep, the folder
+walks behind Disk Map and Big & Stale, the Windows repair tools, winget, the carve in
+Deleted files — and each gets the same band in the same place, showing what is running
+and then what it concluded. Uninstall is only where the shape was worked out first.
+
+The percentage counts
 steps, not seconds — launch, scan the folder, scan the key, re-read the list — and each
 of those either has happened or has not, so the proportion is a fact. The one stretch
 with no denominator is waiting on the vendor's own uninstaller, which may finish in a

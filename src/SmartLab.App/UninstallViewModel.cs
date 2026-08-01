@@ -111,82 +111,22 @@ public sealed partial class UninstallViewModel : ObservableObject
     /// </remarks>
     public ObservableCollection<UninstallStepViewModel> Activity { get; } = [];
 
-    /// <summary>True while a removal is in progress, which is what shows the bar.</summary>
-    [ObservableProperty] private bool _isRunning;
-
     /// <summary>
-    /// Set for the one step whose length nobody can know.
+    /// What this section is doing, and what it did.
     /// </summary>
     /// <remarks>
-    /// Waiting on a vendor's uninstaller has no denominator: it may take a second, it
-    /// may sit on a dialog until somebody answers it. The bar moves without claiming a
-    /// figure there, and states a real one everywhere else. Inventing a percentage for
-    /// that stretch would be the one thing worse than showing none - a bar that says
-    /// 60% and stays there teaches the operator that the number means nothing.
+    /// Handed to the frame, which draws it. Removing a program runs somebody else's
+    /// installer, waits on it, then goes looking through folders and registry keys -
+    /// and a status line reading "working..." for a minute cannot be told apart from
+    /// one that has hung.
     /// </remarks>
-    [ObservableProperty] private bool _isIndeterminate;
-
-    /// <summary>
-    /// How far through this removal's steps we are, 0 to 100.
-    /// </summary>
-    /// <remarks>
-    /// Steps, not seconds. Launch, scan the folder, scan the key, re-read the list -
-    /// each is a thing that either has happened or has not, and the proportion of them
-    /// done is a fact. When leftovers are being removed it counts entries instead,
-    /// which is a proportion in the plainest sense.
-    /// </remarks>
-    [ObservableProperty] private double _progressPercent;
-
-    /// <summary>What is happening right now, in three or four words.</summary>
-    [ObservableProperty] private string _stage = string.Empty;
-
-    /// <summary>
-    /// The verdict, once there is one. Empty until the first removal finishes.
-    /// </summary>
-    /// <remarks>
-    /// A separate line from the status strip, and deliberately: this one stays on
-    /// screen next to the log that explains it, so "it finished" is something the
-    /// operator is told rather than something they infer from the bar disappearing.
-    /// </remarks>
-    [ObservableProperty] private string _completion = string.Empty;
-
-    [ObservableProperty] private string _completionDetail = string.Empty;
-
-    /// <summary>"good", "warning", "alert" - what the completion band shows.</summary>
-    [ObservableProperty] private string _completionTone = "good";
-
-    /// <summary>
-    /// True once a removal has run, which is what keeps the leftovers panel present.
-    /// </summary>
-    /// <remarks>
-    /// An empty panel that hides itself cannot say "nothing was left behind", and a
-    /// clean uninstall is exactly the case where the operator most wants to be told.
-    /// </remarks>
-    [ObservableProperty] private bool _hasRun;
+    public SectionProgress Progress { get; } = new();
 
     private Task? _loading;
 
     /// <summary>Adds a line to the running commentary.</summary>
     private void Say(UninstallStepKind kind, string text) =>
         Activity.Add(new UninstallStepViewModel(new UninstallStep(kind, text)));
-
-    /// <summary>Moves the bar to a named step.</summary>
-    private void Step(string stage, double percent)
-    {
-        Stage = stage;
-        ProgressPercent = percent;
-        IsIndeterminate = false;
-    }
-
-    /// <summary>Sets the band that stays on screen after the work stops.</summary>
-    private void Finish(string tone, string headline, string detail)
-    {
-        CompletionTone = tone;
-        Completion = headline;
-        CompletionDetail = detail;
-        IsRunning = false;
-        HasRun = true;
-    }
 
     /// <summary>
     /// Lists the programs the first time the section is opened.
@@ -210,8 +150,7 @@ public sealed partial class UninstallViewModel : ObservableObject
         // means. The reload after an uninstall keeps its leftovers and its log.
         Leftovers.Clear();
         Activity.Clear();
-        Completion = string.Empty;
-        HasRun = false;
+        Progress.Reset();
 
         IsBusy = true;
 
@@ -270,10 +209,7 @@ public sealed partial class UninstallViewModel : ObservableObject
         // this one's would put two uninstalls in a single scrollback with nothing
         // marking where one ended.
         Activity.Clear();
-        Completion = string.Empty;
-
-        IsRunning = true;
-        Step($"Starting {program.DisplayName}", 0);
+        Progress.Begin($"Starting {program.DisplayName}");
 
         try
         {
@@ -288,12 +224,11 @@ public sealed partial class UninstallViewModel : ObservableObject
 
             // The vendor's own process, of unknowable length. The bar moves without
             // stating a figure here rather than inventing one.
-            Stage = "Waiting for the vendor's uninstaller";
-            IsIndeterminate = true;
+            Progress.Unknown("Waiting for the vendor's uninstaller");
 
             var result = await _uninstaller.RunAsync(program, quiet: true, progress).ConfigureAwait(true);
 
-            Step("Looking for what it left behind", 40);
+            Progress.Step("Looking for what it left behind", 40);
             Status = $"Looking for what '{program.DisplayName}' left behind...";
             Say(UninstallStepKind.Info, "Looking for what it left behind.");
 
@@ -317,7 +252,7 @@ public sealed partial class UninstallViewModel : ObservableObject
             // The registry is read again rather than the row simply being dropped.
             // Whether the entry is gone is the only honest answer to "did it work",
             // and it is the vendor's uninstaller that decides it, not this app.
-            Step("Re-reading the program list", 80);
+            Progress.Step("Re-reading the program list", 80);
             Say(UninstallStepKind.Info, "Re-reading the uninstall registry.");
 
             await ReloadProgramsAsync().ConfigureAwait(true);
@@ -329,7 +264,7 @@ public sealed partial class UninstallViewModel : ObservableObject
                     ? $"{program.DisplayName} is still listed - it was not fully removed."
                     : $"{program.DisplayName} is no longer listed.");
 
-            Step("Done", 100);
+            Progress.Step("Done", 100);
 
             Report(program, result, stillListed);
         }
@@ -337,12 +272,12 @@ public sealed partial class UninstallViewModel : ObservableObject
         {
             Say(UninstallStepKind.Failed, ex.Message);
             Status = $"Uninstall failed: {ex.Message}";
-            Finish("alert", "Uninstall failed", ex.Message);
+            Progress.Finish("alert", "Uninstall failed", ex.Message);
         }
         finally
         {
             IsBusy = false;
-            IsRunning = false;
+            Progress.IsRunning = false;
         }
     }
 
@@ -360,7 +295,7 @@ public sealed partial class UninstallViewModel : ObservableObject
         if (result.Outcome is UninstallOutcome.NoUninstaller)
         {
             Status = "That program registered no uninstaller.";
-            Finish("alert", "Nothing to run",
+            Progress.Finish("alert", "Nothing to run",
                 $"{program.DisplayName} registered no uninstall command, so nothing was started.");
             return;
         }
@@ -368,14 +303,14 @@ public sealed partial class UninstallViewModel : ObservableObject
         if (result.Outcome is UninstallOutcome.LaunchFailed)
         {
             Status = $"Could not start the uninstaller: {result.Detail}";
-            Finish("alert", "Could not start it", result.Detail ?? "The uninstaller did not start.");
+            Progress.Finish("alert", "Could not start it", result.Detail ?? "The uninstaller did not start.");
             return;
         }
 
         if (result.Outcome is UninstallOutcome.Cancelled)
         {
             Status = result.Detail ?? "Stopped waiting for the uninstaller.";
-            Finish("warning", "Still running",
+            Progress.Finish("warning", "Still running",
                 "Smart Lab stopped waiting. The vendor's uninstaller may still be working - " +
                 "press Refresh in a minute to see where it got to.");
             return;
@@ -384,7 +319,7 @@ public sealed partial class UninstallViewModel : ObservableObject
         if (stillListed)
         {
             Status = $"'{program.DisplayName}' is still installed.";
-            Finish("warning", "Not removed",
+            Progress.Finish("warning", "Not removed",
                 $"{program.DisplayName} is still in the uninstall registry. Its uninstaller may have " +
                 "been cancelled, or it may need Administrator.");
             return;
@@ -393,13 +328,13 @@ public sealed partial class UninstallViewModel : ObservableObject
         if (Leftovers.Count == 0)
         {
             Status = $"'{program.DisplayName}' uninstalled cleanly.";
-            Finish("good", "Uninstalled cleanly",
+            Progress.Finish("good", "Uninstalled cleanly",
                 $"{program.DisplayName} is gone, and it left nothing behind that Smart Lab can see.");
             return;
         }
 
         Status = $"'{program.DisplayName}' uninstalled, {Leftovers.Count} leftover(s) found below.";
-        Finish("warning", "Uninstalled, with leftovers",
+        Progress.Finish("warning", "Uninstalled, with leftovers",
             $"{program.DisplayName} is gone. {Leftovers.Count} thing(s) it registered are still on " +
             "disk - tick what should go and remove them below.");
     }
@@ -420,8 +355,7 @@ public sealed partial class UninstallViewModel : ObservableObject
         }
 
         IsBusy = true;
-        IsRunning = true;
-        Completion = string.Empty;
+        Progress.Begin($"Removing {chosen.Length} leftover(s)");
 
         try
         {
@@ -435,7 +369,7 @@ public sealed partial class UninstallViewModel : ObservableObject
             {
                 // A proportion in the plainest sense: entries done over entries
                 // chosen. This is the one part of the job with a real denominator.
-                Step($"Removing {results.Count + 1} of {chosen.Length}",
+                Progress.Step($"Removing {results.Count + 1} of {chosen.Length}",
                     100.0 * results.Count / chosen.Length);
 
                 Say(UninstallStepKind.Info, $"Removing: {row.Location}");
@@ -460,7 +394,7 @@ public sealed partial class UninstallViewModel : ObservableObject
             var failed = results.Where(r => r.Outcome == RemovalOutcome.Failed).ToArray();
             var deferred = results.Count(r => r.Outcome == RemovalOutcome.Deferred);
 
-            Step("Done", 100);
+            Progress.Step("Done", 100);
 
             Status = $"{removed} leftover(s) removed" +
                      (failed.Length > 0 ? $", {failed.Length} failed: {failed[0].Detail}" : ".");
@@ -470,7 +404,7 @@ public sealed partial class UninstallViewModel : ObservableObject
                     ? $"Finished: {removed} of {chosen.Length} removed."
                     : $"Finished: {removed} of {chosen.Length} removed, {failed.Length} failed.");
 
-            Finish(failed.Length == 0 ? "good" : "alert",
+            Progress.Finish(failed.Length == 0 ? "good" : "alert",
                 failed.Length == 0 ? "Leftovers removed" : "Some leftovers could not be removed",
                 failed.Length == 0
                     ? $"{removed} of {chosen.Length} gone" +
@@ -481,7 +415,7 @@ public sealed partial class UninstallViewModel : ObservableObject
         finally
         {
             IsBusy = false;
-            IsRunning = false;
+            Progress.IsRunning = false;
         }
     }
 

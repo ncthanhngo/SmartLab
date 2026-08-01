@@ -119,10 +119,10 @@ public sealed class UninstallFlowTests
 
             // The run ends somewhere, and says so. A bar that simply stops and a
             // screen that simply goes quiet are the same thing to the person watching.
-            Assert.False(uninstall.IsRunning);
-            Assert.Equal(100, uninstall.ProgressPercent);
-            Assert.NotEmpty(uninstall.Completion);
-            Assert.True(uninstall.HasRun);
+            Assert.False(uninstall.Progress.IsRunning);
+            Assert.Equal(100, uninstall.Progress.Percent);
+            Assert.NotEmpty(uninstall.Progress.Completion);
+            Assert.True(uninstall.Progress.HasRun);
 
             // The list re-reads itself. The stub was never in the registry, so a
             // refresh that actually happened cannot leave it on screen - which is the
@@ -158,8 +158,8 @@ public sealed class UninstallFlowTests
 
             await uninstall.UninstallProgramCommand.ExecuteAsync(null);
 
-            Assert.Equal("warning", uninstall.CompletionTone);
-            Assert.Equal("Not removed", uninstall.Completion);
+            Assert.Equal("warning", uninstall.Progress.Tone);
+            Assert.Equal("Not removed", uninstall.Progress.Completion);
             Assert.Contains(uninstall.Activity, s => s.Text.Contains("still listed", StringComparison.Ordinal));
         });
     }

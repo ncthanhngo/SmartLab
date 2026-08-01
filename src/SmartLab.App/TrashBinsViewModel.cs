@@ -50,6 +50,9 @@ public sealed partial class TrashBinsViewModel : ObservableObject
     [ObservableProperty] private string _headlineDetail =
         "Every bin starts unticked. This is where the Deleted files section recovers from.";
 
+    /// <summary>What this section is doing, and what it did. Drawn by the frame.</summary>
+    public SectionProgress Progress { get; } = new();
+
     [RelayCommand]
     private void Measure()
     {
@@ -73,6 +76,13 @@ public sealed partial class TrashBinsViewModel : ObservableObject
         Status = Bins.Count == 0
             ? "No drive reported a Recycle Bin."
             : $"{Bins.Count} bin(s) measured, holding {ItemCount:N0} item(s). Nothing has been emptied.";
+
+        Progress.Finish(Bins.Count == 0 ? "warning" : "good",
+            Bins.Count == 0 ? "No bins found" : $"{Bins.Count} bin(s) measured",
+            Bins.Count == 0
+                ? "No drive reported a Recycle Bin."
+                : $"They hold {ItemCount:N0} item(s), and every bin starts unticked: this is where " +
+                  "the Deleted files section recovers from.");
     }
 
     private bool CanEmpty() => Bins.Count > 0 && !IsBusy;
@@ -91,17 +101,23 @@ public sealed partial class TrashBinsViewModel : ObservableObject
         // button does not exist until it has run. Every bin also starts unticked, so
         // what is about to go was picked one drive at a time.
         IsBusy = true;
+        Progress.Begin($"Emptying {chosen.Length} bin(s)");
 
         try
         {
             var failures = new List<string>();
+            var done = 0;
 
             foreach (var row in chosen)
             {
                 // Per drive, through the shell. Deleting $Recycle.Bin contents
                 // directly leaves the shell's index describing files that are gone.
+                Progress.Step($"Emptying {row.Root}", 100.0 * done / chosen.Length);
+
                 if (!RecycleBin.Empty(out var error, row.Root))
                     failures.Add($"{row.Root} ({error})");
+
+                done++;
             }
 
             Measure();
@@ -109,6 +125,12 @@ public sealed partial class TrashBinsViewModel : ObservableObject
             Status = failures.Count == 0
                 ? $"{chosen.Length} bin(s) emptied."
                 : $"{chosen.Length - failures.Count} emptied, {failures.Count} failed: {failures[0]}";
+
+            Progress.Finish(failures.Count == 0 ? "good" : "alert",
+                failures.Count == 0 ? "Emptied" : $"{failures.Count} bin(s) refused",
+                failures.Count == 0
+                    ? $"{chosen.Length} bin(s) emptied. What was in them is not recoverable from here."
+                    : $"{chosen.Length - failures.Count} emptied. First failure: {failures[0]}");
         }
         finally
         {

@@ -494,7 +494,6 @@
         <Setter Property="Background" Value="{DynamicResource SurfaceSunkenBrush}" />
         <Setter Property="BorderThickness" Value="0" />
     </Style>
-
     <!-- ============================ inset lists ============================
 
          For the two screens that are lists rather than summaries. Rows sit flush

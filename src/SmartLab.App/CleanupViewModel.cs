@@ -75,23 +75,39 @@ public sealed partial class CleanupViewModel : ObservableObject
 
     public ObservableCollection<string> Log { get; } = [];
 
+    /// <summary>What this section is doing, and what it did. Drawn by the frame.</summary>
+    public SectionProgress Progress { get; } = new();
+
     [RelayCommand]
     private async Task AnalyseAsync()
     {
         IsBusy = true;
         Log.Clear();
 
+        // One category at a time, so the figure counts something real: nine places
+        // measured out of nine, rather than a guess at how long a folder walk takes.
+        Progress.Begin("Measuring");
+
         try
         {
             Status = "Measuring...";
 
             var categories = Categories.Select(c => c.Category).ToArray();
-            var findings = await Task.Run(() => _scanner.Scan(categories)).ConfigureAwait(true);
+            var done = 0;
 
-            foreach (var finding in findings)
+            foreach (var category in categories)
             {
-                var row = Categories.First(c => c.Category.Id == finding.Category.Id);
-                row.Apply(finding);
+                Progress.Step($"Measuring {category.Name}", 100.0 * done / categories.Length);
+
+                var findings = await Task.Run(() => _scanner.Scan([category])).ConfigureAwait(true);
+
+                foreach (var finding in findings)
+                {
+                    var row = Categories.First(c => c.Category.Id == finding.Category.Id);
+                    row.Apply(finding);
+                }
+
+                done++;
             }
 
             Analysed = true;
@@ -101,10 +117,14 @@ public sealed partial class CleanupViewModel : ObservableObject
             // Clean would actually remove. A headline figure that includes unticked
             // categories promises space the operator has not agreed to free.
             Status = $"{TotalText} reclaimable from the ticked categories. Nothing has been deleted.";
+
+            Progress.Finish("good", $"{TotalText} reclaimable",
+                "Measured, and nothing has been deleted. What is ticked is what Clean would remove.");
         }
         catch (Exception ex)
         {
             Status = $"Analyse failed: {ex.Message}";
+            Progress.Finish("alert", "Measure failed", ex.Message);
         }
         finally
         {
@@ -126,6 +146,8 @@ public sealed partial class CleanupViewModel : ObservableObject
 
         IsBusy = true;
         Log.Clear();
+
+        Progress.Begin($"Cleaning {chosen.Length} categor(ies)");
 
         try
         {
@@ -163,10 +185,16 @@ public sealed partial class CleanupViewModel : ObservableObject
             Status = failed == 0
                 ? $"Cleaned. {TotalText} still held by the ticked categories - anything left was in use."
                 : $"Cleaned with {failed} failure(s). See the log below.";
+
+            Progress.Finish(failed == 0 ? "good" : "warning",
+                failed == 0 ? "Cleaned" : $"Cleaned, with {failed} failure(s)",
+                $"{TotalText} is still held by the ticked categories - anything left behind was in " +
+                "use, which is normal on a machine that is running.");
         }
         catch (Exception ex)
         {
             Status = $"Clean failed: {ex.Message}";
+            Progress.Finish("alert", "Clean failed", ex.Message);
         }
         finally
         {

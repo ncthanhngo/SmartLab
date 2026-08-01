@@ -118,6 +118,19 @@ locking need Administrator, but the UI must not run elevated.
 - Every section sits in a `SectionFrame` — header band, content, status strip — so a
   section's own template contains only its subject. The verbs live in the header, in
   the order they are meant to be pressed: measure, then act.
+- **A section that makes you wait says so, and says when it stopped.** Any section with
+  a job longer than an instant hands the frame a `SectionProgress`, and the frame draws
+  one band under the header: what is happening while it happens, then the verdict, which
+  stays. No section lays out a bar of its own — twelve screens agreeing about where to
+  look is the whole point, and a status line that reads "working..." for a minute cannot
+  be told apart from one that has hung.
+- **The bar states a figure only where one exists.** Categories measured out of
+  categories, packages upgraded out of packages, actions applied out of actions — those
+  are facts. Walking a tree whose size is only known once the walk ends, or waiting on
+  somebody else's uninstaller, is not: there the bar moves without a number and the line
+  above it carries the running counts instead. A bar that reads 60% for a minute teaches
+  an operator that the number means nothing, and then the honest ones stop being read
+  too.
 - **The measure is the dry run.** Analyse, Measure, Scan, Check and *ask winget* all
   read the machine and write nothing, and each leaves a list to tick through; the
   acting verb beside them is dead until one has run and works only on what is still

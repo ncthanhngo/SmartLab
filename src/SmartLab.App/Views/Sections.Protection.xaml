@@ -12,6 +12,7 @@
 
     <DataTemplate x:Key="section-repair">
         <ctl:SectionFrame Title="Repair" Status="{Binding Status}"
+                          Progress="{Binding Progress}"
                           Subtitle="Finds files a worm has hidden or moved, and proposes how to undo it. Producing a plan never touches the disk."
                           DataContext="{Binding DataContext,
                               RelativeSource={RelativeSource AncestorType=Window}}">
@@ -293,6 +294,7 @@
 
     <DataTemplate x:Key="section-malware">
         <ctl:SectionFrame Title="Malware" Status="{Binding Status}"
+                          Progress="{Binding Progress}"
                           Subtitle="Smart Lab identifies hiding behaviour. Naming a program is Defender's job, and this section asks it rather than guessing."
                           DataContext="{Binding DataContext.Malware,
                               RelativeSource={RelativeSource AncestorType=Window}}">

@@ -48,11 +48,18 @@ public sealed partial class UpdaterViewModel : ObservableObject
         "Upgrades run through winget, which is what installed most of these in the first place. " +
         "This app never downloads anything itself.";
 
+    /// <summary>What this section is doing, and what it did. Drawn by the frame.</summary>
+    public SectionProgress Progress { get; } = new();
+
     [RelayCommand]
     private async Task CheckAsync()
     {
         IsBusy = true;
         Packages.Clear();
+
+        // winget answers when it answers, and says nothing on the way. The bar moves
+        // without a figure rather than pretending to know how far in it is.
+        Progress.Begin("Asking winget what is out of date");
 
         try
         {
@@ -81,10 +88,25 @@ public sealed partial class UpdaterViewModel : ObservableObject
                 : packages.Count == 0
                     ? "Nothing to upgrade - winget reports every package current."
                     : $"{packages.Count} package(s) have a newer version.";
+
+            // A missing winget is its own verdict. "Nothing to upgrade" from a tool
+            // that never ran is the one answer this section must never give.
+            Progress.Finish(
+                error is { Length: > 0 } ? "alert" : packages.Count == 0 ? "good" : "warning",
+                error is { Length: > 0 }
+                    ? "winget could not answer"
+                    : packages.Count == 0 ? "Everything is current" : $"{packages.Count} out of date",
+                error is { Length: > 0 }
+                    ? error
+                    : packages.Count == 0
+                        ? "winget reports every package it manages is on its newest version."
+                        : "Tick what should be upgraded. Packages winget only recognises, rather " +
+                          "than installed, start unticked.");
         }
         catch (Exception ex)
         {
             Status = $"Check failed: {ex.Message}";
+            Progress.Finish("alert", "Check failed", ex.Message);
         }
         finally
         {
@@ -108,6 +130,7 @@ public sealed partial class UpdaterViewModel : ObservableObject
         // nothing. This button does not exist until that list does, and each row is
         // ticked by hand - the ones winget did not install start unticked.
         IsBusy = true;
+        Progress.Begin($"Upgrading {chosen.Length} package(s)");
 
         try
         {
@@ -121,6 +144,8 @@ public sealed partial class UpdaterViewModel : ObservableObject
                 Status = $"Upgrading {row.Name}...";
                 row.Outcome = "upgrading";
 
+                Progress.Step($"Upgrading {row.Name}", 100.0 * (done + failed) / chosen.Length);
+
                 var (succeeded, detail) = await Task.Run(() => WingetBridge.Upgrade(row.Id))
                     .ConfigureAwait(true);
 
@@ -132,10 +157,15 @@ public sealed partial class UpdaterViewModel : ObservableObject
             Status = failed == 0
                 ? $"{done} package(s) upgraded."
                 : $"{done} upgraded, {failed} failed. Each result is on its row.";
+
+            Progress.Finish(failed == 0 ? "good" : "warning",
+                failed == 0 ? $"{done} upgraded" : $"{done} upgraded, {failed} failed",
+                "Each result is on its own row. winget did the installing; this app only asked.");
         }
         catch (Exception ex)
         {
             Status = $"Upgrade failed: {ex.Message}";
+            Progress.Finish("alert", "Upgrade failed", ex.Message);
         }
         finally
         {

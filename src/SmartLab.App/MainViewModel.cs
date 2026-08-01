@@ -371,6 +371,16 @@ public sealed partial class MainViewModel : ObservableObject
     /// </remarks>
     public static double RepairGaugePercent => 1.0;
 
+    /// <summary>
+    /// What Repair is doing, and what it did. Drawn by the frame.
+    /// </summary>
+    /// <remarks>
+    /// Deleted files has one of its own below, because the two sections share this
+    /// view model but not their screens: a carve that is halfway through has nothing
+    /// to say about a scan that finished twenty minutes ago.
+    /// </remarks>
+    public SectionProgress Progress { get; } = new();
+
     public ObservableCollection<VolumeInfo> Drives { get; } = [];
     public ObservableCollection<ActionItemViewModel> Actions { get; } = [];
     public ObservableCollection<string> Findings { get; } = [];
@@ -578,6 +588,10 @@ public sealed partial class MainViewModel : ObservableObject
         Actions.Clear();
         Findings.Clear();
 
+        // How many entries a volume holds is what the walk is finding out, so the bar
+        // moves without a figure and the counts it has go in the line above it.
+        Progress.Begin($"Scanning {drive.Root}");
+
         try
         {
             var scanner = new VolumeScanner(
@@ -607,6 +621,9 @@ public sealed partial class MainViewModel : ObservableObject
 
                 lastPathUpdate = now;
                 ScanningPath = p.CurrentPath;
+
+                Progress.Unknown(
+                    $"Scanning {drive.Root} - {p.DirectoriesVisited:N0} folders, {p.EntriesSeen:N0} entries");
             });
 
             // Task.Run matters here. Win32VolumeReader.EnumerateAsync begins with
@@ -645,10 +662,15 @@ public sealed partial class MainViewModel : ObservableObject
                 ? "Clean - nothing found."
                 : $"{_plan.Threats.Count} threat(s), {_plan.Anomalies.Count} anomaly(ies), " +
                   $"{_plan.Damaged.Count} unreadable. Nothing has been changed.";
+
+            Progress.Finish(
+                ThreatCount > 0 ? "alert" : AnomalyCount + DamagedCount > 0 ? "warning" : "good",
+                Headline, HeadlineDetail + " Nothing has been changed.");
         }
         catch (Exception ex)
         {
             Status = $"Scan failed: {ex.Message}";
+            Progress.Finish("alert", "Scan failed", ex.Message);
         }
         finally
         {
@@ -677,6 +699,10 @@ public sealed partial class MainViewModel : ObservableObject
 
         IsBusy = true;
 
+        // Every action is one step, and the executor says which it is on: the one
+        // place in this section with a denominator worth stating.
+        Progress.Begin($"Applying {selected.Length} action(s)");
+
         try
         {
             var journalPath = Path.Combine(
@@ -701,7 +727,11 @@ public sealed partial class MainViewModel : ObservableObject
             };
 
             var progress = new Progress<ExecutionProgress>(p =>
-                Status = $"{p.Completed}/{p.Total}: {p.Description}");
+            {
+                Status = $"{p.Completed}/{p.Total}: {p.Description}";
+                Progress.Step($"{p.Completed} of {p.Total}: {p.Description}",
+                    p.Total > 0 ? 100.0 * p.Completed / p.Total : 0);
+            });
 
             // Off the UI thread for the same reason as the scan: a rescue copy can
             // move gigabytes and must not block the window.
@@ -730,10 +760,16 @@ public sealed partial class MainViewModel : ObservableObject
                 : "--- rescan results below ---");
 
             Status = $"{report.Succeeded} action(s) applied. Journal: {journalPath}";
+
+            Progress.Finish(report.Failed == 0 ? "good" : "warning",
+                report.Failed == 0 ? "Applied" : $"Applied, {report.Failed} failed",
+                $"{report.Succeeded} action(s) ran and the volume was rescanned. " +
+                $"Every write is in the journal: {journalPath}");
         }
         catch (Exception ex)
         {
             Status = $"Apply failed: {ex.Message}";
+            Progress.Finish("alert", "Apply failed", ex.Message);
         }
         finally
         {
@@ -798,6 +834,9 @@ public sealed partial class MainViewModel : ObservableObject
     /// </remarks>
     public CollectionViewSource GroupedDeletedEntries { get; } = new();
 
+    /// <summary>What Deleted files is doing, and what it did. Drawn by the frame.</summary>
+    public SectionProgress DeletedProgress { get; } = new();
+
     [ObservableProperty] private string _recoverTo =
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
             "SmartLab", "recovered");
@@ -833,6 +872,8 @@ public sealed partial class MainViewModel : ObservableObject
         IsBusy = true;
         DeletedEntries.Clear();
 
+        DeletedProgress.Begin($"Reading {drive.Root} below the filesystem");
+
         // Empties the ring before the read, so it sweeps up to the new figure
         // instead of stepping sideways from the previous drive's.
         UpdateDeletedHeadline();
@@ -842,7 +883,11 @@ public sealed partial class MainViewModel : ObservableObject
             // Walking a 110 GB volume takes long enough that silence looks like a
             // hang. Progress<T> marshals these back to the UI thread for us.
             var progress = new Progress<RawProgress>(p =>
-                RawStatus = $"Reading device... {p.EntriesSeen:N0} entries, {p.DeletedFound:N0} deleted");
+            {
+                RawStatus = $"Reading device... {p.EntriesSeen:N0} entries, {p.DeletedFound:N0} deleted";
+                DeletedProgress.Unknown(
+                    $"Reading device - {p.EntriesSeen:N0} entries, {p.DeletedFound:N0} deleted");
+            });
 
             RawStatus = "Opening the device...";
 
@@ -857,10 +902,14 @@ public sealed partial class MainViewModel : ObservableObject
                 ? "No deleted entries found."
                 : $"{found.Count} deleted entr(ies). " +
                   $"{found.Count(e => e.CanRecover)} look recoverable.";
+
+            DeletedProgress.Finish(RecoverableCount > 0 ? "good" : "warning",
+                DeletedHeadline, DeletedHeadlineDetail);
         }
         catch (Exception ex)
         {
             RawStatus = $"Raw read failed: {ex.Message}";
+            DeletedProgress.Finish("alert", "Could not be read", ex.Message);
         }
         finally
         {
@@ -970,6 +1019,7 @@ public sealed partial class MainViewModel : ObservableObject
         if (chosen.Length == 0) return;
 
         IsBusy = true;
+        DeletedProgress.Begin($"Carving {chosen.Length} file(s) to {RecoverTo}");
 
         try
         {
@@ -980,10 +1030,18 @@ public sealed partial class MainViewModel : ObservableObject
                 $"{recovered} file(s) written to {RecoverTo}" +
                 (failed > 0 ? $", {failed} failed." : ".") +
                 " Recovery assumes the data was not fragmented - verify every file.";
+
+            // Never "recovered" without the caveat. Carving assumes the file was not
+            // fragmented, and a file that came back the wrong size still came back.
+            DeletedProgress.Finish(failed == 0 ? "good" : "warning",
+                failed == 0 ? $"{recovered} file(s) carved" : $"{recovered} carved, {failed} failed",
+                $"Written to {RecoverTo}. Recovery assumes the data was not fragmented, " +
+                "so every file has to be opened and checked.");
         }
         catch (Exception ex)
         {
             RawStatus = $"Recovery failed: {ex.Message}";
+            DeletedProgress.Finish("alert", "Recovery failed", ex.Message);
         }
         finally
         {

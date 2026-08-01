@@ -47,6 +47,17 @@ public sealed class SectionFrame : ContentControl
         nameof(Settings), typeof(object), typeof(SectionFrame), new PropertyMetadata(null));
 
     /// <summary>
+    /// The section's <see cref="SectionProgress"/>, drawn as a band under the header.
+    /// </summary>
+    /// <remarks>
+    /// Owned here rather than laid out by each section, so twelve screens agree about
+    /// what a job in progress looks like and where to find out that it finished.
+    /// Sections that never make anyone wait leave it unset and get no band.
+    /// </remarks>
+    public static readonly DependencyProperty ProgressProperty = DependencyProperty.Register(
+        nameof(Progress), typeof(SectionProgress), typeof(SectionFrame), new PropertyMetadata(null));
+
+    /// <summary>
     /// True when the content wants the whole stage with no padding.
     /// </summary>
     /// <remarks>
@@ -90,6 +101,12 @@ public sealed class SectionFrame : ContentControl
     {
         get => (bool)GetValue(IsCanvasProperty);
         set => SetValue(IsCanvasProperty, value);
+    }
+
+    public SectionProgress? Progress
+    {
+        get => (SectionProgress?)GetValue(ProgressProperty);
+        set => SetValue(ProgressProperty, value);
     }
 
     static SectionFrame()

@@ -16,6 +16,7 @@
 
     <DataTemplate x:Key="section-uninstall">
         <ctl:SectionFrame Title="Uninstall" Status="{Binding Status}"
+                          Progress="{Binding Progress}"
                           Subtitle="Runs each program's own uninstaller, then reports what it left behind. The list fills itself in when you open this."
                           DataContext="{Binding DataContext.Uninstall,
                               RelativeSource={RelativeSource AncestorType=Window}}">
@@ -40,83 +41,6 @@
             </ctl:SectionFrame.Actions>
 
             <DockPanel>
-                <!-- ===== progress and verdict =====
-                     One band, in the place the eye starts, carrying whichever of the
-                     two the moment calls for: what is happening while it happens, and
-                     what happened once it has. Absent before the first removal.
-
-                     The bar states a figure for the steps that have one and moves
-                     without a figure for the step that does not - waiting on somebody
-                     else's uninstaller, which may finish in a second or sit on a
-                     dialog. A bar that reads 60% for a minute teaches an operator that
-                     the number means nothing. -->
-                <Border x:Name="Band" DockPanel.Dock="Top" Padding="15" Margin="0,0,0,12">
-                    <Border.Style>
-                        <Style TargetType="Border" BasedOn="{StaticResource Card}">
-                            <Setter Property="Visibility" Value="Collapsed" />
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding IsRunning}" Value="True">
-                                    <Setter Property="Visibility" Value="Visible" />
-                                </DataTrigger>
-                                <DataTrigger Binding="{Binding HasRun}" Value="True">
-                                    <Setter Property="Visibility" Value="Visible" />
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </Border.Style>
-
-                    <DockPanel>
-                        <ProgressBar x:Name="Bar" DockPanel.Dock="Bottom"
-                                     Style="{StaticResource SlimProgress}" Margin="0,12,0,0"
-                                     Maximum="100" Value="{Binding ProgressPercent, Mode=OneWay}"
-                                     IsIndeterminate="{Binding IsIndeterminate}"
-                                     Visibility="{Binding IsRunning,
-                                         Converter={StaticResource BoolToVisibility}}" />
-
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto" />
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
-
-                            <Border x:Name="Lamp" Grid.Column="0" Style="{StaticResource VerdictLamp}"
-                                    Background="{DynamicResource SurfaceRaisedBrush}">
-                                <TextBlock x:Name="LampGlyph" Text="&#xE895;"
-                                           FontFamily="Segoe MDL2 Assets" FontSize="15"
-                                           HorizontalAlignment="Center" VerticalAlignment="Center"
-                                           Foreground="{DynamicResource TextMutedBrush}" />
-                            </Border>
-
-                            <StackPanel x:Name="Running" Grid.Column="1" VerticalAlignment="Center"
-                                        Margin="14,0,0,0">
-                                <TextBlock Text="{Binding Stage}" FontSize="14" FontWeight="Bold"
-                                           Foreground="{DynamicResource TextPrimaryBrush}" />
-                                <TextBlock Text="Nothing else can be started until this finishes."
-                                           FontSize="12" Margin="0,3,0,0"
-                                           Foreground="{DynamicResource TextMutedBrush}" />
-                            </StackPanel>
-
-                            <StackPanel x:Name="Finished" Grid.Column="1" VerticalAlignment="Center"
-                                        Margin="14,0,0,0" Visibility="Collapsed">
-                                <TextBlock x:Name="Headline" Text="{Binding Completion}" FontSize="14"
-                                           FontWeight="Bold"
-                                           Foreground="{DynamicResource TextPrimaryBrush}" />
-                                <TextBlock Text="{Binding CompletionDetail}" FontSize="12"
-                                           Margin="0,3,0,0" TextWrapping="Wrap" MaxWidth="620"
-                                           HorizontalAlignment="Left"
-                                           Foreground="{DynamicResource TextSecondaryBrush}" />
-                            </StackPanel>
-
-                            <TextBlock x:Name="Percent" Grid.Column="2" VerticalAlignment="Center"
-                                       Margin="16,0,0,0" FontSize="20" FontWeight="Bold"
-                                       FontFamily="{StaticResource MonoFont}"
-                                       Text="{Binding ProgressPercent, Mode=OneWay, StringFormat={}{0:F0}%}"
-                                       Foreground="{DynamicResource TextPrimaryBrush}" />
-                        </Grid>
-                    </DockPanel>
-                </Border>
-
                 <!-- Present from the first removal onwards, including when it found
                      nothing: a panel that hides itself cannot say "nothing was left
                      behind", and that is the answer the operator most wants told
@@ -126,7 +50,7 @@
                         <Style TargetType="Border" BasedOn="{StaticResource Card}">
                             <Setter Property="Visibility" Value="Collapsed" />
                             <Style.Triggers>
-                                <DataTrigger Binding="{Binding HasRun}" Value="True">
+                                <DataTrigger Binding="{Binding Progress.HasRun}" Value="True">
                                     <Setter Property="Visibility" Value="Visible" />
                                 </DataTrigger>
                             </Style.Triggers>
@@ -157,10 +81,10 @@
                                    Foreground="{DynamicResource TextMutedBrush}">
                             <TextBlock.Style>
                                 <Style TargetType="TextBlock">
-                                    <Setter Property="Visibility" Value="Visible" />
+                                    <Setter Property="Visibility" Value="Collapsed" />
                                     <Style.Triggers>
-                                        <DataTrigger Binding="{Binding HasLeftovers}" Value="True">
-                                            <Setter Property="Visibility" Value="Collapsed" />
+                                        <DataTrigger Binding="{Binding Leftovers.Count}" Value="0">
+                                            <Setter Property="Visibility" Value="Visible" />
                                         </DataTrigger>
                                     </Style.Triggers>
                                 </Style>
@@ -336,67 +260,13 @@
             </DockPanel>
         </ctl:SectionFrame>
 
-        <DataTemplate.Triggers>
-            <!-- The band swaps its middle: what is happening, or what happened. The
-                 percentage goes with the first, and goes away entirely for the step
-                 that has no honest figure. -->
-            <DataTrigger Value="False"
-                         Binding="{Binding DataContext.Uninstall.IsRunning,
-                             RelativeSource={RelativeSource AncestorType=Window}}">
-                <Setter TargetName="Running" Property="Visibility" Value="Collapsed" />
-                <Setter TargetName="Finished" Property="Visibility" Value="Visible" />
-                <Setter TargetName="Percent" Property="Visibility" Value="Collapsed" />
-            </DataTrigger>
-            <DataTrigger Value="True"
-                         Binding="{Binding DataContext.Uninstall.IsIndeterminate,
-                             RelativeSource={RelativeSource AncestorType=Window}}">
-                <Setter TargetName="Percent" Property="Visibility" Value="Collapsed" />
-            </DataTrigger>
-
-            <!-- Tone only once there is a verdict to carry. While the work runs the
-                 lamp stays neutral: a green tick beside a job still in progress is a
-                 claim nobody has earned yet. -->
-            <DataTrigger Value="good"
-                         Binding="{Binding DataContext.Uninstall.CompletionTone,
-                             RelativeSource={RelativeSource AncestorType=Window}}">
-                <Setter TargetName="Lamp" Property="Background" Value="{DynamicResource AccentSoftBrush}" />
-                <Setter TargetName="LampGlyph" Property="Text" Value="&#xE930;" />
-                <Setter TargetName="LampGlyph" Property="Foreground" Value="{DynamicResource AccentBrush}" />
-                <Setter TargetName="Headline" Property="Foreground" Value="{DynamicResource AccentBrush}" />
-            </DataTrigger>
-            <DataTrigger Value="warning"
-                         Binding="{Binding DataContext.Uninstall.CompletionTone,
-                             RelativeSource={RelativeSource AncestorType=Window}}">
-                <Setter TargetName="LampGlyph" Property="Text" Value="&#xE7BA;" />
-                <Setter TargetName="LampGlyph" Property="Foreground" Value="{DynamicResource WarningBrush}" />
-                <Setter TargetName="Headline" Property="Foreground" Value="{DynamicResource WarningBrush}" />
-            </DataTrigger>
-            <DataTrigger Value="alert"
-                         Binding="{Binding DataContext.Uninstall.CompletionTone,
-                             RelativeSource={RelativeSource AncestorType=Window}}">
-                <Setter TargetName="LampGlyph" Property="Text" Value="&#xE814;" />
-                <Setter TargetName="LampGlyph" Property="Foreground" Value="{DynamicResource DangerBrush}" />
-                <Setter TargetName="Headline" Property="Foreground" Value="{DynamicResource DangerBrush}" />
-            </DataTrigger>
-
-            <!-- While it runs, the lamp is a stopwatch and nothing more. Placed last
-                 so it wins over whatever tone the previous run left behind. -->
-            <DataTrigger Value="True"
-                         Binding="{Binding DataContext.Uninstall.IsRunning,
-                             RelativeSource={RelativeSource AncestorType=Window}}">
-                <Setter TargetName="Lamp" Property="Background"
-                        Value="{DynamicResource SurfaceRaisedBrush}" />
-                <Setter TargetName="LampGlyph" Property="Text" Value="&#xE895;" />
-                <Setter TargetName="LampGlyph" Property="Foreground"
-                        Value="{DynamicResource TextMutedBrush}" />
-            </DataTrigger>
-        </DataTemplate.Triggers>
     </DataTemplate>
 
     <!-- ================= Updater ================= -->
 
     <DataTemplate x:Key="section-updater">
         <ctl:SectionFrame Title="Updater" Status="{Binding Status}"
+                          Progress="{Binding Progress}"
                           Subtitle="Upgrades run through winget, which installed most of these. This app never downloads anything itself."
                           DataContext="{Binding DataContext.Updater,
                               RelativeSource={RelativeSource AncestorType=Window}}">

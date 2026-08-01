@@ -106,6 +106,9 @@ public sealed partial class ShredderViewModel : ObservableObject
         }
     }
 
+    /// <summary>What this section is doing, and what it did. Drawn by the frame.</summary>
+    public SectionProgress Progress { get; } = new();
+
     private bool CanShred() => Targets.Count > 0 && !IsBusy;
 
     [RelayCommand(CanExecute = nameof(CanShred))]
@@ -126,6 +129,7 @@ public sealed partial class ShredderViewModel : ObservableObject
         }
 
         IsBusy = true;
+        Progress.Begin($"Overwriting {Targets.Count} file(s), {passes} pass(es) each");
 
         try
         {
@@ -142,10 +146,18 @@ public sealed partial class ShredderViewModel : ObservableObject
             var done = results.Count(r => r.Result.Deleted);
 
             Status = $"{done} of {results.Length} file(s) wiped. {DriveCaveat(confidence)}";
+
+            // The caveat travels with the verdict. A wipe that reports success on a
+            // solid-state drive without saying what it could not guarantee is
+            // claiming something it did not do.
+            Progress.Finish(done == results.Length ? "good" : "warning",
+                done == results.Length ? "Wiped" : $"{done} of {results.Length} wiped",
+                DriveCaveat(confidence));
         }
         catch (Exception ex)
         {
             Status = $"Wipe failed: {ex.Message}";
+            Progress.Finish("alert", "Wipe failed", ex.Message);
         }
         finally
         {

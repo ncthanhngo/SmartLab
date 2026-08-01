@@ -69,6 +69,9 @@ public sealed partial class MaintenanceViewModel : ObservableObject, IAsyncDispo
         "Four repair tools Windows ships with. Three run inside one elevated worker, so you are " +
         "asked once - this app never runs elevated.";
 
+    /// <summary>What this section is doing, and what it did. Drawn by the frame.</summary>
+    public SectionProgress Progress { get; } = new();
+
     private bool CanRun() => !IsBusy;
 
     /// <summary>
@@ -91,6 +94,11 @@ public sealed partial class MaintenanceViewModel : ObservableObject, IAsyncDispo
         Transcript.Clear();
         Status = $"Running {row.CommandLine}. This can take several minutes.";
 
+        // Windows' own tools report their progress into their output and nowhere a
+        // caller can read as a number. Several minutes of that with a still screen is
+        // indistinguishable from a hang, which is the whole reason for the band.
+        Progress.Begin($"Running {row.Title}");
+
         try
         {
             // Started on demand rather than at launch: an app that raises a UAC prompt
@@ -102,12 +110,20 @@ public sealed partial class MaintenanceViewModel : ObservableObject, IAsyncDispo
 
                 var start = await _worker.StartAsync().ConfigureAwait(true);
 
+                Progress.Unknown("Waiting for the Administrator prompt");
+
                 if (!start.Started)
                 {
                     row.Outcome = start.Refused ? "cancelled" : "worker unavailable";
                     Status = start.Error ?? "The elevated worker did not start.";
+
+                    Progress.Finish(start.Refused ? "warning" : "alert",
+                        start.Refused ? "Prompt refused" : "Worker unavailable",
+                        start.Error ?? "The elevated worker did not start.");
                     return;
                 }
+
+                Progress.Unknown($"Running {row.Title}");
             }
 
             var result = row.NeedsElevation
@@ -118,6 +134,9 @@ public sealed partial class MaintenanceViewModel : ObservableObject, IAsyncDispo
             {
                 row.Outcome = result.Error ?? "did not start";
                 Status = result.Error ?? "The command did not start.";
+
+                Progress.Finish("alert", $"{row.Title} did not start",
+                    result.Error ?? "The command did not start.");
                 return;
             }
 
@@ -134,11 +153,19 @@ public sealed partial class MaintenanceViewModel : ObservableObject, IAsyncDispo
             Status = result.ExitCode == 0
                 ? $"{row.Title} finished. Its output is below, unedited."
                 : $"{row.Title} exited with code {result.ExitCode}. Read its output below.";
+
+            Progress.Finish(result.ExitCode == 0 ? "good" : "warning",
+                result.ExitCode == 0
+                    ? $"{row.Title} finished"
+                    : $"{row.Title} exited with code {result.ExitCode}",
+                "Its output is below, unedited. These tools report what they did in words, " +
+                "and the words are the result.");
         }
         catch (Exception ex)
         {
             row.Outcome = "failed";
             Status = $"{row.Title} failed: {ex.Message}";
+            Progress.Finish("alert", $"{row.Title} failed", ex.Message);
         }
         finally
         {

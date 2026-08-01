@@ -44,6 +44,9 @@ public sealed partial class SpaceLensViewModel : ObservableObject
 
     [ObservableProperty] private string _currentPath = string.Empty;
 
+    /// <summary>What this section is doing, and what it did. Drawn by the frame.</summary>
+    public SectionProgress Progress { get; } = new();
+
     [RelayCommand]
     private async Task MeasureAsync()
     {
@@ -56,6 +59,11 @@ public sealed partial class SpaceLensViewModel : ObservableObject
         IsBusy = true;
         Tiles.Clear();
         Breadcrumb.Clear();
+
+        // No denominator, and there cannot be one: how big the tree is is exactly
+        // what the walk is finding out. The counts go in the line above the bar, so
+        // motion and evidence arrive together.
+        Progress.Begin($"Measuring {RootFolder}");
 
         try
         {
@@ -70,6 +78,7 @@ public sealed partial class SpaceLensViewModel : ObservableObject
 
                 lastUpdate = now;
                 Status = $"Measuring... {p.Directories:N0} folders, {p.Files:N0} files";
+                Progress.Unknown($"Measuring... {p.Directories:N0} folders, {p.Files:N0} files");
             });
 
             // Off the UI thread: a full profile is minutes of walking, and on the
@@ -81,10 +90,14 @@ public sealed partial class SpaceLensViewModel : ObservableObject
             Open(_root);
 
             Status = $"{_root.SizeText} across {_root.Children.Count} top-level folder(s).";
+
+            Progress.Finish("good", "Measured",
+                $"{_root.SizeText} across {_root.Children.Count} top-level folder(s) under {RootFolder}.");
         }
         catch (Exception ex)
         {
             Status = $"Measure failed: {ex.Message}";
+            Progress.Finish("alert", "Measure failed", ex.Message);
         }
         finally
         {

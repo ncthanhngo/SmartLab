@@ -12,6 +12,7 @@
 
     <DataTemplate x:Key="section-cleanup">
         <ctl:SectionFrame Title="Temp &amp; Cache" Status="{Binding Status}"
+                          Progress="{Binding Progress}"
                           Subtitle="Nine places whose entire purpose is holding disposable data. The Recycle Bin is not one of them - it has its own section."
                           DataContext="{Binding DataContext.Cleanup,
                               RelativeSource={RelativeSource AncestorType=Window}}">
@@ -116,6 +117,7 @@
 
     <DataTemplate x:Key="section-trash">
         <ctl:SectionFrame Title="Recycle Bins" Status="{Binding Status}"
+                          Progress="{Binding Progress}"
                           Subtitle="Every bin starts unticked, on every drive. This is the one place Windows already keeps deleted files intact, and Deleted files recovers from exactly here."
                           DataContext="{Binding DataContext.TrashBins,
                               RelativeSource={RelativeSource AncestorType=Window}}">

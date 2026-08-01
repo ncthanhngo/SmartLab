@@ -86,6 +86,9 @@ public sealed partial class OptimizationViewModel : ObservableObject
         "Reads Run keys, RunOnce and both Startup folders. Turning one off moves the entry aside " +
         "rather than deleting it, so it can be put back exactly.";
 
+    /// <summary>What this section is doing, and what it did. Drawn by the frame.</summary>
+    public SectionProgress Progress { get; } = new();
+
     [RelayCommand]
     private void Scan()
     {
@@ -110,6 +113,10 @@ public sealed partial class OptimizationViewModel : ObservableObject
 
         Status = $"{Items.Count} startup entr(ies) found, {Disabled.Count} previously turned off by " +
                  "this app. Nothing is ticked.";
+
+        Progress.Finish("good", $"{Items.Count} entr(ies) run at logon",
+            $"{Disabled.Count} were previously turned off by this app and can be put back. " +
+            "Nothing is ticked: disabling the wrong one breaks a login.");
     }
 
     private bool CanDisable() => Items.Count > 0 && !IsBusy;
@@ -132,11 +139,15 @@ public sealed partial class OptimizationViewModel : ObservableObject
         // Scan was the dry run: it read the Run keys and both Startup folders and
         // changed none of them. Turning an entry off from the list it produced moves
         // the value aside rather than deleting it, and the list below puts it back.
+        Progress.Begin($"Turning off {chosen.Length} entr(ies)");
+
         var done = 0;
         var failed = 0;
 
         foreach (var row in chosen)
         {
+            Progress.Step($"Turning off {row.Name}", 100.0 * (done + failed) / chosen.Length);
+
             if (StartupItemToggle.Disable(row.Item, out _)) done++;
             else failed++;
         }
@@ -146,6 +157,11 @@ public sealed partial class OptimizationViewModel : ObservableObject
         Status = failed == 0
             ? $"{done} entr(ies) turned off. Each one is listed below and can be put back."
             : $"{done} turned off, {failed} failed.";
+
+        Progress.Finish(failed == 0 ? "good" : "warning",
+            failed == 0 ? $"{done} turned off" : $"{done} turned off, {failed} refused",
+            "Each one is listed below and goes back exactly as it was - the value is moved " +
+            "aside, not deleted.");
     }
 
     [RelayCommand]

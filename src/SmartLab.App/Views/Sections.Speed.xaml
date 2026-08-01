@@ -12,6 +12,7 @@
 
     <DataTemplate x:Key="section-optimize">
         <ctl:SectionFrame Title="Startup" Status="{Binding Status}"
+                          Progress="{Binding Progress}"
                           Subtitle="Run keys, RunOnce and both Startup folders. Turning one off moves the entry aside rather than deleting it, so it can be put back exactly."
                           DataContext="{Binding DataContext.Optimization,
                               RelativeSource={RelativeSource AncestorType=Window}}">
@@ -89,6 +90,7 @@
 
     <DataTemplate x:Key="section-maintenance">
         <ctl:SectionFrame Title="Repair OS" Status="{Binding Status}"
+                          Progress="{Binding Progress}"
                           Subtitle="Four tools Windows ships with, run as themselves. Three need Administrator and share one elevated worker, so you are asked once."
                           DataContext="{Binding DataContext.Maintenance,
                               RelativeSource={RelativeSource AncestorType=Window}}">
