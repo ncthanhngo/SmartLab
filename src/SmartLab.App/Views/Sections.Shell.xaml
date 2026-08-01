@@ -250,7 +250,7 @@
                             Command="{Binding ApplyCommand}" Visibility="Collapsed" />
                 </Grid>
 
-                <TextBlock x:Name="RunCaption" Text="Measures everything. Changes nothing."
+                <TextBlock x:Name="RunCaption" Text="Measures five sections. Changes nothing."
                            FontSize="12.5" Margin="0,12,0,0" HorizontalAlignment="Center"
                            Foreground="{DynamicResource TextMutedBrush}" />
 
@@ -343,6 +343,14 @@
 
             <ctl:SectionFrame.Actions>
                 <StackPanel Orientation="Horizontal">
+                    <!-- Only offered for a run that quarantined something still sitting
+                         in the store. Quarantine was always a move, and until now
+                         nothing ever moved anything back. -->
+                    <Button Content="Put back what this quarantined"
+                            Style="{StaticResource GhostButton}"
+                            Command="{Binding RestoreRunCommand}" Margin="0,0,8,0"
+                            ToolTipService.ShowOnDisabled="True"
+                            ToolTip="Moves the files this run put in quarantine back where they came from. Offered only when they are still there and nothing else has taken their place." />
                     <Button Content="Open folder" Style="{StaticResource GhostButton}"
                             Command="{Binding OpenFolderCommand}" Margin="0,0,8,0" />
                     <Button Content="Reload" Style="{StaticResource PrimaryButton}"

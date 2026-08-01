@@ -11,9 +11,31 @@ namespace SmartLab.Maintenance;
 /// The folder the current process runs from. Deleting it has to wait until after
 /// exit, so it is handled differently rather than silently failing.
 /// </param>
-public sealed class Win32TraceRemover(bool dryRun, string? runningFromDirectory = null) : ITraceRemover
+/// <param name="toRecycleBin">
+/// Send what is removed to the Recycle Bin instead of deleting it.
+/// </param>
+/// <remarks>
+/// <para>
+/// True for what an uninstall leaves behind, where the list is short, the folders may
+/// hold somebody's settings, and being wrong once about a name match should not be
+/// final. It is how a gigabyte of a program's own folder can be removed by a list this
+/// app assembled by guessing.
+/// </para>
+/// <para>
+/// False for temporary files, and not as an oversight. Recycling a temp folder frees
+/// no space at all until the bin is emptied, which is the entire reason the operator
+/// pressed Clean; and putting fifty thousand files through the shell one at a time
+/// turns a ten second job into a long one. What is disposable by definition does not
+/// need a second chance.
+/// </para>
+/// </remarks>
+public sealed class Win32TraceRemover(
+    bool dryRun, string? runningFromDirectory = null, bool toRecycleBin = false) : ITraceRemover
 {
     public bool DryRun { get; } = dryRun;
+
+    /// <summary>True when removals go to the Recycle Bin rather than being deleted.</summary>
+    public bool ToRecycleBin { get; } = toRecycleBin;
 
     /// <summary>Set when a removal was scheduled to run after the process exits.</summary>
     public bool HasDeferredWork { get; private set; }
@@ -70,11 +92,22 @@ public sealed class Win32TraceRemover(bool dryRun, string? runningFromDirectory 
         return new RemovalResult(trace, RemovalOutcome.Removed);
     }
 
-    private static RemovalResult RemoveFile(AppTrace trace)
+    private RemovalResult RemoveFile(AppTrace trace)
     {
         if (!File.Exists(trace.Location)) return new RemovalResult(trace, RemovalOutcome.NotFound);
 
         File.SetAttributes(trace.Location, FileAttributes.Normal);
+
+        if (ToRecycleBin)
+        {
+            Microsoft.VisualBasic.FileIO.FileSystem.DeleteFile(
+                trace.Location,
+                Microsoft.VisualBasic.FileIO.UIOption.OnlyErrorDialogs,
+                Microsoft.VisualBasic.FileIO.RecycleOption.SendToRecycleBin);
+
+            return new RemovalResult(trace, RemovalOutcome.Removed, "sent to the Recycle Bin");
+        }
+
         File.Delete(trace.Location);
         return new RemovalResult(trace, RemovalOutcome.Removed);
     }
@@ -190,6 +223,16 @@ public sealed class Win32TraceRemover(bool dryRun, string? runningFromDirectory 
 
             return new RemovalResult(trace, RemovalOutcome.Deferred,
                 "Removed after the app closes - it cannot delete the folder it is running from.");
+        }
+
+        if (ToRecycleBin)
+        {
+            Microsoft.VisualBasic.FileIO.FileSystem.DeleteDirectory(
+                trace.Location,
+                Microsoft.VisualBasic.FileIO.UIOption.OnlyErrorDialogs,
+                Microsoft.VisualBasic.FileIO.RecycleOption.SendToRecycleBin);
+
+            return new RemovalResult(trace, RemovalOutcome.Removed, "sent to the Recycle Bin");
         }
 
         Directory.Delete(trace.Location, recursive: true);

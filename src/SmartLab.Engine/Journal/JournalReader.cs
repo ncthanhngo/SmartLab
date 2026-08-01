@@ -13,6 +13,9 @@ public sealed record JournalRun(
     string? Outcome,
     bool Succeeded)
 {
+    /// <summary>The journal this run was read from, so a later write can go back to it.</summary>
+    public string SourceFile { get; init; } = string.Empty;
+
     /// <summary>
     /// Writes that failed. The plan's own end marker is not one of them.
     /// </summary>
@@ -121,7 +124,8 @@ public static class JournalReader
     /// of their own with no outcome, because a write nobody can account for is the one
     /// most worth seeing.
     /// </remarks>
-    public static IReadOnlyList<JournalRun> Runs(IReadOnlyList<JournalRecord> records)
+    public static IReadOnlyList<JournalRun> Runs(
+        IReadOnlyList<JournalRecord> records, string sourceFile = "")
     {
         var runs = new List<JournalRun>();
 
@@ -139,7 +143,10 @@ public static class JournalReader
                 first.Target,
                 current.ToArray(),
                 end?.Detail,
-                end?.Success ?? false));
+                end?.Success ?? false)
+            {
+                SourceFile = sourceFile,
+            });
 
             current = [];
             began = null;

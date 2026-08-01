@@ -76,6 +76,7 @@ public sealed partial class UninstallViewModel : ObservableObject
     private readonly Win32TraceProbe _probe = new();
     private readonly ProgramUninstaller _uninstaller;
     private readonly DeepTraceScanner _deep;
+    private readonly SystemTraceScanner _system = new();
 
     public UninstallViewModel()
     {
@@ -259,6 +260,16 @@ public sealed partial class UninstallViewModel : ObservableObject
             var progress = new Progress<UninstallStep>(
                 step => Activity.Add(new UninstallStepViewModel(step)));
 
+            // Taken before the uninstaller runs, and quietly - what it is for is the
+            // evidence, not the reading. A Start Menu entry named after the program,
+            // launching from a folder named after it, is what promotes that folder out
+            // of guesswork; the uninstaller usually deletes that shortcut on its way
+            // out, so asking afterwards can only ever find a bare name match.
+            Progress.Step("Noting what is here first", 15);
+            Say(UninstallStepKind.Info, "Noting what is on the machine before the uninstaller runs.");
+
+            var before = await Task.Run(() => _deep.Scan(program)).ConfigureAwait(true);
+
             // The vendor's own process, of unknowable length. The bar moves without
             // stating a figure here rather than inventing one.
             Progress.Unknown("Waiting for the vendor's uninstaller");
@@ -287,7 +298,29 @@ public sealed partial class UninstallViewModel : ObservableObject
             Progress.Step("Deep scan", 60);
             Status = $"Deep scan: looking for what '{program.DisplayName}' left elsewhere...";
 
-            var deep = await Task.Run(() => _deep.Scan(program, progress)).ConfigureAwait(true);
+            var deep = (await Task.Run(() => _deep.Scan(program, progress)).ConfigureAwait(true)).ToList();
+
+            // Anything seen before that is still here, and that the scan afterwards
+            // could no longer recognise, keeps the evidence it had when the evidence
+            // still existed.
+            var known = deep.Select(t => t.Location).ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            deep.AddRange(await Task
+                .Run(() => before.Where(t => !known.Contains(t.Location) && _deep.StillThere(t)).ToArray())
+                .ConfigureAwait(true));
+
+            // Scheduled tasks, services and firewall rules: what a folder left behind
+            // wastes is space, but one of these left behind is a program that still
+            // runs, is still allowed through, or puts itself back.
+            var folders = deep
+                .Where(t => t.Kind == TraceKind.Directory)
+                .Select(t => t.Location)
+                .ToList();
+
+            if (!string.IsNullOrWhiteSpace(program.InstallLocation))
+                folders.Add(program.InstallLocation!);
+
+            deep.AddRange(await Task.Run(() => _system.Scan(folders, progress)).ConfigureAwait(true));
 
             foreach (var trace in deep)
             {
@@ -421,7 +454,10 @@ public sealed partial class UninstallViewModel : ObservableObject
 
         try
         {
-            var remover = new Win32TraceRemover(dryRun: false);
+            // To the Recycle Bin, not deleted. This list was assembled partly by
+            // guessing, and a guess that removes a gigabyte should be one the operator
+            // can take back.
+            var remover = new Win32TraceRemover(dryRun: false, toRecycleBin: true);
             var results = new List<RemovalResult>(chosen.Length);
 
             // One at a time, each one named before it is attempted and answered for

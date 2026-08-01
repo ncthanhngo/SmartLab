@@ -460,6 +460,24 @@ public sealed class DeepTraceScanner(ITraceProbe probe)
         return Path.GetPathRoot(full)?.Equals(full + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase) == true;
     }
 
+    /// <summary>Whether a trace found earlier is still on the machine.</summary>
+    /// <remarks>
+    /// What a scan taken before an uninstaller ran is worth: the evidence that a
+    /// folder belongs to this program - a shortcut of its name launching from inside
+    /// it - is often deleted by the uninstaller itself, so asking afterwards can only
+    /// ever find a bare name match. Held from before and checked now, the same folder
+    /// keeps the evidence it had when the evidence still existed.
+    /// </remarks>
+    public bool StillThere(AppTrace trace) => trace.Kind switch
+    {
+        TraceKind.Directory or TraceKind.DirectoryContents => probe.DirectoryExists(trace.Location),
+        TraceKind.File => probe.FileExists(trace.Location),
+        TraceKind.RegistryKey => probe.RegistryKeyExists(trace.Location),
+        TraceKind.RegistryValue => trace.ValueName is { } name &&
+                                   probe.RegistryValueExists(trace.Location, name),
+        _ => false,
+    };
+
     private static void Say(IProgress<UninstallStep>? progress, UninstallStepKind kind, string text) =>
         progress?.Report(new UninstallStep(kind, text));
 }

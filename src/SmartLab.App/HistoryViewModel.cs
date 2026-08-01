@@ -4,7 +4,9 @@ using System.IO;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using SmartLab.Core.Abstractions;
+using SmartLab.Core.Paths;
 using SmartLab.Engine.Journal;
+using SmartLab.Win32.Io;
 
 namespace SmartLab.App;
 
@@ -62,6 +64,39 @@ public sealed class JournalRunViewModel(JournalRun run)
 
     public IReadOnlyList<JournalLineViewModel> Lines { get; } =
         run.Records.Select(r => new JournalLineViewModel(r)).ToArray();
+
+    /// <summary>
+    /// What this run moved into quarantine, as pairs of where it was and where it is.
+    /// </summary>
+    /// <remarks>
+    /// Read off the journal rather than off the quarantine folder, because the folder
+    /// holds sanitised names and nothing that says where each came from. The record
+    /// does: a quarantine is a copy whose detail is the destination, followed by a
+    /// delete of the original.
+    /// </remarks>
+    public IReadOnlyList<(string Original, string Stored)> Quarantined =>
+        Run.Records
+            .Where(r => r.Kind == "copy" && r.Success && r.Detail is { Length: > 0 })
+            .Select(r => (Original: r.Target, Stored: DestinationOf(r.Detail!)))
+            .Where(p => p.Stored.EndsWith(".quarantined", StringComparison.OrdinalIgnoreCase))
+            .ToArray();
+
+    /// <summary>True when there is something here that can be put back.</summary>
+    public bool CanRestore => Quarantined.Any(p => File.Exists(p.Stored));
+
+    /// <summary>The destination out of a journal detail, which reads "-&gt; path".</summary>
+    private static string DestinationOf(string detail)
+    {
+        var arrow = detail.IndexOf("-> ", StringComparison.Ordinal);
+        if (arrow < 0) return string.Empty;
+
+        var rest = detail[(arrow + 3)..].Trim();
+
+        // The note the gate appends, when there is one, follows the path in brackets.
+        var bracket = rest.IndexOf(" (", StringComparison.Ordinal);
+
+        return bracket < 0 ? rest : rest[..bracket];
+    }
 }
 
 /// <summary>
@@ -123,7 +158,7 @@ public sealed partial class HistoryViewModel : ObservableObject
             Status = "Reading the journals...";
 
             var runs = await Task.Run(() => JournalReader.Files()
-                .SelectMany(file => JournalReader.Runs(JournalReader.Read(file)))
+                .SelectMany(file => JournalReader.Runs(JournalReader.Read(file), file))
                 .OrderByDescending(r => r.StartedUtc)
                 .ToArray()).ConfigureAwait(true);
 
@@ -186,6 +221,99 @@ public sealed partial class HistoryViewModel : ObservableObject
             $"{runs} run(s) recorded, and nothing in them failed.",
             "good");
     }
+
+    private bool CanRestoreRun() => SelectedRun is { CanRestore: true } && !IsBusy;
+
+    /// <summary>
+    /// Puts back what a run moved into quarantine.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Quarantine has always been a move rather than a delete, and nothing ever moved
+    /// anything back. An operator who quarantined a file that turned out to be theirs
+    /// had a folder full of sanitised names and no record of where any of them came
+    /// from - except the journal, which is what this reads.
+    /// </para>
+    /// <para>
+    /// It writes through the same gate as everything else and appends to the same
+    /// journal the run came from, because a restore is a change to the machine and the
+    /// record has to account for it too.
+    /// </para>
+    /// </remarks>
+    [RelayCommand(CanExecute = nameof(CanRestoreRun))]
+    private async Task RestoreRunAsync()
+    {
+        if (SelectedRun is not { } run) return;
+
+        IsBusy = true;
+
+        try
+        {
+            var pairs = run.Quarantined.Where(p => File.Exists(p.Stored)).ToArray();
+
+            if (pairs.Length == 0)
+            {
+                Status = "Nothing from this run is still in quarantine.";
+                return;
+            }
+
+            var path = string.IsNullOrEmpty(run.Run.SourceFile)
+                ? Path.Combine(Folder, "journal-restore.jsonl")
+                : run.Run.SourceFile;
+
+            await using var journal = new JsonlJournal(path);
+            var gate = new Win32WriteGate(journal, dryRun: false);
+
+            int back = 0, failed = 0;
+
+            foreach (var (original, stored) in pairs)
+            {
+                Status = $"Putting back {original}...";
+
+                // Refused rather than overwritten: something already at the original
+                // path is not this file, and replacing it would be a second mistake
+                // on top of the one being undone.
+                if (File.Exists(original))
+                {
+                    failed++;
+                    continue;
+                }
+
+                var copied = await gate.CopyFileAsync(
+                    ExtendedPath.From(stored), ExtendedPath.From(original), null, default)
+                    .ConfigureAwait(true);
+
+                if (!copied.Succeeded)
+                {
+                    failed++;
+                    continue;
+                }
+
+                await gate.DeleteFileAsync(ExtendedPath.From(stored), default).ConfigureAwait(true);
+                back++;
+            }
+
+            Status = failed == 0
+                ? $"{back} file(s) put back where they were."
+                : $"{back} put back, {failed} could not be - something is already at their old path, " +
+                  "or the copy was refused.";
+
+            await LoadAsync().ConfigureAwait(true);
+        }
+        catch (Exception ex)
+        {
+            Status = $"Could not put anything back: {ex.Message}";
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    partial void OnSelectedRunChanged(JournalRunViewModel? value) =>
+        RestoreRunCommand.NotifyCanExecuteChanged();
+
+    partial void OnIsBusyChanged(bool value) => RestoreRunCommand.NotifyCanExecuteChanged();
 
     /// <summary>Opens the journal folder, for anyone who wants the files themselves.</summary>
     [RelayCommand]

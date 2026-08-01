@@ -72,7 +72,11 @@ and leaves nothing behind.
 Four of these carry rules worth stating outright, because in each case the obvious
 implementation would have been the wrong one.
 
-**Home is two presses, never one.** Run measures the whole machine and changes
+**Home is two presses, never one, and it says which five it makes.** Run measures
+Repair, Temp & Cache, Recycle Bins, Startup and Updater - five of the fifteen sections,
+named on the screen rather than described as "the whole machine". An operator who presses
+Run believing Malware and Big & Stale were included has been told something false by a
+line that meant to sound reassuring. It changes
 nothing; the button then becomes Confirm and acts only on the rows still ticked in the
 list that scan produced. That is the engine's plan-then-approve wearing a single big
 button, and it is why the first word is Run rather than Fix.
@@ -112,6 +116,26 @@ would let a worm hide behind a tidy temp folder. The three pillars stay in their
 units — reclaimable space, threats, tasks. A section that could not run reports as
 skipped, never as clean, and a skipped section is never actionable: it could not look,
 so it has nothing to act on.
+
+**History is the record, and it was written for a year before anyone could read it.**
+Every mutating call goes through one write gate and is journalled as it happens; none of
+it was ever on screen. That is how three separate repairs of one infected stick each
+recorded *0 succeeded, 3 failed* while the window said nothing was wrong - the quarantine
+folder could not be created, every action stopped on the first, and the operator was left
+believing the scanner had been at fault. The scanner had been right every time.
+
+Records are grouped into runs, because a run is what somebody remembers doing, and the
+heading leads with failed writes rather than with a count of runs: a screen that opens on
+"22 runs" while 58 writes failed has buried the only line worth reading. A run with no
+end is reported as **unfinished** rather than as succeeding - the app was closed or the
+device went away, and inventing a verdict is the worst thing this screen could do.
+
+**And it can put back what a run quarantined.** Quarantine was always a move rather than
+a delete, and until this nothing ever moved anything back: the store holds sanitised
+names and nothing saying where any of them came from. The journal does, so the pairing is
+read from there. A file whose old path is now occupied is refused rather than written
+over — that would be a second mistake on top of the one being undone — and the restore is
+journalled like any other write, because it is one.
 
 **Malware delegates.** The signature engine identifies *hiding behaviour* and nothing
 else; naming a program is Defender's job, asked through `MpCmdRun.exe`. The two halves
@@ -456,6 +480,28 @@ Some places are refused whatever their name: the roots themselves, `Windows`, `S
 `Common Files`, `WindowsApps`, and the user's profile folder. A name match on `Common
 Files` would be a proposal to break every program on the machine, and the operator has no
 way to know that from the row.
+
+**The scan is taken twice, and the first one is the useful one.** What promotes a folder
+out of guesswork is a Start Menu entry named after the program launching from inside it -
+and the uninstaller usually deletes that shortcut on its way out, so a scan taken only
+afterwards can find nothing but a bare name match. A quiet pass before the uninstaller
+runs keeps the evidence from while it still existed; anything from it that is still there
+afterwards is carried over with the grading it earned.
+
+**Three kinds of leftover are looked for by where they point, never by name**: scheduled
+tasks, services, and firewall rules. A folder left behind wastes space. One of these left
+behind is a program that still runs, is still allowed through the firewall, or puts itself
+back - which is what somebody uninstalling it was trying to stop. Each is matched only
+when its command or path is inside one of the program's own folders, so a task merely
+called after the program is never touched. Reading is done through the registry and the
+task folder rather than by shelling out to `schtasks` or `netsh`: the data is in a hive
+either way, and a process launch per question is a cost with nothing to show for it.
+
+**What is removed goes to the Recycle Bin**, not to nothing. The list was assembled partly
+by guessing, and a guess that removes a gigabyte should be one the operator can take back.
+Temp & Cache deliberately does not do this: recycling a temp folder frees no space until
+the bin is emptied, which is the entire reason Clean was pressed, and putting fifty
+thousand files through the shell one at a time turns a ten second job into a long one.
 
 "Nothing was left behind" is a claim worth being able to check, which is why the places
 that came back clean are named in the log too.

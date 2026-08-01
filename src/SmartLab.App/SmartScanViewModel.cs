@@ -109,12 +109,20 @@ public sealed partial class SmartScanViewModel(MainViewModel shell) : Observable
     [ObservableProperty] private ScanPhase _phase = ScanPhase.Ready;
 
     [ObservableProperty] private string _status =
-        "Measures everything and changes nothing. You choose what happens next.";
+        "Measures Repair, Temp & Cache, Recycle Bins, Startup and Updater. Changes nothing.";
 
     [ObservableProperty] private string _headline = "Ready when you are";
 
+    /// <remarks>
+    /// It names the five, because "one pass over the whole machine" is not true: there
+    /// are fifteen sections and this runs five of them. An operator who presses Run
+    /// believing Malware and Big &amp; Stale were included has been told something
+    /// false by a screen that meant to sound reassuring.
+    /// </remarks>
     [ObservableProperty] private string _headlineDetail =
-        "One pass over the whole machine. Nothing is cleaned, removed or upgraded until you say so.";
+        "One pass over Repair, Temp & Cache, Recycle Bins, Startup and Updater. The other " +
+        "sections are not included - open them yourself. Nothing is cleaned, removed or " +
+        "upgraded until you say so.";
 
     [ObservableProperty] private string _headlineTone = "neutral";
 
