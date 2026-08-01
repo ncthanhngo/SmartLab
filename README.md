@@ -678,6 +678,26 @@ resource, so it is a converter in the window rather than a property on the recor
 failures, since half the registered icon paths on a mature machine point at files that
 were uninstalled years ago.
 
+**A removal says what it is doing while it does it.** The status strip holds one
+sentence, which is the right size for a verdict and the wrong size for a job with
+steps: pressing Uninstall launches somebody else's installer, waits on it, then goes
+looking through a folder and a registry key, and a line reading "working..." for a
+minute cannot be told apart from one that has hung. An Activity log appears under the
+list and records the command line as it was run, the exit code it came back with, every
+place the leftover scan looked — including the ones that came back clean — and each
+removal with its outcome. It stays pinned to its newest line, because the interesting
+end of a log is the bottom.
+
+The command line is there deliberately. It is the one fact that explains everything
+after it: a silent switch that turned out not to be silent, or an msiexec argument that
+opens a repair dialog instead of removing anything, is visible there and nowhere else.
+
+The log also states what is *not* searched. Only the install folder and the uninstall
+key the program registered are checked; nothing is hunted down by name. A short list
+can be mistaken for a shallow scan, so the scan says which it is rather than leaving
+the operator to guess — and "nothing was left behind" is a claim worth being able to
+check, which is why the places that came back clean are named too.
+
 This section has **no dry run**, and unlike Repair it has no preview press either. What
 stands between the click and the removal is the uninstaller's own confirmation —
 msiexec asks, and so does almost every vendor — and a second prompt of ours in front of

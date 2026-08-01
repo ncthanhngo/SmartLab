@@ -32,6 +32,26 @@ public sealed partial class TraceItemViewModel(AppTrace trace) : ObservableObjec
     private bool _isSelected = !trace.IsUserData;
 }
 
+/// <summary>One line of the log, with the tone the window paints it in.</summary>
+/// <remarks>
+/// The tone is a string rather than the domain's enum, which is how every other
+/// verdict in this app reaches a stage: a trigger's Value is written in XAML, where
+/// there is nothing to check an enum member's spelling and a mistyped one simply
+/// never fires.
+/// </remarks>
+public sealed class UninstallStepViewModel(UninstallStep step)
+{
+    public string Text => step.Text;
+
+    public string Tone => step.Kind switch
+    {
+        UninstallStepKind.Ok => "good",
+        UninstallStepKind.Warning => "warning",
+        UninstallStepKind.Failed => "alert",
+        _ => "neutral",
+    };
+}
+
 public sealed partial class UninstallViewModel : ObservableObject
 {
     private readonly Win32TraceProbe _probe = new();
@@ -79,7 +99,23 @@ public sealed partial class UninstallViewModel : ObservableObject
 
     public ObservableCollection<TraceItemViewModel> Leftovers { get; } = [];
 
+    /// <summary>
+    /// What the uninstall is doing, line by line, as it does it.
+    /// </summary>
+    /// <remarks>
+    /// The status strip holds one sentence, which is the right size for a verdict and
+    /// the wrong size for a job with steps. Removing a program runs somebody else's
+    /// installer, waits on it, then goes looking through folders and registry keys -
+    /// and a single line that says "working..." for a minute is indistinguishable
+    /// from one that has hung.
+    /// </remarks>
+    public ObservableCollection<UninstallStepViewModel> Activity { get; } = [];
+
     private Task? _loading;
+
+    /// <summary>Adds a line to the running commentary.</summary>
+    private void Say(UninstallStepKind kind, string text) =>
+        Activity.Add(new UninstallStepViewModel(new UninstallStep(kind, text)));
 
     /// <summary>
     /// Lists the programs the first time the section is opened.
@@ -138,17 +174,43 @@ public sealed partial class UninstallViewModel : ObservableObject
         IsBusy = true;
         Leftovers.Clear();
 
+        // The log belongs to one removal. Keeping the previous program's lines above
+        // this one's would put two uninstalls in a single scrollback with nothing
+        // marking where one ended.
+        Activity.Clear();
+
         try
         {
             Status = $"Running the uninstaller for '{program.DisplayName}'...";
 
-            var result = await _uninstaller.RunAsync(program, quiet: true).ConfigureAwait(true);
+            Say(UninstallStepKind.Info, $"Uninstalling {program.DisplayName}.");
+
+            // Progress<T> marshals each line back to this thread, which is what lets
+            // the scan below run off it and still write into a bound collection.
+            var progress = new Progress<UninstallStep>(
+                step => Activity.Add(new UninstallStepViewModel(step)));
+
+            var result = await _uninstaller.RunAsync(program, quiet: true, progress).ConfigureAwait(true);
+
+            Status = $"Looking for what '{program.DisplayName}' left behind...";
+            Say(UninstallStepKind.Info, "Looking for what it left behind.");
+
+            // Off the UI thread: measuring an install folder walks every file in it,
+            // and a window that stops repainting during the walk hides the very log
+            // this is producing.
+            var leftovers = await Task.Run(() => _uninstaller.ScanLeftovers(program, progress))
+                .ConfigureAwait(true);
 
             // Leftovers are scanned regardless of the reported outcome. A vendor
             // uninstaller that returns an error code has often still removed most of
             // itself, and one that reports success sometimes has not.
-            foreach (var leftover in _uninstaller.ScanLeftovers(program))
+            foreach (var leftover in leftovers)
                 Leftovers.Add(new TraceItemViewModel(leftover));
+
+            Say(Leftovers.Count == 0 ? UninstallStepKind.Ok : UninstallStepKind.Warning,
+                Leftovers.Count == 0
+                    ? "Nothing left behind."
+                    : $"{Leftovers.Count} leftover(s) listed below. Tick what should go.");
 
             Status = result.Outcome switch
             {
@@ -165,6 +227,7 @@ public sealed partial class UninstallViewModel : ObservableObject
         }
         catch (Exception ex)
         {
+            Say(UninstallStepKind.Failed, ex.Message);
             Status = $"Uninstall failed: {ex.Message}";
         }
         finally
@@ -179,7 +242,7 @@ public sealed partial class UninstallViewModel : ObservableObject
     /// ticking is the deliberate act a dry run would otherwise stand in for.
     /// </remarks>
     [RelayCommand]
-    private void CleanLeftovers()
+    private async Task CleanLeftoversAsync()
     {
         var chosen = Leftovers.Where(t => t.IsSelected).ToArray();
         if (chosen.Length == 0)
@@ -188,20 +251,53 @@ public sealed partial class UninstallViewModel : ObservableObject
             return;
         }
 
-        var remover = new Win32TraceRemover(dryRun: false);
-        var results = chosen.Select(t => remover.Remove(t.Trace)).ToArray();
+        IsBusy = true;
 
-        foreach (var result in results.Where(r => r.Succeeded))
+        try
         {
-            var row = Leftovers.FirstOrDefault(t => t.Trace == result.Trace);
-            if (row is not null) Leftovers.Remove(row);
+            var remover = new Win32TraceRemover(dryRun: false);
+            var results = new List<RemovalResult>(chosen.Length);
+
+            // One at a time, each one named before it is attempted and answered for
+            // after. Deleting an install folder can take a while, and a list that
+            // only reports at the end cannot say which entry it is stuck on.
+            foreach (var row in chosen)
+            {
+                Say(UninstallStepKind.Info, $"Removing: {row.Location}");
+
+                var result = await Task.Run(() => remover.Remove(row.Trace)).ConfigureAwait(true);
+                results.Add(result);
+
+                Say(StepKindFor(result.Outcome), result.Outcome switch
+                {
+                    RemovalOutcome.Removed =>
+                        $"Removed: {row.Location}" +
+                        (result.Detail is null ? string.Empty : $" ({result.Detail})"),
+                    RemovalOutcome.NotFound => $"Already gone: {row.Location}",
+                    RemovalOutcome.Deferred => $"{row.Location} - {result.Detail}",
+                    _ => $"Could not remove {row.Location}: {result.Detail}",
+                });
+
+                if (result.Succeeded) Leftovers.Remove(row);
+            }
+
+            var failed = results.Where(r => r.Outcome == RemovalOutcome.Failed).ToArray();
+
+            Status = $"{results.Count(r => r.Outcome == RemovalOutcome.Removed)} leftover(s) removed" +
+                     (failed.Length > 0 ? $", {failed.Length} failed: {failed[0].Detail}" : ".");
         }
-
-        var failed = results.Where(r => r.Outcome == RemovalOutcome.Failed).ToArray();
-
-        Status = $"{results.Count(r => r.Outcome == RemovalOutcome.Removed)} leftover(s) removed" +
-                 (failed.Length > 0 ? $", {failed.Length} failed: {failed[0].Detail}" : ".");
+        finally
+        {
+            IsBusy = false;
+        }
     }
+
+    private static UninstallStepKind StepKindFor(RemovalOutcome outcome) => outcome switch
+    {
+        RemovalOutcome.Removed => UninstallStepKind.Ok,
+        RemovalOutcome.Failed => UninstallStepKind.Failed,
+        _ => UninstallStepKind.Warning,
+    };
 
     /// <summary>
     /// What the Uninstall button would do, or why it will not.

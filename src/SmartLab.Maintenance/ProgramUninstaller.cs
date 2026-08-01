@@ -4,6 +4,20 @@ namespace SmartLab.Maintenance;
 
 public enum UninstallOutcome { Completed, NoUninstaller, LaunchFailed, Cancelled }
 
+/// <summary>What a step says about itself, which is what decides its colour.</summary>
+public enum UninstallStepKind { Info, Ok, Warning, Failed }
+
+/// <summary>
+/// One line of the commentary an uninstall produces while it is happening.
+/// </summary>
+/// <remarks>
+/// Reported rather than returned, because the whole point is that it arrives while
+/// the work is still running. A list handed back at the end describes an uninstall
+/// nobody could watch - and watching is what tells an operator whether a vendor's
+/// uninstaller is working or waiting for an answer on a window they cannot see.
+/// </remarks>
+public sealed record UninstallStep(UninstallStepKind Kind, string Text);
+
 /// <param name="ExitCode">Vendor uninstaller exit code, or null if it never ran.</param>
 public sealed record UninstallRunResult(
     InstalledProgram Program,
@@ -30,16 +44,32 @@ public sealed class ProgramUninstaller(ITraceProbe probe)
     /// register none, in which case the interactive command is used and the user
     /// has to answer its prompts - this method cannot make that not be true.
     /// </param>
+    /// <param name="progress">
+    /// Where the running commentary goes. The command line is reported verbatim
+    /// because it is the one fact that explains everything that follows: a silent
+    /// switch that turned out not to be silent, or an msiexec argument that opens a
+    /// repair dialog, is visible there and nowhere else.
+    /// </param>
     public async Task<UninstallRunResult> RunAsync(
-        InstalledProgram program, bool quiet, CancellationToken ct = default)
+        InstalledProgram program, bool quiet,
+        IProgress<UninstallStep>? progress = null, CancellationToken ct = default)
     {
         var chosen = quiet && !string.IsNullOrWhiteSpace(program.QuietUninstallString)
             ? program.QuietUninstallString
             : program.UninstallString;
 
         var command = UninstallCommandParser.Parse(chosen);
+
         if (command.IsEmpty)
+        {
+            Say(progress, UninstallStepKind.Warning,
+                $"{program.DisplayName} registered no uninstall command.");
+
             return new UninstallRunResult(program, UninstallOutcome.NoUninstaller);
+        }
+
+        Say(progress, UninstallStepKind.Info,
+            $"Running: {$"{command.FileName} {command.Arguments}".Trim()}");
 
         try
         {
@@ -54,20 +84,37 @@ public sealed class ProgramUninstaller(ITraceProbe probe)
             });
 
             if (process is null)
+            {
+                Say(progress, UninstallStepKind.Failed, "The uninstaller did not start.");
                 return new UninstallRunResult(program, UninstallOutcome.LaunchFailed, null, "Process did not start.");
+            }
+
+            Say(progress, UninstallStepKind.Info,
+                $"Started as process {process.Id}. Answer any prompt it shows.");
 
             await process.WaitForExitAsync(ct).ConfigureAwait(false);
+
+            // A non-zero code is reported, not judged. Vendors use them for "the user
+            // cancelled" as readily as for "it broke", and the leftover scan below is
+            // what actually says whether the program is gone.
+            Say(progress,
+                process.ExitCode == 0 ? UninstallStepKind.Ok : UninstallStepKind.Warning,
+                $"Uninstaller finished with exit code {process.ExitCode}.");
 
             return new UninstallRunResult(program, UninstallOutcome.Completed, process.ExitCode);
         }
         catch (OperationCanceledException)
         {
             // The uninstaller keeps running; only the wait was abandoned.
+            Say(progress, UninstallStepKind.Warning,
+                "Stopped waiting. The uninstaller may still be running.");
+
             return new UninstallRunResult(program, UninstallOutcome.Cancelled, null,
                 "Stopped waiting. The uninstaller may still be running.");
         }
         catch (Exception ex)
         {
+            Say(progress, UninstallStepKind.Failed, $"Could not start it: {ex.Message}");
             return new UninstallRunResult(program, UninstallOutcome.LaunchFailed, null, ex.Message);
         }
     }
@@ -83,22 +130,50 @@ public sealed class ProgramUninstaller(ITraceProbe probe)
     /// folder that happens to match - and the operator has no way to tell which
     /// suggestions are safe.
     /// </remarks>
-    public IReadOnlyList<AppTrace> ScanLeftovers(InstalledProgram program)
+    /// <param name="progress">
+    /// Reports every place this looked, including the ones that came back clean. A
+    /// scan that only names what it found leaves the operator unable to tell a
+    /// thorough search from one that never ran, and "nothing left behind" is a claim
+    /// worth being able to check.
+    /// </param>
+    public IReadOnlyList<AppTrace> ScanLeftovers(
+        InstalledProgram program, IProgress<UninstallStep>? progress = null)
     {
         var leftovers = new List<AppTrace>();
 
-        if (!string.IsNullOrWhiteSpace(program.InstallLocation) &&
-            probe.DirectoryExists(program.InstallLocation))
+        if (string.IsNullOrWhiteSpace(program.InstallLocation))
         {
-            leftovers.Add(new AppTrace(
-                TraceKind.Directory,
-                program.InstallLocation,
-                $"Install folder left by {program.DisplayName}")
-            {
-                Exists = true,
-                SizeBytes = probe.DirectorySize(program.InstallLocation),
-            });
+            Say(progress, UninstallStepKind.Info,
+                "No install folder was registered, so there is no folder to check.");
         }
+        else
+        {
+            Say(progress, UninstallStepKind.Info, $"Checking folder: {program.InstallLocation}");
+
+            if (probe.DirectoryExists(program.InstallLocation))
+            {
+                var trace = new AppTrace(
+                    TraceKind.Directory,
+                    program.InstallLocation,
+                    $"Install folder left by {program.DisplayName}")
+                {
+                    Exists = true,
+                    SizeBytes = probe.DirectorySize(program.InstallLocation),
+                };
+
+                leftovers.Add(trace);
+
+                Say(progress, UninstallStepKind.Warning,
+                    $"Still there: {program.InstallLocation}" +
+                    (trace.SizeText.Length > 0 ? $" ({trace.SizeText})" : string.Empty));
+            }
+            else
+            {
+                Say(progress, UninstallStepKind.Ok, $"Gone: {program.InstallLocation}");
+            }
+        }
+
+        Say(progress, UninstallStepKind.Info, $"Checking registry key: {program.RegistryKeyPath}");
 
         if (probe.RegistryKeyExists(program.RegistryKeyPath))
         {
@@ -109,8 +184,24 @@ public sealed class ProgramUninstaller(ITraceProbe probe)
             {
                 Exists = true,
             });
+
+            Say(progress, UninstallStepKind.Warning, $"Still there: {program.RegistryKeyPath}");
         }
+        else
+        {
+            Say(progress, UninstallStepKind.Ok, $"Gone: {program.RegistryKeyPath}");
+        }
+
+        // Said outright, because the list above is short by design and a short list
+        // can be mistaken for a shallow one. Nothing else is searched: hunting the
+        // machine for the vendor's name is how a cleaner proposes to delete a shared
+        // runtime or another product from the same publisher.
+        Say(progress, UninstallStepKind.Info,
+            "Only what the program registered is checked - nothing is searched for by name.");
 
         return leftovers;
     }
+
+    private static void Say(IProgress<UninstallStep>? progress, UninstallStepKind kind, string text) =>
+        progress?.Report(new UninstallStep(kind, text));
 }

@@ -79,6 +79,47 @@ public sealed class UninstallFlowTests
     }
 
     /// <summary>
+    /// The section's own verb, driven end to end, with the log it produces.
+    /// </summary>
+    /// <remarks>
+    /// The registered command is a harmless one that exits cleanly and the install
+    /// folder is a path that does not exist, so this runs the whole thing - launch,
+    /// wait, leftover scan - without removing anything from the machine running the
+    /// tests. What it holds is that the operator is told what happened at every step:
+    /// the log is the feature, and an empty one is the failure mode.
+    /// </remarks>
+    [Fact]
+    public void UninstallingWritesALogOfWhatItRanAndWhereItLooked()
+    {
+        OnDispatcher(async () =>
+        {
+            var uninstall = new MainViewModel().Uninstall;
+
+            uninstall.Programs.Add(new InstalledProgram("Stub", @"HKCU\Software\Stub\NotThere")
+            {
+                UninstallString = "cmd.exe /c exit 0",
+                InstallLocation = @"C:\Program Files\Stub That Is Not There",
+            });
+
+            uninstall.SelectedProgram = uninstall.Programs[^1];
+
+            await uninstall.UninstallProgramCommand.ExecuteAsync(null);
+
+            Assert.NotEmpty(uninstall.Activity);
+            Assert.Contains(uninstall.Activity, s => s.Text.Contains("exit 0", StringComparison.Ordinal));
+            Assert.Contains(uninstall.Activity,
+                s => s.Text.Contains(@"Stub That Is Not There", StringComparison.Ordinal));
+            Assert.Contains(uninstall.Activity,
+                s => s.Text.Contains(@"HKCU\Software\Stub\NotThere", StringComparison.Ordinal));
+
+            // Nothing survived a program that was never installed, and the log says so
+            // rather than leaving the absence to be inferred.
+            Assert.Empty(uninstall.Leftovers);
+            Assert.Contains(uninstall.Activity, s => s.Tone == "good");
+        });
+    }
+
+    /// <summary>
     /// The runner against a real process, which is the half no parser test reaches.
     /// </summary>
     /// <remarks>
@@ -115,6 +156,68 @@ public sealed class UninstallFlowTests
             .RunAsync(program, quiet: true);
 
         Assert.Equal(7, result.ExitCode);
+    }
+
+    /// <summary>
+    /// The commentary the section shows while a removal runs.
+    /// </summary>
+    /// <remarks>
+    /// The command line matters more than any other line in it: a silent switch that
+    /// turned out not to be silent, or an msiexec argument that opens a repair dialog
+    /// instead of removing anything, is visible there and nowhere else.
+    /// </remarks>
+    [Fact]
+    public async Task TheRunReportsTheCommandItRanAndTheCodeItGaveBack()
+    {
+        var program = new InstalledProgram("Stub", @"HKCU\Software\Stub")
+        {
+            UninstallString = "cmd.exe /c exit 4",
+        };
+
+        var steps = new StepLog();
+
+        await new ProgramUninstaller(new NullTraceProbe()).RunAsync(program, quiet: false, steps);
+
+        Assert.Contains(steps.Lines, s => s.Text.Contains("/c exit 4", StringComparison.Ordinal));
+        Assert.Contains(steps.Lines, s => s.Text.Contains("exit code 4", StringComparison.Ordinal));
+
+        // A non-zero code is reported without being called a failure. Vendors use
+        // them for "the user cancelled" as readily as for "it broke".
+        Assert.DoesNotContain(steps.Lines, s => s.Kind == UninstallStepKind.Failed);
+    }
+
+    /// <remarks>
+    /// Every place looked at is named, including the ones that came back clean.
+    /// "Nothing was left behind" is a claim, and a log that only lists what it found
+    /// leaves no way to tell a thorough scan from one that never ran.
+    /// </remarks>
+    [Fact]
+    public void TheLeftoverScanNamesEveryPlaceItLookedEvenWhenAllOfThemAreClean()
+    {
+        var program = new InstalledProgram("Stub", @"HKCU\Software\Stub\Uninstall")
+        {
+            InstallLocation = @"C:\Program Files\Stub",
+        };
+
+        var steps = new StepLog();
+
+        var leftovers = new ProgramUninstaller(new NullTraceProbe()).ScanLeftovers(program, steps);
+
+        Assert.Empty(leftovers);
+        Assert.Contains(steps.Lines, s => s.Text.Contains(program.InstallLocation!, StringComparison.Ordinal));
+        Assert.Contains(steps.Lines, s => s.Text.Contains(program.RegistryKeyPath, StringComparison.Ordinal));
+    }
+
+    /// <remarks>
+    /// Not <see cref="Progress{T}"/>: that one posts each report to a captured
+    /// synchronisation context, so under a test runner the lines can still be in
+    /// flight when the assertions run. This one records on the calling thread.
+    /// </remarks>
+    private sealed class StepLog : IProgress<UninstallStep>
+    {
+        public List<UninstallStep> Lines { get; } = [];
+
+        public void Report(UninstallStep value) => Lines.Add(value);
     }
 
     [Fact]
