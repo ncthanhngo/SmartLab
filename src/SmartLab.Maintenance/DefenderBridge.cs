@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Text.RegularExpressions;
 using Microsoft.Win32;
 
 namespace SmartLab.Maintenance;
@@ -31,6 +32,16 @@ public sealed record DefenderResult(DefenderState State, string Detail, string O
 {
     /// <summary>Threat names MpCmdRun listed, if any.</summary>
     public IReadOnlyList<string> Threats { get; init; } = [];
+
+    /// <summary>
+    /// How many threats the scan reported, named or not.
+    /// </summary>
+    /// <remarks>
+    /// A custom scan that finds something usually prints a count and no names at all -
+    /// so the count is what proves a scan was not clean, and <see cref="Threats"/> can
+    /// legitimately be shorter than this.
+    /// </remarks>
+    public int ThreatCount { get; init; }
 }
 
 /// <summary>
@@ -219,11 +230,24 @@ public static class DefenderBridge
     /// <summary>
     /// Reads MpCmdRun's output and exit code into a state.
     /// </summary>
+    /// <summary>
+    /// The count line a custom scan ends with: "Scanning E:\ found 3 threats."
+    /// </summary>
+    /// <remarks>
+    /// The line that matters most in this file. A scan that finds something and cleans
+    /// it prints this, no names, and exits <b>0</b> - so reading names and exit codes
+    /// alone reports "Defender found nothing" for a drive it just disinfected, which is
+    /// the one mistake this section exists to avoid. Captured from a real detection;
+    /// the fixture beside the tests is that transcript.
+    /// </remarks>
+    private static readonly Regex CountLine =
+        new(@"found\s+(\d+)\s+threat", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
     /// <remarks>
     /// Exit code alone is not enough: MpCmdRun returns 2 both for "threats found" and
-    /// for several failures, so the text has to be read as well. Anything that is not
-    /// recognisably a completed scan becomes <see cref="DefenderState.CouldNotRun"/> -
-    /// never Clean by default.
+    /// for several failures, and 0 for a scan that found and removed one, so the text
+    /// has to be read as well. Anything that is not recognisably a completed scan
+    /// becomes <see cref="DefenderState.CouldNotRun"/> - never Clean by default.
     /// </remarks>
     public static DefenderResult Interpret(int exitCode, string output)
     {
@@ -248,17 +272,38 @@ public static class DefenderBridge
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToArray();
 
+        var counted = CountLine.Match(text) is { Success: true } m &&
+                      int.TryParse(m.Groups[1].Value, out var n)
+            ? n
+            : 0;
+
         if (threats.Length > 0)
         {
             return new DefenderResult(
                 DefenderState.ThreatsFound,
                 $"Defender identified {threats.Length} threat(s).",
                 text)
-            { Threats = threats };
+            { Threats = threats, ThreatCount = Math.Max(threats.Length, counted) };
         }
 
         var finished = text.Contains("Scan finished", StringComparison.OrdinalIgnoreCase) ||
                        text.Contains("found no threats", StringComparison.OrdinalIgnoreCase);
+
+        // A count with no names, which is what a real detection looks like. Whether it
+        // exited 0 decides only whether the cleaning worked, never whether the drive
+        // was clean.
+        if (counted > 0)
+        {
+            var cleaned = text.Contains("Cleaning finished", StringComparison.OrdinalIgnoreCase);
+
+            return new DefenderResult(
+                DefenderState.ThreatsFound,
+                cleaned
+                    ? $"Defender found {counted} threat(s) and cleaned what it could."
+                    : $"Defender found {counted} threat(s).",
+                text)
+            { ThreatCount = counted };
+        }
 
         if (exitCode == 0 && finished)
             return new DefenderResult(DefenderState.Clean, "Defender found nothing.", text);

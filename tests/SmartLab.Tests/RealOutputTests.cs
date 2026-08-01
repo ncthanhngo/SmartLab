@@ -104,6 +104,30 @@ public sealed class RealOutputTests
     }
 
     [Fact]
+    public void ARealDetectionIsNeverReadAsClean()
+    {
+        // Captured on 2026-08-01 from a live EICAR detection. Two things about it broke
+        // the parser this fixture was added for: MpCmdRun names nothing, and it exits
+        // ZERO because the cleaning worked. Names plus exit code alone therefore read a
+        // drive Defender had just disinfected as "found nothing" - the one mistake this
+        // section exists to prevent, arrived at from the other direction.
+        var result = DefenderBridge.Interpret(0, Fixture("defender-threat-cleaned.txt"));
+
+        Assert.Equal(DefenderState.ThreatsFound, result.State);
+        Assert.Equal(1, result.ThreatCount);
+        Assert.Empty(result.Threats);
+        Assert.Contains("cleaned", result.Detail, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void ARealCleanScanStillHasNoCount()
+    {
+        // The guard on the line above: "found no threats" must not parse as a number,
+        // or every clean scan becomes a detection.
+        Assert.Equal(0, DefenderBridge.Interpret(0, Fixture("defender-clean.txt")).ThreatCount);
+    }
+
+    [Fact]
     public void ARealScanArgumentIsWhatWasActuallyRun()
     {
         // The exact argument string that produced the fixture above.
