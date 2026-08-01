@@ -90,6 +90,14 @@ public sealed partial class AboutViewModel(MainViewModel shell) : ObservableObje
     /// </remarks>
     public static IReadOnlyList<ReleaseNote> ReleaseNotes { get; } =
     [
+        new("1.0.5", "2026-08-01",
+            Added: [],
+            Fixed:
+            [
+                "Uninstalling a program threw \"an ItemsControl is inconsistent with its items source\" on every line it logged, and arrived as a wall of a dozen error dialogs stacked over the window. The log was on screen twice - in the section and in the window a removal opens - and two lists sharing one collection is a configuration WPF does not survive: one falls behind a notification the other has already handled, and the next layout pass throws. The log belongs to the window now, which is what a window for one removal is for.",
+                "A repeating fault no longer arrives as a wall of dialogs. A message box pumps messages, so the next occurrence raised behind the box reporting the last one, twelve deep, each needing to be dismissed before the window underneath could be looked at. One dialog per fault now, however often it repeats - every occurrence still reaches crash.log.",
+            ]),
+
         new("1.0.4", "2026-08-01",
             Added:
             [
