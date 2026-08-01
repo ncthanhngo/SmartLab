@@ -242,9 +242,9 @@
                               RelativeSource={RelativeSource AncestorType=Window}}">
 
             <ctl:SectionFrame.Actions>
+                <!-- Asking winget what is out of date is the dry run, and nothing is
+                     ticked that winget did not install. -->
                 <StackPanel Orientation="Horizontal">
-                    <CheckBox Style="{StaticResource ToggleCheck}" Content="Dry run"
-                              IsChecked="{Binding DryRun}" Margin="0,0,16,0" FontWeight="SemiBold" />
                     <Button Content="Upgrade ticked" Style="{StaticResource GhostButton}"
                             Command="{Binding UpgradeTickedCommand}" Margin="0,0,8,0" />
                     <Button Content="Check" Style="{StaticResource PrimaryButton}"

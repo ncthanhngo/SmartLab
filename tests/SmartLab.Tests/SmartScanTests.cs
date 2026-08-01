@@ -49,13 +49,19 @@ public sealed class SmartScanTests
     public void ConfirmingActsOnTheScanAndDoesNotMeasureAgain()
     {
         // The second press, driven end to end - the one flow nobody had ever taken
-        // past the first button. Nothing on this machine is touched: every section's
-        // own dry run and unticked default still stands between this and a write.
-        // What is held here is the shape - a confirm works from the rows the scan
-        // produced, and never returns to Scanning on the way.
+        // past the first button. What is held here is the shape: a confirm works from
+        // the rows the scan produced, and never returns to Scanning on the way.
+        //
+        // Nothing on this machine is touched, and what stops it is the same thing that
+        // stops it for an operator. A row here says "act on this section"; what that
+        // section then does is decided by its own ticks, and every one of them is
+        // cleared below. There is no dry run left to hide behind - a measure that
+        // writes nothing is the dry run now - so this test has to be as deliberate as
+        // the person it stands in for.
         OnDispatcher(async () =>
         {
-            var scan = new MainViewModel().SmartScan;
+            var shell = new MainViewModel();
+            var scan = shell.SmartScan;
 
             var phases = new List<ScanPhase>();
             scan.PropertyChanged += (_, e) =>
@@ -69,6 +75,16 @@ public sealed class SmartScanTests
             Assert.NotEmpty(scan.Results);
 
             var reviewed = scan.Results.Select(r => r.Title).ToArray();
+
+            // Untick every section's own list. Each verb below then finds nothing
+            // chosen and returns without touching the machine - which is exactly the
+            // guard the operator has, and the one this test would otherwise spend five
+            // minutes proving by upgrading their packages.
+            foreach (var category in shell.Cleanup.Categories) category.IsSelected = false;
+            foreach (var bin in shell.TrashBins.Bins) bin.IsSelected = false;
+            foreach (var item in shell.Optimization.Items) item.IsSelected = false;
+            foreach (var package in shell.Updater.Packages) package.IsSelected = false;
+            foreach (var action in shell.Actions) action.IsSelected = false;
 
             // Ticked by hand, standing in for the operator: this machine has nothing
             // that needs repairing, so nothing arrives actionable on its own. Both

@@ -75,9 +75,6 @@ public sealed partial class OptimizationViewModel : ObservableObject
 
     [ObservableProperty] private bool _isBusy;
 
-    /// <summary>Opt-in, as everywhere else.</summary>
-    [ObservableProperty] private bool _dryRun = true;
-
     [ObservableProperty] private string _status =
         "Lists everything that runs at logon. Nothing is ticked - disabling the wrong one breaks a login.";
 
@@ -132,13 +129,9 @@ public sealed partial class OptimizationViewModel : ObservableObject
             return;
         }
 
-        if (DryRun)
-        {
-            Status = $"Dry run: {chosen.Length} entr(ies) would be turned off, and could be put back " +
-                     "from the list below. Untick 'Dry run' to apply.";
-            return;
-        }
-
+        // Scan was the dry run: it read the Run keys and both Startup folders and
+        // changed none of them. Turning an entry off from the list it produced moves
+        // the value aside rather than deleting it, and the list below puts it back.
         var done = 0;
         var failed = 0;
 

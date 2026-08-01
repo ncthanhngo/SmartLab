@@ -39,9 +39,6 @@ public sealed partial class TrashBinsViewModel : ObservableObject
 
     [ObservableProperty] private bool _isBusy;
 
-    /// <summary>Writing is opt-in here as everywhere else.</summary>
-    [ObservableProperty] private bool _dryRun = true;
-
     [ObservableProperty] private string _status =
         "Measure to see what each drive is holding. Nothing is emptied until you say so.";
 
@@ -90,13 +87,9 @@ public sealed partial class TrashBinsViewModel : ObservableObject
             return;
         }
 
-        if (DryRun)
-        {
-            Status = $"Dry run: {chosen.Length} bin(s) would be emptied, " +
-                     $"discarding {chosen.Sum(b => b.Items):N0} item(s). Untick 'Dry run' to apply.";
-            return;
-        }
-
+        // Measure was the dry run: it counted every bin and emptied nothing, and this
+        // button does not exist until it has run. Every bin also starts unticked, so
+        // what is about to go was picked one drive at a time.
         IsBusy = true;
 
         try

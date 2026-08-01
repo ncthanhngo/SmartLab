@@ -31,8 +31,9 @@ public sealed class SectionFrame : ContentControl
     /// The verbs, right-aligned in the header band.
     /// </summary>
     /// <remarks>
-    /// In the header rather than under the content, so a Dry run toggle is read before
-    /// the button it guards instead of beside it.
+    /// In the header rather than under the content, so the measuring verb and the
+    /// acting one are read in that order - and so Wipe's Dry run, the last toggle of
+    /// its kind, is read before the button it guards instead of beside it.
     /// </remarks>
     public static readonly DependencyProperty ActionsProperty = DependencyProperty.Register(
         nameof(Actions), typeof(object), typeof(SectionFrame), new PropertyMetadata(null));

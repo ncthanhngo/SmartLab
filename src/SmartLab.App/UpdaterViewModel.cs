@@ -37,9 +37,6 @@ public sealed partial class UpdaterViewModel : ObservableObject
 
     [ObservableProperty] private bool _isBusy;
 
-    /// <summary>Opt-in, as everywhere else.</summary>
-    [ObservableProperty] private bool _dryRun = true;
-
     [ObservableProperty] private string _status =
         "Lists what winget would upgrade. Nothing is installed until you say so.";
 
@@ -107,14 +104,9 @@ public sealed partial class UpdaterViewModel : ObservableObject
             return;
         }
 
-        if (DryRun)
-        {
-            foreach (var row in chosen) row.Outcome = "would upgrade";
-
-            Status = $"Dry run: {chosen.Length} package(s) would be upgraded. Untick 'Dry run' to apply.";
-            return;
-        }
-
+        // The check was the dry run: it asked winget what is out of date and installed
+        // nothing. This button does not exist until that list does, and each row is
+        // ticked by hand - the ones winget did not install start unticked.
         IsBusy = true;
 
         try

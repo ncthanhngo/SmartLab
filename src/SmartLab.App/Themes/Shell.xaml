@@ -125,8 +125,8 @@
                                                    Foreground="{DynamicResource TextSecondaryBrush}" />
                                     </StackPanel>
 
-                                    <!-- The verbs. In the header so a Dry run toggle is read
-                                         before the button it guards, not beside it. -->
+                                    <!-- The verbs, in the order they are meant to be
+                                         pressed: measure, then act. -->
                                     <ContentPresenter Grid.Column="2" ContentSource="Actions"
                                                       VerticalAlignment="Center" Margin="16,0,0,0" />
                                 </Grid>

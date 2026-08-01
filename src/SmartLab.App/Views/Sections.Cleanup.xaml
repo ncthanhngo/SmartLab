@@ -17,9 +17,9 @@
                               RelativeSource={RelativeSource AncestorType=Window}}">
 
             <ctl:SectionFrame.Actions>
+                <!-- Analyse is the dry run: it measures every category and deletes
+                     nothing, and Clean stays dead until it has run. -->
                 <StackPanel Orientation="Horizontal">
-                    <CheckBox Style="{StaticResource ToggleCheck}" Content="Dry run"
-                              IsChecked="{Binding DryRun}" Margin="0,0,16,0" FontWeight="SemiBold" />
                     <Button Content="Clean ticked" Style="{StaticResource GhostButton}"
                             Command="{Binding CleanCommand}" Margin="0,0,8,0" />
                     <Button Content="Measure" Style="{StaticResource PrimaryButton}"
@@ -121,9 +121,8 @@
                               RelativeSource={RelativeSource AncestorType=Window}}">
 
             <ctl:SectionFrame.Actions>
+                <!-- Measure is the dry run, and every bin starts unticked besides. -->
                 <StackPanel Orientation="Horizontal">
-                    <CheckBox Style="{StaticResource ToggleCheck}" Content="Dry run"
-                              IsChecked="{Binding DryRun}" Margin="0,0,16,0" FontWeight="SemiBold" />
                     <Button Content="Empty ticked" Style="{StaticResource GhostButton}"
                             Command="{Binding EmptyTickedCommand}" Margin="0,0,8,0" />
                     <Button Content="Measure" Style="{StaticResource PrimaryButton}"

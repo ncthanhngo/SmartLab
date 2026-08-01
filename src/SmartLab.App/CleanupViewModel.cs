@@ -66,9 +66,6 @@ public sealed partial class CleanupViewModel : ObservableObject
 
     [ObservableProperty] private bool _isBusy;
 
-    /// <summary>Writing is opt-in, as everywhere else in this app.</summary>
-    [ObservableProperty] private bool _dryRun = true;
-
     [ObservableProperty] private string _totalText = "--";
 
     [ObservableProperty] private string _status =
@@ -132,15 +129,9 @@ public sealed partial class CleanupViewModel : ObservableObject
 
         try
         {
-            if (DryRun)
-            {
-                foreach (var row in chosen)
-                    Log.Add($"would clean  {row.Name,-28} {row.SizeText}");
-
-                Status = $"Dry run: {TotalText} would be freed. Untick 'Dry run' to apply.";
-                return;
-            }
-
+            // Analyse was the dry run: it measured every category and wrote nothing,
+            // and Clean cannot be pressed until it has. What is ticked in the list it
+            // produced is what goes.
             var findings = chosen
                 .Select(c => new JunkFinding(c.Category, c.Bytes, c.Files))
                 .ToArray();

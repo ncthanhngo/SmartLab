@@ -17,9 +17,9 @@
                               RelativeSource={RelativeSource AncestorType=Window}}">
 
             <ctl:SectionFrame.Actions>
+                <!-- Scan is the dry run, and turning an entry off is undone by the
+                     button beside it rather than by a toggle in front of it. -->
                 <StackPanel Orientation="Horizontal">
-                    <CheckBox Style="{StaticResource ToggleCheck}" Content="Dry run"
-                              IsChecked="{Binding DryRun}" Margin="0,0,16,0" FontWeight="SemiBold" />
                     <Button Content="Put back all" Style="{StaticResource GhostButton}"
                             Command="{Binding RestoreAllCommand}" Margin="0,0,8,0" />
                     <Button Content="Turn ticked off" Style="{StaticResource GhostButton}"
