@@ -90,6 +90,24 @@ public sealed partial class AboutViewModel(MainViewModel shell) : ObservableObje
     /// </remarks>
     public static IReadOnlyList<ReleaseNote> ReleaseNotes { get; } =
     [
+        new("1.0.3", "2026-08-01",
+            Added:
+            [
+                "Every section that makes you wait now says so: the section being measured by name, a bar, and a figure where one honestly exists - categories measured out of categories, packages upgraded out of packages, actions applied out of actions. Walking a folder tree or waiting on somebody else's uninstaller has no such figure, so there the bar moves and the running counts sit above it instead of a number that would mean nothing.",
+                "Every one of them now says when it stopped, and what it concluded, in a line that stays on screen. A screen that simply goes quiet is what a crash looks like too.",
+                "Home shows the run instead of three breathing circles: which section is being measured, how many of the five are done, and each row appearing as its section starts rather than when everything finishes.",
+                "Home's Stop reaches into the pass that is running rather than waiting for it to end, and a run cut short reports as stopped, with how many sections actually ran. The ones it never reached said nothing, and are no longer signed off as having found nothing.",
+                "Uninstall records what it did: the command line as it was run, the exit code it came back with, every place the leftover scan looked including the ones that came back clean, and each removal with its outcome.",
+                "The Dry run toggle is gone from every section whose measure was already the dry run - Temp & Cache, Recycle Bins, Startup and Updater, after Repair in 1.0.2. Analyse, Measure, Scan and Check write nothing and leave the list you tick; the acting verb beside them stays dead until one has run. Wipe keeps its toggle, and is now the only section with one: nothing measures for it, and it is the one verb whose purpose is to make data unrecoverable.",
+            ],
+            Fixed:
+            [
+                "A program you had just uninstalled stayed in the list until you pressed Refresh, which made every successful removal look as though it had failed. The list re-reads the registry as the last step of the removal, and whether the program's key is still there is what decides the verdict now - not the exit code, which vendors return as zero for uninstallers the user cancelled and non-zero for ones that removed everything.",
+                "Uninstall's leftovers panel hid itself when there was nothing left behind, which is exactly the case worth being told about. It stays, and says so.",
+                "Home's Stop did almost nothing an operator could see: its only reply went to a status line Home does not display, and the request was checked between sections rather than inside them - so a Stop pressed during a volume scan did nothing for as long as that scan took.",
+                "Measuring an install folder or removing a large one froze the window while it worked, hiding the very progress it was producing.",
+            ]),
+
         new("1.0.2", "2026-08-01",
             Added:
             [
