@@ -90,6 +90,20 @@ public sealed partial class AboutViewModel(MainViewModel shell) : ObservableObje
     /// </remarks>
     public static IReadOnlyList<ReleaseNote> ReleaseNotes { get; } =
     [
+        new("1.0.4", "2026-08-01",
+            Added:
+            [
+                "Uninstall happens in a window of its own now: the step it is on, a bar, the command line it ran and what came back, then what is left and what should go. At the end of a removal there is a decision to make, and on the section's own stage that decision competed with a list of thirty programs and a button that starts another removal.",
+                "A deep scan goes looking for what a program left behind, instead of only reading what the program said about itself. It checks the direct children of the folders applications live in, the shortcuts in the Start Menu and on the Desktop with their targets resolved, and the registry - Software keys, protocol handlers, and startup values pointing into the program's folder.",
+                "Every find says how it was found, and only some arrive ticked. What a program registered, and what points into its own folder, is not a guess. A folder or key that merely carries a matching name might be another product from the same publisher or a runtime three programs share, so it is shown, labelled 'name only', and left for you. A Start Menu entry named after the program that launches something inside a folder named after the program is two independent things agreeing, and that is enough to promote the folder out of guesswork.",
+                "The roots themselves, Windows, System32, Common Files, WindowsApps and your profile folder are refused whatever their name, and there is a test for each one. A name match on Common Files would be a proposal to break every program on the machine, and the row would not say so.",
+            ],
+            Fixed:
+            [
+                "Uninstalling a program could report a clean removal over a gigabyte of files. Zalo's own uninstaller deletes its registration and leaves %LOCALAPPDATA%\\Programs\\Zalo behind; since it registers no install location, a scan that reads only what a program declares had nothing to look at, found nothing, and said so. The row then vanished from the list - correctly, because the registration really was gone - while the program was still entirely there.",
+                "Quarantine never worked on a machine that had not already got a SmartLab folder, which is every machine. CreateDirectoryW makes one directory level, and under the \\\\?\\ prefix it will not invent the parent, so every attempt failed with \"the system cannot find the path specified\" naming the folder it had just been asked to create. The journal on one stick records three separate repairs of 0 succeeded, 3 failed, against a worm the scan had identified correctly every time.",
+            ]),
+
         new("1.0.3", "2026-08-01",
             Added:
             [
