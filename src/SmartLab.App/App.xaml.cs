@@ -94,6 +94,19 @@ public partial class App : Application
         e.SetObserved();
     }
 
+    /// <summary>
+    /// True while a report is on screen, which is what stops a fault becoming a wall
+    /// of dialogs.
+    /// </summary>
+    /// <remarks>
+    /// A message box pumps messages, so a fault raised during layout raises again
+    /// behind the box that reports it, and again behind that one. A single fault
+    /// produced twelve stacked dialogs, each of which had to be dismissed before the
+    /// window underneath could be looked at. Every occurrence still reaches the log:
+    /// what is suppressed is the twelfth telling of one thing, not the record of it.
+    /// </remarks>
+    private static bool _reporting;
+
     private static void Report(Exception exception, string origin)
     {
         var text =
@@ -110,10 +123,21 @@ public partial class App : Application
             // Logging must never be the thing that brings the app down.
         }
 
-        MessageBox.Show(
-            $"{exception.GetType().Name}: {exception.Message}\n\nLogged to:\n{CrashLogPath}",
-            "Smart Lab - unexpected error",
-            MessageBoxButton.OK,
-            MessageBoxImage.Error);
+        if (_reporting) return;
+
+        _reporting = true;
+
+        try
+        {
+            MessageBox.Show(
+                $"{exception.GetType().Name}: {exception.Message}\n\nLogged to:\n{CrashLogPath}",
+                "Smart Lab - unexpected error",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
+        }
+        finally
+        {
+            _reporting = false;
+        }
     }
 }

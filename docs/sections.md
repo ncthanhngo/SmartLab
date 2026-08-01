@@ -413,11 +413,20 @@ were uninstalled years ago.
 sentence, which is the right size for a verdict and the wrong size for a job with
 steps: pressing Uninstall launches somebody else's installer, waits on it, then goes
 looking through a folder and a registry key, and a line reading "working..." for a
-minute cannot be told apart from one that has hung. An Activity log appears under the
-list and records the command line as it was run, the exit code it came back with, every
-place the leftover scan looked — including the ones that came back clean — and each
+minute cannot be told apart from one that has hung. The window a removal opens carries
+an Activity log recording the command line as it was run, the exit code it came back
+with, every place the scans looked — including the ones that came back clean — and each
 removal with its outcome. It stays pinned to its newest line, because the interesting
 end of a log is the bottom.
+
+**The log lives in the window and nowhere else**, which is not only tidiness. It was on
+screen twice for one release — in the section and in the window — and two `ItemsControl`s
+sharing one `ObservableCollection` is a configuration WPF does not survive: one
+generator falls behind a notification the other has already handled, and the next layout
+pass throws *an ItemsControl is inconsistent with its items source*. Every added line
+threw, and the handler behind it opened a message box for each, so a single fault
+arrived as a dozen stacked dialogs. The dialog is now shown once per fault however many
+times it repeats, and every occurrence still reaches `crash.log`.
 
 The command line is there deliberately. It is the one fact that explains everything
 after it: a silent switch that turned out not to be silent, or an msiexec argument that
