@@ -92,11 +92,16 @@ public sealed class ResourceKeyTests
         {
             var name = Path.GetFileName(file);
 
-            // App.xaml merges the others and MainWindow is the startup URI, not a
-            // dictionary. Palette.Light is the one file deliberately absent: only the
-            // starting palette is listed, and ThemeManager swaps that entry at runtime.
-            // Merging both would mean whichever loaded last silently won.
-            if (name is "App.xaml" or "MainWindow.xaml" or "Palette.Light.xaml") continue;
+            // App.xaml merges the others; MainWindow and UninstallWindow are windows
+            // rather than dictionaries. Palette.Light is the one dictionary
+            // deliberately absent: only the starting palette is listed, and
+            // ThemeManager swaps that entry at runtime. Merging both would mean
+            // whichever loaded last silently won.
+            if (name is "App.xaml" or "MainWindow.xaml" or "UninstallWindow.xaml"
+                or "Palette.Light.xaml")
+            {
+                continue;
+            }
 
             var relative = file.Replace(AppRoot + Path.DirectorySeparatorChar, string.Empty)
                 .Replace(Path.DirectorySeparatorChar, '/');

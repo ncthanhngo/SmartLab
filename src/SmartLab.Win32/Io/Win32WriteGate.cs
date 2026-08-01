@@ -1,3 +1,4 @@
+using System.IO;
 using System.Runtime.InteropServices;
 using SmartLab.Core.Abstractions;
 using SmartLab.Core.Model;
@@ -50,7 +51,61 @@ public sealed class Win32WriteGate(IJournal journal, bool dryRun) : IWriteGate
             () => MoveFileExW(from.Value, to.Value, MoveFileFlags.WriteThrough),
             detail: $"-> {to.ForDisplay()}");
 
-    public Task<WriteResult> CreateDirectoryAsync(ExtendedPath path, CancellationToken ct)
+    /// <summary>
+    /// Creates a directory, and every parent of it that is missing.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <c>CreateDirectoryW</c> makes exactly one level, and under the <c>\\?\</c>
+    /// prefix there is no path normalisation and no implicit parent creation. Asking
+    /// it for a folder two levels below anything that exists fails with
+    /// ERROR_PATH_NOT_FOUND - "the system cannot find the path specified" - naming the
+    /// path it was just asked to create, which reads like nonsense.
+    /// </para>
+    /// <para>
+    /// That is where every quarantine on a fresh machine stopped: the destination is
+    /// <c>%USERPROFILE%\SmartLab\quarantine</c>, and <c>SmartLab</c> does not exist
+    /// until something makes it. A worm the scan had correctly identified was then
+    /// left exactly where it was, and each rescan found it again.
+    /// </para>
+    /// <para>
+    /// Each level is created through the same journaled call as any other write, so
+    /// the record still accounts for every directory this app brought into being.
+    /// </para>
+    /// </remarks>
+    public async Task<WriteResult> CreateDirectoryAsync(ExtendedPath path, CancellationToken ct)
+    {
+        var missing = new Stack<ExtendedPath>();
+        ExtendedPath? current = path;
+
+        // Walked upwards and created downwards, so each level exists before the one
+        // below it is attempted. The walk stops at the first ancestor that is already
+        // there, which on a volume root is immediate.
+        while (current is { } level && !Directory.Exists(level.Value))
+        {
+            missing.Push(level);
+            current = level.Parent;
+        }
+
+        // Already there. Reported as a success rather than skipped: the caller asked
+        // for the directory to exist, and it does.
+        if (missing.Count == 0) return await CreateOneAsync(path, ct).ConfigureAwait(false);
+
+        WriteResult result = default!;
+
+        while (missing.Count > 0)
+        {
+            result = await CreateOneAsync(missing.Pop(), ct).ConfigureAwait(false);
+
+            // A parent that could not be made means none of its children can be, and
+            // the failure that matters is the first one.
+            if (!result.Succeeded) return result;
+        }
+
+        return result;
+    }
+
+    private Task<WriteResult> CreateOneAsync(ExtendedPath path, CancellationToken ct)
         => RunAsync("create-directory", path, ct,
             () => CreateDirectoryW(path.Value, IntPtr.Zero) ||
                   Marshal.GetLastWin32Error() == 183 /* ERROR_ALREADY_EXISTS */);

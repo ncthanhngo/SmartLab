@@ -124,11 +124,13 @@ public sealed class ProgramUninstaller(ITraceProbe probe)
     /// </summary>
     /// <remarks>
     /// Deliberately narrow: only the install folder the program registered and its
-    /// own uninstall key. It does not go hunting the filesystem or registry for the
-    /// vendor's name. A name-based sweep is how a cleaner ends up proposing to
-    /// delete a shared runtime, another product from the same publisher, or a user
-    /// folder that happens to match - and the operator has no way to tell which
-    /// suggestions are safe.
+    /// own uninstall key. Nothing here is guessed at, so nothing here needs grading.
+    ///
+    /// It is also not enough on its own - a program that registered no install
+    /// location leaves this with nothing to check - which is what
+    /// <see cref="DeepTraceScanner"/> is for. That one does go looking, and answers
+    /// the danger of a name-based sweep by saying how it found each thing rather than
+    /// by not looking.
     /// </remarks>
     /// <param name="progress">
     /// Reports every place this looked, including the ones that came back clean. A

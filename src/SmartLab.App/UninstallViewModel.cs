@@ -19,17 +19,36 @@ public sealed partial class TraceItemViewModel(AppTrace trace) : ObservableObjec
     public string SizeText => Trace.SizeText;
     public bool IsUserData => Trace.IsUserData;
 
+    /// <summary>How this was found, in a phrase the row can show.</summary>
+    public string EvidenceText => Trace.Evidence switch
+    {
+        TraceEvidence.Registered => "registered",
+        TraceEvidence.PointsAtApp => "points at the app",
+        _ => "name only",
+    };
+
+    /// <summary>True for a find that rests on a matching name and nothing else.</summary>
+    public bool IsGuess => Trace.IsGuess;
+
     /// <summary>
-    /// The user's own data starts unticked.
+    /// Ticked only where the evidence is more than a matching name.
     /// </summary>
     /// <remarks>
-    /// This is the most important line in the feature. Someone clicking Uninstall is
-    /// asking to remove a program, not to discard the gigabytes it rescued for them -
-    /// and that data may be the only copy left of a drive that has since been
-    /// formatted. Ticking it has to be a deliberate act.
+    /// <para>
+    /// The user's own data is never ticked. Someone clicking Uninstall is asking to
+    /// remove a program, not to discard the gigabytes it rescued for them - and that
+    /// data may be the only copy left of a drive that has since been formatted.
+    /// </para>
+    /// <para>
+    /// Nor is anything found by name alone. A folder called after the publisher may
+    /// belong to a different product of theirs, and a shared runtime is exactly the
+    /// kind of thing that carries a company's name; those are shown and labelled, and
+    /// the operator decides. What the program registered, and what points into its own
+    /// folder, is not a guess and arrives ticked.
+    /// </para>
     /// </remarks>
     [ObservableProperty]
-    private bool _isSelected = !trace.IsUserData;
+    private bool _isSelected = !trace.IsUserData && !trace.IsGuess;
 }
 
 /// <summary>One line of the log, with the tone the window paints it in.</summary>
@@ -56,10 +75,12 @@ public sealed partial class UninstallViewModel : ObservableObject
 {
     private readonly Win32TraceProbe _probe = new();
     private readonly ProgramUninstaller _uninstaller;
+    private readonly DeepTraceScanner _deep;
 
     public UninstallViewModel()
     {
         _uninstaller = new ProgramUninstaller(_probe);
+        _deep = new DeepTraceScanner(_probe);
         InstallDirectory = AppContext.BaseDirectory;
 
         GroupedPrograms.Source = Programs;
@@ -121,6 +142,19 @@ public sealed partial class UninstallViewModel : ObservableObject
     /// one that has hung.
     /// </remarks>
     public SectionProgress Progress { get; } = new();
+
+    /// <summary>
+    /// Raised when a removal starts, so the window that shows it can open.
+    /// </summary>
+    /// <remarks>
+    /// An event rather than a view model reaching for a Window: what to draw is the
+    /// shell's business, and a view model that opens dialogs cannot be driven from a
+    /// test.
+    /// </remarks>
+    public event Action? RunStarted;
+
+    /// <summary>The program this run is about, for the window to put in its title.</summary>
+    [ObservableProperty] private string _runningFor = string.Empty;
 
     private Task? _loading;
 
@@ -211,6 +245,9 @@ public sealed partial class UninstallViewModel : ObservableObject
         Activity.Clear();
         Progress.Begin($"Starting {program.DisplayName}");
 
+        RunningFor = program.DisplayName;
+        RunStarted?.Invoke();
+
         try
         {
             Status = $"Running the uninstaller for '{program.DisplayName}'...";
@@ -244,10 +281,35 @@ public sealed partial class UninstallViewModel : ObservableObject
             foreach (var leftover in leftovers)
                 Leftovers.Add(new TraceItemViewModel(leftover));
 
+            // The narrow scan reads what the program said about itself, which is
+            // nothing at all for the many installers that register no location. The
+            // deep scan goes looking, and grades what it finds by how it found it.
+            Progress.Step("Deep scan", 60);
+            Status = $"Deep scan: looking for what '{program.DisplayName}' left elsewhere...";
+
+            var deep = await Task.Run(() => _deep.Scan(program, progress)).ConfigureAwait(true);
+
+            foreach (var trace in deep)
+            {
+                // The narrow scan may have named the install folder already.
+                if (Leftovers.Any(l => string.Equals(
+                        l.Location, trace.Location, StringComparison.OrdinalIgnoreCase)))
+                {
+                    continue;
+                }
+
+                Leftovers.Add(new TraceItemViewModel(trace));
+            }
+
+            var guesses = Leftovers.Count(l => l.IsGuess);
+
             Say(Leftovers.Count == 0 ? UninstallStepKind.Ok : UninstallStepKind.Warning,
                 Leftovers.Count == 0
                     ? "Nothing left behind."
-                    : $"{Leftovers.Count} leftover(s) listed below. Tick what should go.");
+                    : $"{Leftovers.Count} leftover(s) found" +
+                      (guesses > 0
+                          ? $", {guesses} of them on a matching name alone - those are not ticked."
+                          : "."));
 
             // The registry is read again rather than the row simply being dropped.
             // Whether the entry is gone is the only honest answer to "did it work",

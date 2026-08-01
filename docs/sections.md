@@ -423,11 +423,33 @@ The command line is there deliberately. It is the one fact that explains everyth
 after it: a silent switch that turned out not to be silent, or an msiexec argument that
 opens a repair dialog instead of removing anything, is visible there and nowhere else.
 
-The log also states what is *not* searched. Only the install folder and the uninstall
-key the program registered are checked; nothing is hunted down by name. A short list
-can be mistaken for a shallow scan, so the scan says which it is rather than leaving
-the operator to guess — and "nothing was left behind" is a claim worth being able to
-check, which is why the places that came back clean are named too.
+**Then a deep scan goes looking**, because reading what a program says about itself is
+not enough. Zalo's own uninstaller removed its registration and left 1 GB in
+`%LOCALAPPDATA%\Programs\Zalo`, a second folder of 169 MB, two shortcuts and a protocol
+handler — and since it had registered no install location, a scan of what it declared
+found nothing and reported a clean removal. That is the ordinary case, not a strange one.
+
+The deep scan reads three things: the direct children of the folders applications live
+in, never recursing; the shortcuts in the Start Menu and on the Desktop, with their
+targets resolved; and the registry — `Software` keys, protocol handlers under `Classes`,
+and `Run` values pointing into the program's folder.
+
+**What keeps that from being reckless is evidence, not narrowness.** Every find says how
+it was found. Something the program registered, or something pointing into its own
+folder, is not a guess and arrives ticked. A folder or key that merely carries a matching
+name might be another product from the same publisher, or a runtime three programs
+share; it is shown, labelled *name only*, and left for the operator. A Start Menu entry
+named after the program that launches an executable inside a folder named after the
+program is two independent things agreeing about one place — that promotes the folder
+out of guesswork, which is what makes the gigabyte worth ticking for somebody.
+
+Some places are refused whatever their name: the roots themselves, `Windows`, `System32`,
+`Common Files`, `WindowsApps`, and the user's profile folder. A name match on `Common
+Files` would be a proposal to break every program on the machine, and the operator has no
+way to know that from the row.
+
+"Nothing was left behind" is a claim worth being able to check, which is why the places
+that came back clean are named in the log too.
 
 **The band under the header is the frame's, not this section's.** Every section with a
 job longer than an instant hands one over — Repair's scan, Defender's sweep, the folder

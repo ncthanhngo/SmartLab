@@ -250,9 +250,48 @@ public partial class MainWindow : Window
 
     // ---- tray -------------------------------------------------------------------
 
+    /// <summary>Open while a removal runs, so a second press cannot open a second one.</summary>
+    private Views.UninstallWindow? _uninstallWindow;
+
+    /// <summary>
+    /// Opens the window a removal happens in.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Queued rather than shown inline. <c>ShowDialog</c> does not return until the
+    /// window closes, and the view model raises this from inside the command that does
+    /// the work - shown inline, the removal would not start until the operator closed
+    /// the window they opened it to watch.
+    /// </para>
+    /// <para>
+    /// The nested message loop a modal window runs is what keeps the log live: the
+    /// awaits in the command continue on the dispatcher, which is still pumping.
+    /// </para>
+    /// </remarks>
+    private void OnUninstallStarted()
+    {
+        if (_uninstallWindow is not null) return;
+
+        Dispatcher.BeginInvoke(() =>
+        {
+            if (ViewModel is not { } viewModel) return;
+
+            _uninstallWindow = new Views.UninstallWindow
+            {
+                Owner = this,
+                DataContext = viewModel.Uninstall,
+            };
+
+            try { _uninstallWindow.ShowDialog(); }
+            finally { _uninstallWindow = null; }
+        });
+    }
+
     private void OnLoaded(object sender, RoutedEventArgs e)
     {
         CreateTrayIcon();
+
+        if (ViewModel is { } viewModel) viewModel.Uninstall.RunStarted += OnUninstallStarted;
 
         var args = Environment.GetCommandLineArgs();
 
