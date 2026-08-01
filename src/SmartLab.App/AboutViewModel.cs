@@ -90,6 +90,21 @@ public sealed partial class AboutViewModel(MainViewModel shell) : ObservableObje
     /// </remarks>
     public static IReadOnlyList<ReleaseNote> ReleaseNotes { get; } =
     [
+        new("1.0.6", "2026-08-01",
+            Added:
+            [
+                "History: a section that reads back what this app has already done to this machine. Every write has gone through one gate and been journalled since the first release, and none of it was ever on screen - which is how three separate repairs of one infected stick each recorded '0 succeeded, 3 failed' while the window said nothing was wrong. Records are grouped into runs, and the heading leads with failed writes rather than with a count of runs.",
+                "History can put back what a run quarantined. Quarantine was always a move rather than a delete, and until now nothing ever moved anything back: the store holds sanitised names and nothing saying where they came from, but the journal recorded each copy and its destination at the time. A file whose old path is now occupied is refused rather than written over.",
+                "Uninstall takes its deep scan twice. What lifts a folder out of guesswork is a Start Menu entry named after the program launching from inside it, and the vendor's uninstaller usually deletes that shortcut on its way out - so a quiet pass before it runs keeps the evidence from while the evidence still existed.",
+                "Uninstall looks for scheduled tasks, services and firewall rules, by where they point and never by name. A folder left behind wastes space; one of these left behind is a program that still runs, is still allowed through, or puts itself back.",
+                "What an uninstall removes now goes to the Recycle Bin rather than to nothing. The list is assembled partly by guessing, and a guess that removes a gigabyte should be one you can take back. Temp & Cache deliberately still deletes: recycling a temp folder frees no space until the bin is emptied, which is the whole reason Clean was pressed.",
+                "A self-test mode, --selftest, draws the states no automated run had ever reached - a progress band mid-run, a verdict in each tone, the window a removal opens - and the release script refuses to package a build that fails it. Two of the last four releases shipped a fault that took the window down on sight, and both would have been caught by drawing the state once.",
+            ],
+            Fixed:
+            [
+                "Home claimed to measure the whole machine while running five of the fifteen sections. It names the five now: somebody pressing Run believing Malware and Big & Stale were included had been told something false by a line that meant to sound reassuring.",
+            ]),
+
         new("1.0.5", "2026-08-01",
             Added: [],
             Fixed:
