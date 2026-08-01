@@ -809,7 +809,7 @@ above. Format and repair can now be written against it rather than waiting for i
 
 ## Field notes
 
-Three bugs in this codebase were found only by running against real hardware, and
+Five bugs in this codebase were found only by running against real hardware, and
 each is now covered by a test:
 
 - **Unaligned device reads.** A volume permits only sector-aligned I/O.
@@ -821,6 +821,15 @@ each is now covered by a test:
 - **WPF versus invariant globalization.** Every data binding resolves a culture,
   which throws when ICU data is absent; the window failed to construct and the
   process died at startup.
+- **A drive root cannot be quoted naively.** Windows argument parsing lets a
+  backslash immediately before the closing quote escape it, so `-File "E:\"`
+  reached MpCmdRun as `E:"`. Every Defender scan of a drive root — which is what
+  the Malware section is pointed at — failed with `hr = 0x80508023` in about a
+  second, having looked at nothing. The trailing backslash is doubled now.
+- **A cleaned threat exits zero and names nothing.** MpCmdRun prints
+  `found 1 threats.` and `Cleaning finished.`, with no `Threat information:` line
+  and exit code 0, so reading names and exit codes reported a drive Defender had
+  just disinfected as clean.
 
-A fourth was a false positive rather than a crash: flagging any `autorun.inf` at a
+Another was a false positive rather than a crash: flagging any `autorun.inf` at a
 removable root marked a legitimate bootable stick as infected.

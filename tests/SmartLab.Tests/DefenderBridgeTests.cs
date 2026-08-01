@@ -35,6 +35,31 @@ public sealed class DefenderBridgeTests
     }
 
     [Fact]
+    public void ADriveRootSurvivesQuotingToo()
+    {
+        // Windows argument parsing lets a backslash immediately before the closing
+        // quote escape it, so "E:\" arrives as E:" - a path that cannot exist. Measured
+        // against the real MpCmdRun: it fails with hr = 0x80508023 in about a second,
+        // having scanned nothing. Every drive root ends in that backslash.
+        Assert.Equal(
+            "-Scan -ScanType 3 -File \"E:\\\\\"",
+            DefenderBridge.BuildScanArguments(@"E:\"));
+    }
+
+    [Fact]
+    public void EveryScannableDriveProducesAnArgumentThatCanBeParsed()
+    {
+        // The sweep hands these straight to MpCmdRun, so the escaping has to hold for
+        // whatever this machine actually has mounted.
+        foreach (var root in DefenderBridge.ScannableDrives())
+        {
+            var arguments = DefenderBridge.BuildScanArguments(root);
+
+            Assert.EndsWith("\\\\\"", arguments, StringComparison.Ordinal);
+        }
+    }
+
+    [Fact]
     public void AScanThatFinishedCleanIsClean()
     {
         var result = DefenderBridge.Interpret(0, "Scan starting...\nScan finished.\nfound no threats.");

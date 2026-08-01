@@ -80,12 +80,27 @@ public static class DefenderBridge
     /// Builds the custom-scan arguments.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// ScanType 3 is a custom scan of one path. The path is quoted because a drive
     /// with a space in its mount point would otherwise become two arguments and scan
     /// something else, or nothing.
+    /// </para>
+    /// <para>
+    /// The trailing backslash is then doubled, and that is not cosmetic. Windows
+    /// argument parsing lets a backslash immediately before the closing quote escape
+    /// it, so <c>"E:\"</c> reaches MpCmdRun as <c>E:"</c> - a path that cannot exist.
+    /// The scan fails with <c>hr = 0x80508023</c> in about a second, having looked at
+    /// nothing. Every drive root ends in that backslash, which is precisely what this
+    /// section is pointed at, so without this a whole-drive scan never once ran.
+    /// </para>
     /// </remarks>
-    public static string BuildScanArguments(string path) =>
-        $"-Scan -ScanType 3 -File \"{path.TrimEnd('"')}\"";
+    public static string BuildScanArguments(string path)
+    {
+        var target = path.TrimEnd('"');
+        var trailing = target.Length - target.TrimEnd('\\').Length;
+
+        return $"-Scan -ScanType 3 -File \"{target}{new string('\\', trailing)}\"";
+    }
 
     /// <summary>
     /// The command that removes what Defender has identified.
