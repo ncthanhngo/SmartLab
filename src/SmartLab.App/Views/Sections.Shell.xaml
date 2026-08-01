@@ -47,15 +47,16 @@
                            HorizontalAlignment="Center" TextAlignment="Center"
                            MaxWidth="620" TextWrapping="Wrap"
                            Foreground="{DynamicResource TextSecondaryBrush}" />
-            </StackPanel>
 
-            <!-- What is being measured right now, and what the run concluded. Home
-                 is the one screen with no SectionFrame to draw this for it, so it
-                 draws its own - and before it had one, pressing Run showed three
-                 breathing circles and nothing else. -->
-            <ContentPresenter Grid.Row="0" VerticalAlignment="Bottom" Margin="0,14,0,0"
-                              Content="{Binding Progress}"
-                              ContentTemplate="{StaticResource ProgressBandTemplate}" />
+                <!-- What is being measured right now, and what the run concluded.
+                     Home is the one screen with no SectionFrame to draw this for it,
+                     so it draws its own - and before it had one, pressing Run showed
+                     three breathing circles and nothing else. Under the headline
+                     rather than over it: the band appears and disappears, and a
+                     heading that moves when it does is a heading nobody trusts. -->
+                <ContentPresenter Margin="-24,14,-24,0" Content="{Binding Progress}"
+                                  ContentTemplate="{StaticResource ProgressBandTemplate}" />
+            </StackPanel>
 
             <!-- ===== the three pillars ===== -->
             <Grid Grid.Row="1" VerticalAlignment="Center">

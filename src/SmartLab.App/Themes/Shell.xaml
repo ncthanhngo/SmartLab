@@ -10,6 +10,135 @@
         ticks, lists - while this one is the layout the application is arranged in.
     -->
 
+    <!-- ============================ progress band ============================
+
+         What a section is doing, and then what it did. Drawn by SectionFrame for
+         any section that hands it a SectionProgress, so the answer to "is this
+         still working" and "did it finish" is in the same place on every screen.
+
+         The bar states a figure where one exists and moves without a figure where
+         one does not - walking a tree of unknown size, or waiting on somebody
+         else's process. A bar that reads 60% for a minute teaches an operator that
+         the number means nothing, and then the honest numbers stop being read too.
+    -->
+
+    <DataTemplate x:Key="ProgressBandTemplate">
+        <Border x:Name="Band" Padding="16,13" Margin="24,14,24,0"
+                CornerRadius="{StaticResource CardRadius}"
+                Background="{DynamicResource SurfaceSunkenBrush}"
+                BorderThickness="1" BorderBrush="{DynamicResource HairlineBrush}">
+            <Border.Style>
+                <Style TargetType="Border">
+                    <Setter Property="Visibility" Value="Collapsed" />
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding IsRunning}" Value="True">
+                            <Setter Property="Visibility" Value="Visible" />
+                        </DataTrigger>
+                        <DataTrigger Binding="{Binding HasRun}" Value="True">
+                            <Setter Property="Visibility" Value="Visible" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Border.Style>
+
+            <DockPanel>
+                <ProgressBar DockPanel.Dock="Bottom" Style="{StaticResource SlimProgress}"
+                             Margin="0,11,0,0" Maximum="100"
+                             Value="{Binding Percent, Mode=OneWay}"
+                             IsIndeterminate="{Binding IsIndeterminate}"
+                             Visibility="{Binding IsRunning,
+                                 Converter={StaticResource BoolToVisibility}}" />
+
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <!-- The lamp's box, spelt out rather than borrowing VerdictLamp:
+                         this template has to be declared before SectionFrame's, which
+                         is before that style exists. -->
+                    <Border x:Name="Lamp" Grid.Column="0" Width="38" Height="38"
+                            CornerRadius="11" Margin="0,0,14,0" VerticalAlignment="Top"
+                            Background="{DynamicResource SurfaceRaisedBrush}">
+                        <TextBlock x:Name="LampGlyph" Text="&#xE895;" FontFamily="Segoe MDL2 Assets"
+                                   FontSize="15" HorizontalAlignment="Center"
+                                   VerticalAlignment="Center"
+                                   Foreground="{DynamicResource TextMutedBrush}" />
+                    </Border>
+
+                    <StackPanel x:Name="Running" Grid.Column="1" VerticalAlignment="Center"
+                                Margin="14,0,0,0">
+                        <TextBlock Text="{Binding Stage}" FontSize="14" FontWeight="Bold"
+                                   TextTrimming="CharacterEllipsis"
+                                   Foreground="{DynamicResource TextPrimaryBrush}" />
+                        <TextBlock Text="Working. This section is busy until it finishes."
+                                   FontSize="12" Margin="0,3,0,0"
+                                   Foreground="{DynamicResource TextMutedBrush}" />
+                    </StackPanel>
+
+                    <StackPanel x:Name="Finished" Grid.Column="1" VerticalAlignment="Center"
+                                Margin="14,0,0,0" Visibility="Collapsed">
+                        <TextBlock x:Name="Headline" Text="{Binding Completion}" FontSize="14"
+                                   FontWeight="Bold"
+                                   Foreground="{DynamicResource TextPrimaryBrush}" />
+                        <TextBlock Text="{Binding CompletionDetail}" FontSize="12" Margin="0,3,0,0"
+                                   TextWrapping="Wrap" MaxWidth="620" HorizontalAlignment="Left"
+                                   Foreground="{DynamicResource TextSecondaryBrush}" />
+                    </StackPanel>
+
+                    <TextBlock x:Name="Percent" Grid.Column="2" VerticalAlignment="Center"
+                               Margin="16,0,0,0" FontSize="20" FontWeight="Bold"
+                               FontFamily="{StaticResource MonoFont}"
+                               Text="{Binding Percent, Mode=OneWay, StringFormat={}{0:F0}%}"
+                               Foreground="{DynamicResource TextPrimaryBrush}" />
+                </Grid>
+            </DockPanel>
+        </Border>
+
+        <DataTemplate.Triggers>
+            <!-- The band swaps its middle: what is happening, or what happened. The
+                 figure goes with the first, and goes away for the step that has none. -->
+            <DataTrigger Binding="{Binding IsRunning}" Value="False">
+                <Setter TargetName="Running" Property="Visibility" Value="Collapsed" />
+                <Setter TargetName="Finished" Property="Visibility" Value="Visible" />
+                <Setter TargetName="Percent" Property="Visibility" Value="Collapsed" />
+            </DataTrigger>
+            <DataTrigger Binding="{Binding IsIndeterminate}" Value="True">
+                <Setter TargetName="Percent" Property="Visibility" Value="Collapsed" />
+            </DataTrigger>
+
+            <DataTrigger Binding="{Binding Tone}" Value="good">
+                <Setter TargetName="Lamp" Property="Background" Value="{DynamicResource AccentSoftBrush}" />
+                <Setter TargetName="LampGlyph" Property="Text" Value="&#xE930;" />
+                <Setter TargetName="LampGlyph" Property="Foreground" Value="{DynamicResource AccentBrush}" />
+                <Setter TargetName="Headline" Property="Foreground" Value="{DynamicResource AccentBrush}" />
+            </DataTrigger>
+            <DataTrigger Binding="{Binding Tone}" Value="warning">
+                <Setter TargetName="LampGlyph" Property="Text" Value="&#xE7BA;" />
+                <Setter TargetName="LampGlyph" Property="Foreground" Value="{DynamicResource WarningBrush}" />
+                <Setter TargetName="Headline" Property="Foreground" Value="{DynamicResource WarningBrush}" />
+            </DataTrigger>
+            <DataTrigger Binding="{Binding Tone}" Value="alert">
+                <Setter TargetName="LampGlyph" Property="Text" Value="&#xE814;" />
+                <Setter TargetName="LampGlyph" Property="Foreground" Value="{DynamicResource DangerBrush}" />
+                <Setter TargetName="Headline" Property="Foreground" Value="{DynamicResource DangerBrush}" />
+            </DataTrigger>
+
+            <!-- While it runs the lamp is a stopwatch and nothing more. Last, so it
+                 wins over whatever tone the previous run left behind: a green tick
+                 beside a job still in progress is a claim nobody has earned yet. -->
+            <DataTrigger Binding="{Binding IsRunning}" Value="True">
+                <Setter TargetName="Lamp" Property="Background"
+                        Value="{DynamicResource SurfaceRaisedBrush}" />
+                <Setter TargetName="LampGlyph" Property="Text" Value="&#xE895;" />
+                <Setter TargetName="LampGlyph" Property="Foreground"
+                        Value="{DynamicResource TextMutedBrush}" />
+            </DataTrigger>
+        </DataTemplate.Triggers>
+    </DataTemplate>
+
     <!-- ============================ readings ============================
 
          The number, its unit, what it counts, and a bar only when a denominator
@@ -221,132 +350,6 @@
         <Setter Property="Margin" Value="0,3,0,0" />
         <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
     </Style>
-
-    <!-- ============================ progress band ============================
-
-         What a section is doing, and then what it did. Drawn by SectionFrame for
-         any section that hands it a SectionProgress, so the answer to "is this
-         still working" and "did it finish" is in the same place on every screen.
-
-         The bar states a figure where one exists and moves without a figure where
-         one does not - walking a tree of unknown size, or waiting on somebody
-         else's process. A bar that reads 60% for a minute teaches an operator that
-         the number means nothing, and then the honest numbers stop being read too.
-    -->
-
-    <DataTemplate x:Key="ProgressBandTemplate">
-        <Border x:Name="Band" Padding="16,13" Margin="24,14,24,0"
-                CornerRadius="{StaticResource CardRadius}"
-                Background="{DynamicResource SurfaceSunkenBrush}"
-                BorderThickness="1" BorderBrush="{DynamicResource HairlineBrush}">
-            <Border.Style>
-                <Style TargetType="Border">
-                    <Setter Property="Visibility" Value="Collapsed" />
-                    <Style.Triggers>
-                        <DataTrigger Binding="{Binding IsRunning}" Value="True">
-                            <Setter Property="Visibility" Value="Visible" />
-                        </DataTrigger>
-                        <DataTrigger Binding="{Binding HasRun}" Value="True">
-                            <Setter Property="Visibility" Value="Visible" />
-                        </DataTrigger>
-                    </Style.Triggers>
-                </Style>
-            </Border.Style>
-
-            <DockPanel>
-                <ProgressBar DockPanel.Dock="Bottom" Style="{StaticResource SlimProgress}"
-                             Margin="0,11,0,0" Maximum="100"
-                             Value="{Binding Percent, Mode=OneWay}"
-                             IsIndeterminate="{Binding IsIndeterminate}"
-                             Visibility="{Binding IsRunning,
-                                 Converter={StaticResource BoolToVisibility}}" />
-
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
-
-                    <Border x:Name="Lamp" Grid.Column="0" Style="{StaticResource VerdictLamp}"
-                            Background="{DynamicResource SurfaceRaisedBrush}">
-                        <TextBlock x:Name="LampGlyph" Text="&#xE895;" FontFamily="Segoe MDL2 Assets"
-                                   FontSize="15" HorizontalAlignment="Center"
-                                   VerticalAlignment="Center"
-                                   Foreground="{DynamicResource TextMutedBrush}" />
-                    </Border>
-
-                    <StackPanel x:Name="Running" Grid.Column="1" VerticalAlignment="Center"
-                                Margin="14,0,0,0">
-                        <TextBlock Text="{Binding Stage}" FontSize="14" FontWeight="Bold"
-                                   TextTrimming="CharacterEllipsis"
-                                   Foreground="{DynamicResource TextPrimaryBrush}" />
-                        <TextBlock Text="Working. This section is busy until it finishes."
-                                   FontSize="12" Margin="0,3,0,0"
-                                   Foreground="{DynamicResource TextMutedBrush}" />
-                    </StackPanel>
-
-                    <StackPanel x:Name="Finished" Grid.Column="1" VerticalAlignment="Center"
-                                Margin="14,0,0,0" Visibility="Collapsed">
-                        <TextBlock x:Name="Headline" Text="{Binding Completion}" FontSize="14"
-                                   FontWeight="Bold"
-                                   Foreground="{DynamicResource TextPrimaryBrush}" />
-                        <TextBlock Text="{Binding CompletionDetail}" FontSize="12" Margin="0,3,0,0"
-                                   TextWrapping="Wrap" MaxWidth="620" HorizontalAlignment="Left"
-                                   Foreground="{DynamicResource TextSecondaryBrush}" />
-                    </StackPanel>
-
-                    <TextBlock x:Name="Percent" Grid.Column="2" VerticalAlignment="Center"
-                               Margin="16,0,0,0" FontSize="20" FontWeight="Bold"
-                               FontFamily="{StaticResource MonoFont}"
-                               Text="{Binding Percent, Mode=OneWay, StringFormat={}{0:F0}%}"
-                               Foreground="{DynamicResource TextPrimaryBrush}" />
-                </Grid>
-            </DockPanel>
-        </Border>
-
-        <DataTemplate.Triggers>
-            <!-- The band swaps its middle: what is happening, or what happened. The
-                 figure goes with the first, and goes away for the step that has none. -->
-            <DataTrigger Binding="{Binding IsRunning}" Value="False">
-                <Setter TargetName="Running" Property="Visibility" Value="Collapsed" />
-                <Setter TargetName="Finished" Property="Visibility" Value="Visible" />
-                <Setter TargetName="Percent" Property="Visibility" Value="Collapsed" />
-            </DataTrigger>
-            <DataTrigger Binding="{Binding IsIndeterminate}" Value="True">
-                <Setter TargetName="Percent" Property="Visibility" Value="Collapsed" />
-            </DataTrigger>
-
-            <DataTrigger Binding="{Binding Tone}" Value="good">
-                <Setter TargetName="Lamp" Property="Background" Value="{DynamicResource AccentSoftBrush}" />
-                <Setter TargetName="LampGlyph" Property="Text" Value="&#xE930;" />
-                <Setter TargetName="LampGlyph" Property="Foreground" Value="{DynamicResource AccentBrush}" />
-                <Setter TargetName="Headline" Property="Foreground" Value="{DynamicResource AccentBrush}" />
-            </DataTrigger>
-            <DataTrigger Binding="{Binding Tone}" Value="warning">
-                <Setter TargetName="LampGlyph" Property="Text" Value="&#xE7BA;" />
-                <Setter TargetName="LampGlyph" Property="Foreground" Value="{DynamicResource WarningBrush}" />
-                <Setter TargetName="Headline" Property="Foreground" Value="{DynamicResource WarningBrush}" />
-            </DataTrigger>
-            <DataTrigger Binding="{Binding Tone}" Value="alert">
-                <Setter TargetName="LampGlyph" Property="Text" Value="&#xE814;" />
-                <Setter TargetName="LampGlyph" Property="Foreground" Value="{DynamicResource DangerBrush}" />
-                <Setter TargetName="Headline" Property="Foreground" Value="{DynamicResource DangerBrush}" />
-            </DataTrigger>
-
-            <!-- While it runs the lamp is a stopwatch and nothing more. Last, so it
-                 wins over whatever tone the previous run left behind: a green tick
-                 beside a job still in progress is a claim nobody has earned yet. -->
-            <DataTrigger Binding="{Binding IsRunning}" Value="True">
-                <Setter TargetName="Lamp" Property="Background"
-                        Value="{DynamicResource SurfaceRaisedBrush}" />
-                <Setter TargetName="LampGlyph" Property="Text" Value="&#xE895;" />
-                <Setter TargetName="LampGlyph" Property="Foreground"
-                        Value="{DynamicResource TextMutedBrush}" />
-            </DataTrigger>
-        </DataTemplate.Triggers>
-    </DataTemplate>
-
     <!-- ============================ chips ============================
 
          State in form as well as colour: a reader who cannot separate amber from
