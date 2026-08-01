@@ -145,6 +145,7 @@
     <sys:String x:Key="NavDeletedHex">#4DC4E8</sys:String>
     <sys:String x:Key="NavShredderHex">#FF6B6B</sys:String>
 
+    <sys:String x:Key="NavHistoryHex">#C4A6FF</sys:String>
     <sys:String x:Key="NavSettingsHex">#94A3B8</sys:String>
     <sys:String x:Key="NavAboutHex">#4DD4C4</sys:String>
 

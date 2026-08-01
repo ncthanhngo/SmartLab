@@ -323,6 +323,215 @@
         </DataTemplate.Triggers>
     </DataTemplate>
 
+    <!-- ================= History ================= -->
+
+    <!--
+        What this app has already done. Verdict and evidence, like Repair: the answer
+        is a state rather than a fraction, and the evidence is the journal itself.
+
+        It exists because the journal was written from the first release and shown
+        nowhere. Three separate repairs of one infected stick each recorded
+        "0 succeeded, 3 failed" while the window said nothing was wrong, and the
+        operator was left believing the scanner had been at fault.
+    -->
+
+    <DataTemplate x:Key="section-history">
+        <ctl:SectionFrame Title="History" Status="{Binding Status}"
+                          Subtitle="Every write this app makes is journalled as it happens. This reads those journals back."
+                          DataContext="{Binding DataContext.History,
+                              RelativeSource={RelativeSource AncestorType=Window}}">
+
+            <ctl:SectionFrame.Actions>
+                <StackPanel Orientation="Horizontal">
+                    <Button Content="Open folder" Style="{StaticResource GhostButton}"
+                            Command="{Binding OpenFolderCommand}" Margin="0,0,8,0" />
+                    <Button Content="Reload" Style="{StaticResource PrimaryButton}"
+                            Command="{Binding LoadCommand}" />
+                </StackPanel>
+            </ctl:SectionFrame.Actions>
+
+            <DockPanel>
+                <Border DockPanel.Dock="Top" Style="{StaticResource VerdictBand}" Margin="0,0,0,14">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <Border x:Name="Lamp" Grid.Column="0" Style="{StaticResource VerdictLamp}"
+                                Background="{DynamicResource SurfaceRaisedBrush}">
+                            <TextBlock x:Name="LampGlyph" Text="&#xE81C;" FontFamily="Segoe MDL2 Assets"
+                                       FontSize="15" HorizontalAlignment="Center"
+                                       VerticalAlignment="Center"
+                                       Foreground="{DynamicResource TextMutedBrush}" />
+                        </Border>
+
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                            <TextBlock Text="{Binding Headline}" Style="{StaticResource VerdictHeadline}" />
+                            <TextBlock Text="{Binding HeadlineDetail}" Style="{StaticResource VerdictDetail}"
+                                       MaxWidth="560" HorizontalAlignment="Left" />
+                        </StackPanel>
+
+                        <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center"
+                                    Margin="18,0,0,0">
+                            <ctl:Reading Value="{Binding RunCount}" Caption="RUNS" />
+                            <ctl:Reading Value="{Binding FailureCount}" Caption="FAILED WRITES"
+                                         IsQuiet="True" Margin="22,0,0,0" />
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="320" />
+                        <ColumnDefinition Width="14" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <!-- The runs, newest first: what an operator remembers doing. -->
+                    <Border Grid.Column="0" Style="{StaticResource Card}" Padding="15">
+                        <DockPanel>
+                            <TextBlock DockPanel.Dock="Top" Text="Runs"
+                                       Style="{StaticResource SectionTitle}" />
+
+                            <TextBlock DockPanel.Dock="Top" Text="{Binding Folder}" FontSize="11"
+                                       Margin="0,0,0,8" TextTrimming="CharacterEllipsis"
+                                       FontFamily="{StaticResource MonoFont}"
+                                       Foreground="{DynamicResource TextMutedBrush}" />
+
+                            <ListBox Style="{StaticResource PlainList}" ItemsSource="{Binding Runs}"
+                                     SelectedItem="{Binding SelectedRun}">
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border x:Name="Row" Background="{DynamicResource SurfaceRaisedBrush}"
+                                                CornerRadius="{StaticResource ControlRadius}"
+                                                Padding="11,9" Margin="0,0,0,5">
+                                            <StackPanel>
+                                                <StackPanel Orientation="Horizontal">
+                                                    <TextBlock Text="{Binding Volume}" FontSize="13"
+                                                               FontWeight="SemiBold"
+                                                               FontFamily="{StaticResource MonoFont}"
+                                                               Foreground="{DynamicResource TextPrimaryBrush}" />
+                                                    <Border x:Name="Failed" Style="{StaticResource Chip}"
+                                                            Visibility="Collapsed">
+                                                        <TextBlock Text="failed"
+                                                                   Style="{StaticResource ChipText}"
+                                                                   Foreground="{DynamicResource DangerBrush}" />
+                                                    </Border>
+                                                    <Border x:Name="Unfinished" Style="{StaticResource Chip}"
+                                                            Visibility="Collapsed">
+                                                        <TextBlock Text="unfinished"
+                                                                   Style="{StaticResource ChipText}"
+                                                                   Foreground="{DynamicResource WarningBrush}" />
+                                                    </Border>
+                                                </StackPanel>
+
+                                                <TextBlock Text="{Binding Started}" FontSize="11.5"
+                                                           Margin="0,3,0,0"
+                                                           Foreground="{DynamicResource TextSecondaryBrush}" />
+                                                <TextBlock Text="{Binding Detail}" FontSize="11.5"
+                                                           Margin="0,2,0,0"
+                                                           Foreground="{DynamicResource TextMutedBrush}" />
+                                            </StackPanel>
+                                        </Border>
+
+                                        <DataTemplate.Triggers>
+                                            <DataTrigger Binding="{Binding Tone}" Value="alert">
+                                                <Setter TargetName="Failed" Property="Visibility" Value="Visible" />
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding Tone}" Value="warning">
+                                                <Setter TargetName="Unfinished" Property="Visibility" Value="Visible" />
+                                            </DataTrigger>
+                                        </DataTemplate.Triggers>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                        </DockPanel>
+                    </Border>
+
+                    <!-- Every line of the run that is selected, in the journal's own words. -->
+                    <Border Grid.Column="2" Style="{StaticResource Card}" Padding="15">
+                        <DockPanel>
+                            <TextBlock DockPanel.Dock="Top" Text="{Binding SelectedRun.Outcome}"
+                                       Style="{StaticResource SectionTitle}" TextWrapping="Wrap" />
+
+                            <ListBox Style="{StaticResource PlainList}"
+                                     ItemsSource="{Binding SelectedRun.Lines}">
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid Margin="0,0,0,5">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+
+                                            <TextBlock x:Name="Mark" Grid.Column="0" Text="&#xE930;"
+                                                       FontFamily="Segoe MDL2 Assets" FontSize="11"
+                                                       Margin="0,2,8,0" VerticalAlignment="Top"
+                                                       Foreground="{DynamicResource AccentBrush}" />
+
+                                            <TextBlock Grid.Column="1" Text="{Binding Time}" FontSize="11.5"
+                                                       Margin="0,0,10,0" VerticalAlignment="Top"
+                                                       FontFamily="{StaticResource MonoFont}"
+                                                       Foreground="{DynamicResource TextMutedBrush}" />
+
+                                            <TextBlock Grid.Column="2" Text="{Binding Kind}" FontSize="11.5"
+                                                       Margin="0,0,10,0" MinWidth="110"
+                                                       VerticalAlignment="Top" FontWeight="SemiBold"
+                                                       Foreground="{DynamicResource TextSecondaryBrush}" />
+
+                                            <StackPanel Grid.Column="3">
+                                                <TextBlock Text="{Binding Target}" FontSize="11.5"
+                                                           TextWrapping="Wrap"
+                                                           FontFamily="{StaticResource MonoFont}"
+                                                           Foreground="{DynamicResource TextSecondaryBrush}" />
+
+                                                <TextBlock x:Name="Detail" Text="{Binding Detail}"
+                                                           FontSize="11.5" Margin="0,2,0,0"
+                                                           TextWrapping="Wrap" Visibility="Collapsed"
+                                                           Foreground="{DynamicResource TextMutedBrush}" />
+                                            </StackPanel>
+                                        </Grid>
+
+                                        <DataTemplate.Triggers>
+                                            <DataTrigger Binding="{Binding HasDetail}" Value="True">
+                                                <Setter TargetName="Detail" Property="Visibility" Value="Visible" />
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding Tone}" Value="alert">
+                                                <Setter TargetName="Mark" Property="Text" Value="&#xE814;" />
+                                                <Setter TargetName="Mark" Property="Foreground"
+                                                        Value="{DynamicResource DangerBrush}" />
+                                            </DataTrigger>
+                                        </DataTemplate.Triggers>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                        </DockPanel>
+                    </Border>
+                </Grid>
+            </DockPanel>
+        </ctl:SectionFrame>
+
+        <DataTemplate.Triggers>
+            <DataTrigger Value="good"
+                         Binding="{Binding DataContext.History.HeadlineTone,
+                             RelativeSource={RelativeSource AncestorType=Window}}">
+                <Setter TargetName="Lamp" Property="Background" Value="{DynamicResource AccentSoftBrush}" />
+                <Setter TargetName="LampGlyph" Property="Text" Value="&#xE930;" />
+                <Setter TargetName="LampGlyph" Property="Foreground" Value="{DynamicResource AccentBrush}" />
+            </DataTrigger>
+            <DataTrigger Value="warning"
+                         Binding="{Binding DataContext.History.HeadlineTone,
+                             RelativeSource={RelativeSource AncestorType=Window}}">
+                <Setter TargetName="LampGlyph" Property="Text" Value="&#xE7BA;" />
+                <Setter TargetName="LampGlyph" Property="Foreground" Value="{DynamicResource WarningBrush}" />
+            </DataTrigger>
+        </DataTemplate.Triggers>
+    </DataTemplate>
+
     <!-- ================= Settings ================= -->
 
     <DataTemplate x:Key="section-settings">

@@ -239,6 +239,7 @@ public sealed partial class MainViewModel : ObservableObject
         new("deleted", "Deleted", "Carve what was erased", Glyph(0xE74C), "NavDeletedHex", GroupFiles),
         new("shredder", "Wipe", "Overwrite beyond recovery", Glyph(0xE75C), "NavShredderHex", GroupFiles),
 
+        new("history", "History", "What this app has done", Glyph(0xE81C), "NavHistoryHex", GroupApp),
         new("settings", "Settings", "Watching and startup", Glyph(0xE713), "NavSettingsHex", GroupApp),
         new("about", "About", "Version and author", Glyph(0xE946), "NavAboutHex", GroupApp),
     ];
@@ -306,6 +307,11 @@ public sealed partial class MainViewModel : ObservableObject
     /// <summary>Version, release notes, and whether a newer build exists.</summary>
     public AboutViewModel About { get; }
 
+    /// <summary>
+    /// What this app has already done to this machine, read back from its own journals.
+    /// </summary>
+    public HistoryViewModel History { get; } = new();
+
     /// <summary>Whether the selected stick will still start a PC. Part of Repair.</summary>
     public BootViewModel Boot { get; }
 
@@ -339,6 +345,10 @@ public sealed partial class MainViewModel : ObservableObject
     partial void OnSelectedSectionChanged(NavSection? value)
     {
         if (value?.Key == "uninstall") _ = Uninstall.EnsureLoadedAsync();
+
+        // Reading files this app wrote changes nothing, and the screen would otherwise
+        // be a button that fills itself in.
+        if (value?.Key == "history") _ = History.EnsureLoadedAsync();
     }
 
     /// <summary>Large headline for the current volume, in the manner of a health panel.</summary>
