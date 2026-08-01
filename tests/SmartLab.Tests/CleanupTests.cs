@@ -163,4 +163,53 @@ public class JunkScannerTests
     {
         Assert.Equal(expected, new JunkFinding(Category("x"), bytes, 0).SizeText);
     }
+
+    private static AppTrace Contents() =>
+        new(TraceKind.DirectoryContents, @"C:\WINDOWS\SoftwareDistribution\Download", "Windows Update cache");
+
+    [Fact]
+    public void A_sweep_that_removed_nothing_at_all_is_a_failure()
+    {
+        // Measured against this machine: unelevated, the Windows Update cache refuses
+        // all 49,499 files and the section reported "Cleaned. 7.44 GB still held",
+        // with no failures, over a folder it had not touched a byte of.
+        var result = Win32TraceRemover.Describe(Contents(), removed: 0, locked: 0, refused: 49_499);
+
+        Assert.Equal(RemovalOutcome.Failed, result.Outcome);
+        Assert.Contains("Administrator", result.Detail, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Refused_and_in_use_are_different_answers()
+    {
+        // A locked file frees itself; a refused one needs Administrator and never
+        // will. Reporting both as "still in use" tells the operator to wait for
+        // something that is not going to happen.
+        var refused = Win32TraceRemover.Describe(Contents(), removed: 3, locked: 0, refused: 2);
+        var locked = Win32TraceRemover.Describe(Contents(), removed: 3, locked: 2, refused: 0);
+
+        Assert.Contains("Administrator", refused.Detail, StringComparison.Ordinal);
+        Assert.DoesNotContain("Administrator", locked.Detail, StringComparison.Ordinal);
+        Assert.Contains("in use", locked.Detail, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Removing_some_of_it_still_counts_as_removed()
+    {
+        // Locked files are normal on a live machine. A partial sweep is not a failure,
+        // or every clean of a temp folder in use would report as one.
+        var result = Win32TraceRemover.Describe(Contents(), removed: 40, locked: 2, refused: 0);
+
+        Assert.Equal(RemovalOutcome.Removed, result.Outcome);
+    }
+
+    [Fact]
+    public void An_empty_folder_is_not_a_failure()
+    {
+        // Nothing removed because there was nothing to remove. The counts that make a
+        // failure are the ones that say something was left behind.
+        Assert.Equal(
+            RemovalOutcome.Removed,
+            Win32TraceRemover.Describe(Contents(), removed: 0, locked: 0, refused: 0).Outcome);
+    }
 }

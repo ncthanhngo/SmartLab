@@ -92,7 +92,7 @@ public sealed class Win32TraceRemover(bool dryRun, string? runningFromDirectory 
     {
         if (!Directory.Exists(trace.Location)) return new RemovalResult(trace, RemovalOutcome.NotFound);
 
-        int removed = 0, locked = 0;
+        int removed = 0, locked = 0, refused = 0;
 
         foreach (var file in Directory.EnumerateFiles(trace.Location, "*", new EnumerationOptions
         {
@@ -106,6 +106,13 @@ public sealed class Win32TraceRemover(bool dryRun, string? runningFromDirectory 
                 File.SetAttributes(file, FileAttributes.Normal);
                 File.Delete(file);
                 removed++;
+            }
+            catch (UnauthorizedAccessException)
+            {
+                // Counted apart from a lock because the two need different answers
+                // from the operator: a locked file will free itself, a refused one
+                // needs Administrator and never will.
+                refused++;
             }
             catch
             {
@@ -125,17 +132,41 @@ public sealed class Win32TraceRemover(bool dryRun, string? runningFromDirectory 
 
                 Directory.Delete(directory, recursive: true);
             }
+            catch (UnauthorizedAccessException)
+            {
+                refused++;
+            }
             catch
             {
                 locked++;
             }
         }
 
-        var detail = locked > 0
-            ? $"{removed} file(s) removed, {locked} still in use"
-            : $"{removed} file(s) removed";
+        return Describe(trace, removed, locked, refused);
+    }
 
-        return new RemovalResult(trace, RemovalOutcome.Removed, detail);
+    /// <summary>
+    /// Turns three counts into a verdict.
+    /// </summary>
+    /// <remarks>
+    /// A sweep that removed nothing at all is a failure, whatever the reason - it is
+    /// the case the caller has to be told about, and reporting it as removed is how a
+    /// section comes to say "Cleaned" over a folder it did not touch a byte of. Anything
+    /// refused says Administrator outright, because that is the one obstacle the
+    /// operator can actually do something about; locked files free themselves.
+    /// </remarks>
+    public static RemovalResult Describe(AppTrace trace, int removed, int locked, int refused)
+    {
+        var parts = new List<string> { $"{removed} file(s) removed" };
+
+        if (refused > 0) parts.Add($"{refused} refused - needs Administrator");
+        if (locked > 0) parts.Add($"{locked} still in use");
+
+        var detail = string.Join(", ", parts);
+
+        return removed == 0 && (refused > 0 || locked > 0)
+            ? new RemovalResult(trace, RemovalOutcome.Failed, detail)
+            : new RemovalResult(trace, RemovalOutcome.Removed, detail);
     }
 
     private static RemovalResult EmptyRecycleBin(AppTrace trace) =>

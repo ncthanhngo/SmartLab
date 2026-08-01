@@ -182,14 +182,25 @@ public sealed partial class CleanupViewModel : ObservableObject
 
             UpdateTotal();
 
-            Status = failed == 0
-                ? $"Cleaned. {TotalText} still held by the ticked categories - anything left was in use."
-                : $"Cleaned with {failed} failure(s). See the log below.";
+            // A clean that freed nothing must not open with the word "Cleaned". The
+            // categories that need Administrator are the ones this happens to, and
+            // reporting them as done is how a section claims 7 GB it never touched.
+            var nothingWent = failed == results.Length;
 
-            Progress.Finish(failed == 0 ? "good" : "warning",
-                failed == 0 ? "Cleaned" : $"Cleaned, with {failed} failure(s)",
-                $"{TotalText} is still held by the ticked categories - anything left behind was in " +
-                "use, which is normal on a machine that is running.");
+            Status = nothingWent
+                ? $"Nothing could be removed. {TotalText} is still there - see the log below."
+                : failed == 0
+                    ? $"Cleaned. {TotalText} still held by the ticked categories - anything left was in use."
+                    : $"Cleaned with {failed} failure(s). See the log below.";
+
+            Progress.Finish(
+                nothingWent ? "alert" : failed == 0 ? "good" : "warning",
+                nothingWent ? "Nothing removed" : failed == 0 ? "Cleaned" : $"Cleaned, with {failed} failure(s)",
+                nothingWent
+                    ? $"{TotalText} is still held by the ticked categories, and none of it could be " +
+                      "removed. Anything refused needs Administrator; anything in use will free itself."
+                    : $"{TotalText} is still held by the ticked categories - anything left behind was in " +
+                      "use, which is normal on a machine that is running.");
         }
         catch (Exception ex)
         {
