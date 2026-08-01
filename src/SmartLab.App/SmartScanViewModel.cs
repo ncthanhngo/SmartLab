@@ -92,6 +92,20 @@ public sealed partial class SmartScanViewModel(MainViewModel shell) : Observable
 
     public ObservableCollection<SectionResultViewModel> Results { get; } = [];
 
+    /// <summary>
+    /// What Home is doing, and what it did.
+    /// </summary>
+    /// <remarks>
+    /// Home has no <c>SectionFrame</c> - it is the one screen that is not a section -
+    /// so it draws the band itself. Without it, pressing Run showed three breathing
+    /// circles and nothing else: no name of what was being measured, no figure, and a
+    /// Stop button whose only reply went to a status line this screen never had.
+    /// </remarks>
+    public SectionProgress Progress { get; } = new();
+
+    /// <summary>True once Stop has been pressed and the run has not yet unwound.</summary>
+    [ObservableProperty] private bool _isStopping;
+
     [ObservableProperty] private ScanPhase _phase = ScanPhase.Ready;
 
     [ObservableProperty] private string _status =
@@ -134,14 +148,23 @@ public sealed partial class SmartScanViewModel(MainViewModel shell) : Observable
     {
         Phase = ScanPhase.Scanning;
         HasRun = false;
+        IsStopping = false;
         Results.Clear();
 
         _cancellation = new CancellationTokenSource();
         var token = _cancellation.Token;
 
+        // Five passes is a real denominator, so the figure counts something: sections
+        // measured out of sections to measure. How long each takes is not knowable,
+        // and the bar does not pretend otherwise between steps.
+        var passes = Passes().ToArray();
+        var done = 0;
+
+        Progress.Begin("Starting");
+
         try
         {
-            foreach (var (key, pillar, run) in Passes())
+            foreach (var (key, pillar, run) in passes)
             {
                 if (token.IsCancellationRequested) break;
 
@@ -152,8 +175,12 @@ public sealed partial class SmartScanViewModel(MainViewModel shell) : Observable
                 Results.Add(row);
 
                 Status = $"Measuring {section.Title}...";
+                Progress.Step($"Measuring {section.Title} ({done + 1} of {passes.Length})",
+                    100.0 * done / passes.Length);
 
                 var outcome = await run(token).ConfigureAwait(true);
+
+                done++;
 
                 row.Findings = outcome.Findings;
                 row.Bytes = outcome.Bytes;
@@ -173,19 +200,48 @@ public sealed partial class SmartScanViewModel(MainViewModel shell) : Observable
             UpdateSummary();
 
             var skipped = Results.Count(r => r.Skipped);
+            var stopped = token.IsCancellationRequested;
 
-            Status = skipped == 0
-                ? "Nothing has been changed. Review what was found, then confirm."
-                : $"{skipped} section(s) could not run and are not counted as clean. " +
-                  "Nothing has been changed.";
+            Status = stopped
+                ? $"Stopped after {done} of {passes.Length} section(s). Nothing has been changed."
+                : skipped == 0
+                    ? "Nothing has been changed. Review what was found, then confirm."
+                    : $"{skipped} section(s) could not run and are not counted as clean. " +
+                      "Nothing has been changed.";
+
+            // A run that was stopped is never reported as a clean sweep. What it did
+            // measure still stands and is still worth confirming, but the sections it
+            // never reached have said nothing at all.
+            Progress.Finish(
+                stopped || skipped > 0 ? "warning" : "good",
+                stopped ? "Stopped" : "Measured, and nothing changed",
+                stopped
+                    ? $"{done} of {passes.Length} section(s) ran. The rest were not measured, so they " +
+                      "have said nothing either way."
+                    : skipped == 0
+                        ? "Every section was measured. Review the rows below, untick anything that " +
+                          "should stay, then confirm."
+                        : $"{skipped} section(s) could not run and are not counted as clean.");
+        }
+        catch (OperationCanceledException)
+        {
+            HasRun = Results.Count > 0;
+            Phase = Results.Count > 0 ? ScanPhase.Reviewing : ScanPhase.Ready;
+            UpdateSummary();
+
+            Status = $"Stopped after {done} of {passes.Length} section(s). Nothing has been changed.";
+            Progress.Finish("warning", "Stopped",
+                $"{done} of {passes.Length} section(s) ran. Nothing was changed.");
         }
         catch (Exception ex)
         {
             Phase = ScanPhase.Ready;
             Status = $"Scan failed: {ex.Message}";
+            Progress.Finish("alert", "Scan failed", ex.Message);
         }
         finally
         {
+            IsStopping = false;
             _cancellation?.Dispose();
             _cancellation = null;
         }
@@ -207,27 +263,41 @@ public sealed partial class SmartScanViewModel(MainViewModel shell) : Observable
     {
         Phase = ScanPhase.Applying;
 
+        var chosen = Results.Where(r => r.IsSelected && r.IsActionable).ToArray();
+        var done = 0;
+
+        Progress.Begin($"Applying {chosen.Length} section(s)");
+
         try
         {
-            foreach (var row in Results.Where(r => r.IsSelected && r.IsActionable).ToArray())
+            foreach (var row in chosen)
             {
                 Status = $"Applying {row.Title}...";
                 row.State = "applying";
+
+                Progress.Step($"Applying {row.Title} ({done + 1} of {chosen.Length})",
+                    100.0 * done / chosen.Length);
 
                 await ApplyOne(row.Section.Key).ConfigureAwait(true);
 
                 row.State = "done";
                 row.IsActionable = false;
+                done++;
             }
 
             Phase = ScanPhase.Done;
             Status = "Done. Each section's own screen has the detail of what it did.";
             UpdateSummary();
+
+            Progress.Finish("good", $"{done} section(s) applied",
+                "Each section's own screen has the detail of what it did. Run again to see " +
+                "what is left.");
         }
         catch (Exception ex)
         {
             Phase = ScanPhase.Reviewing;
             Status = $"Apply failed: {ex.Message}";
+            Progress.Finish("alert", "Apply failed", ex.Message);
         }
     }
 
@@ -259,11 +329,22 @@ public sealed partial class SmartScanViewModel(MainViewModel shell) : Observable
         }
     }
 
+    /// <remarks>
+    /// The token reaches inside the pass that is running - Repair's volume walk takes
+    /// it - so this is not merely a request to stop after the current section. Where a
+    /// pass cannot be interrupted, winget being the one that cannot, the band says so
+    /// rather than leaving a dead button to be pressed again.
+    /// </remarks>
     [RelayCommand]
     private void Cancel()
     {
-        _cancellation?.Cancel();
+        if (_cancellation is null) return;
+
+        IsStopping = true;
+        _cancellation.Cancel();
+
         Status = "Stopping...";
+        Progress.Unknown("Stopping - finishing what is already running");
     }
 
     /// <summary>Opens the section that owns a row. Navigation, not action.</summary>
@@ -340,6 +421,10 @@ public sealed partial class SmartScanViewModel(MainViewModel shell) : Observable
             return new SectionOutcome("Repair", 0, "neutral",
                 "No removable drive is selected, so nothing was scanned.", Skipped: true);
         }
+
+        // Stop has to reach inside this one. A volume walk is the longest thing Home
+        // does, and a Stop that only takes effect once it finishes is not a Stop.
+        using var stop = ct.Register(() => shell.ScanCommand.Cancel());
 
         await shell.ScanCommand.ExecuteAsync(null).ConfigureAwait(true);
 

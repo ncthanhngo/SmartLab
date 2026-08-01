@@ -111,6 +111,45 @@ public sealed class SmartScanTests
     }
 
     /// <summary>
+    /// Stop, pressed while a run is in flight.
+    /// </summary>
+    /// <remarks>
+    /// The button existed before this and did almost nothing an operator could see:
+    /// its only reply went to a status line Home does not display, the token was
+    /// checked between sections rather than inside them, and a run cut short still
+    /// signed off as though it had measured the whole machine. What is held here is
+    /// the last of those - a stopped run says it stopped.
+    /// </remarks>
+    [Fact]
+    public void StoppingARunSaysSoRatherThanReportingACleanSweep()
+    {
+        OnDispatcher(async () =>
+        {
+            var scan = new MainViewModel().SmartScan;
+
+            // Not awaited yet: the command runs up to its first real await, which is
+            // far enough in for the token to exist and for a row to be on screen.
+            var run = scan.ScanCommand.ExecuteAsync(null);
+
+            Assert.NotEmpty(scan.Results);
+
+            scan.CancelCommand.Execute(null);
+            Assert.True(scan.IsStopping);
+
+            await run;
+
+            Assert.Equal("Stopped", scan.Progress.Completion);
+            Assert.False(scan.Progress.IsRunning);
+            Assert.True(scan.Progress.HasRun);
+            Assert.False(scan.IsStopping);
+
+            // The sections it never reached said nothing, and are not on the list as
+            // though they had.
+            Assert.True(scan.Results.Count < 5, $"{scan.Results.Count} section(s) ran anyway");
+        });
+    }
+
+    /// <summary>
     /// Runs async work on an STA thread with a real dispatcher, and rethrows what it
     /// threw.
     /// </summary>

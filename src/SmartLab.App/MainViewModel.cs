@@ -513,7 +513,9 @@ public sealed partial class MainViewModel : ObservableObject
             }
 
             Status = $"{arrived.Root} inserted - scanning automatically...";
-            await ScanAsync().ConfigureAwait(true);
+
+            // Nobody is watching a plug-in scan, so there is nobody to stop it.
+            await ScanAsync(CancellationToken.None).ConfigureAwait(true);
 
             // The window is often hidden when this fires, so the result has to
             // reach the user some other way or the automation is pointless.
@@ -575,8 +577,13 @@ public sealed partial class MainViewModel : ObservableObject
 
     private bool CanScan() => SelectedDrive is not null && !IsBusy;
 
+    /// <param name="ct">
+    /// Carried all the way into the walk, so a Stop pressed on Home interrupts the
+    /// scan itself rather than only the loop around it. A volume scan is minutes on a
+    /// large stick, and a Stop that waits for it is a Stop that does not work.
+    /// </param>
     [RelayCommand(CanExecute = nameof(CanScan))]
-    private async Task ScanAsync()
+    private async Task ScanAsync(CancellationToken ct)
     {
         if (SelectedDrive is not { } drive) return;
 
@@ -632,7 +639,7 @@ public sealed partial class MainViewModel : ObservableObject
             // would run on the UI thread and freeze the window. On a large volume
             // that reads as a crash rather than as work in progress.
             _plan = await Task.Run(
-                () => scanner.ScanAsync(drive.DriveLetter, options, progress)).ConfigureAwait(true);
+                () => scanner.ScanAsync(drive.DriveLetter, options, progress, ct), ct).ConfigureAwait(true);
 
             foreach (var threat in _plan.Threats)
                 Findings.Add($"[THREAT/{threat.Severity}] {threat.Path.ForDisplay()} - {threat.Reason}");
@@ -666,6 +673,13 @@ public sealed partial class MainViewModel : ObservableObject
             Progress.Finish(
                 ThreatCount > 0 ? "alert" : AnomalyCount + DamagedCount > 0 ? "warning" : "good",
                 Headline, HeadlineDetail + " Nothing has been changed.");
+        }
+        catch (OperationCanceledException)
+        {
+            Status = "Scan stopped. Nothing was changed.";
+            Progress.Finish("warning", "Stopped",
+                $"The scan of {drive.Root} was stopped part way. Nothing was changed, and what it " +
+                "had found by then is not a verdict about the drive.");
         }
         catch (Exception ex)
         {
@@ -753,7 +767,7 @@ public sealed partial class MainViewModel : ObservableObject
             // Re-scan so the run ends with evidence rather than an assumption.
             // "The actions succeeded" and "the volume is clean" are different
             // claims, and only the second is what the operator came for.
-            await ScanAsync().ConfigureAwait(true);
+            await ScanAsync(CancellationToken.None).ConfigureAwait(true);
 
             Findings.Insert(0, report.Failed == 0 && Findings.Count == 0
                 ? "--- REPAIRED: rescan found nothing ---"

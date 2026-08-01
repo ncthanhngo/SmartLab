@@ -86,6 +86,21 @@ rows still ticked in it, so confirming here is consent to run that verb, not per
 to override what the section put in front of it. Wipe is not one of them — Home never
 runs it.
 
+**A run is watched, not waited out.** Home is the one screen with no `SectionFrame`, so
+it draws the progress band itself: the section being measured by name, a figure over the
+five that exist, and the verdict afterwards. Each row appears as its section starts
+rather than when everything finishes, wearing a *measuring* chip until its own answer
+arrives. Before that, pressing Run showed three breathing circles and nothing else —
+the status line it was writing to is a thing this screen does not have.
+
+**Stop reaches inside the run.** The token is carried into the pass that is executing,
+not merely checked between passes: Repair's volume walk is the longest thing Home does,
+and a Stop that waits for it to finish is not a Stop. winget is the one pass that cannot
+be interrupted, so the button reads *Stopping…* until the run unwinds rather than
+looking unpressed and inviting a second press. A run that was cut short reports as
+**Stopped**, with how many sections of the five actually ran — the ones it never reached
+said nothing, and must never be counted as having found nothing.
+
 **Applying never re-scans.** Each apply works from the state its own measure left
 behind — Temp & Cache cleans the categories it measured, Recycle Bins empties the bins it
 counted, Repair applies the plan its scan produced. Re-walking the machine would not
