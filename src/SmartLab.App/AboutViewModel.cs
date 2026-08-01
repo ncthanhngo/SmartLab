@@ -90,6 +90,22 @@ public sealed partial class AboutViewModel(MainViewModel shell) : ObservableObje
     /// </remarks>
     public static IReadOnlyList<ReleaseNote> ReleaseNotes { get; } =
     [
+        new("1.0.2", "2026-08-01",
+            Added:
+            [
+                "Malware: Scan every drive sweeps the whole machine, one drive at a time, so each drive gets its own verdict rather than disappearing into a single answer. Drives that are not ready are skipped and said to be skipped; network drives and optical media are left alone, since one is not in this machine and the other cannot be cleaned.",
+                "Malware: Remove what it found asks Defender to clear every threat it still has active, behind one prompt for Administrator, and then reads the list back before claiming anything.",
+                "Uninstall: the list fills itself in when the section opens, each row carrying the program's own icon, and says what it is doing while it does it.",
+                "Repair: the Dry run toggle is gone, because the scan was already the dry run - it walks the volume, writes nothing, and leaves the list you tick before Apply.",
+            ],
+            Fixed:
+            [
+                "A Defender scan of a whole drive never ran. A trailing backslash before the closing quote escapes it, so \"E:\\\" reached Defender as a path that cannot exist and the scan failed in about a second having looked at nothing.",
+                "A drive Defender had just disinfected was reported as clean. A scan that finds and cleans something names nothing and exits zero, so reading names and exit codes alone missed it entirely.",
+                "Removing threats could report failure after succeeding. Defender's list can still call a threat active for a few seconds after its file is gone, so the check now waits for the list to settle.",
+                "Uninstalling an MSI product no longer opens a repair dialog: Windows registers many of them with the install switch, which is now corrected to the removal one.",
+            ]),
+
         new("1.0.0", "2026-07-31",
             Added:
             [
