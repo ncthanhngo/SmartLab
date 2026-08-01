@@ -122,6 +122,109 @@ public sealed class DefenderBridgeTests
     }
 
     [Fact]
+    public void EveryDriveInTheMachineMeansFixedAndRemovable()
+    {
+        // A network drive is not in this machine: scanning one reads somebody else's
+        // server and remediates on their disk. Optical media cannot be cleaned, and a
+        // drive that is not ready has no filesystem to walk.
+        Assert.True(DefenderBridge.IsScannable(DriveType.Fixed, isReady: true));
+        Assert.True(DefenderBridge.IsScannable(DriveType.Removable, isReady: true));
+
+        Assert.False(DefenderBridge.IsScannable(DriveType.Network, isReady: true));
+        Assert.False(DefenderBridge.IsScannable(DriveType.CDRom, isReady: true));
+        Assert.False(DefenderBridge.IsScannable(DriveType.Fixed, isReady: false));
+    }
+
+    [Fact]
+    public void TheSweepFindsThisMachinesSystemDrive()
+    {
+        // The one claim worth making against the real machine: whatever else is
+        // plugged in, a sweep that misses the drive Windows is on is not a sweep.
+        var system = Path.GetPathRoot(Environment.GetFolderPath(Environment.SpecialFolder.Windows));
+
+        Assert.Contains(DefenderBridge.ScannableDrives(), r =>
+            string.Equals(r, system, StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public void OneUnreadableDriveNeverAveragesIntoClean()
+    {
+        // The single-path rule, applied across a list. A drive that could not be
+        // scanned must not hide inside a machine-wide "clean".
+        var mixed = DefenderBridge.Aggregate(
+            [DefenderState.Clean, DefenderState.Clean, DefenderState.CouldNotRun]);
+
+        Assert.Equal(DefenderState.CouldNotRun, mixed);
+    }
+
+    [Fact]
+    public void OneDriveWithThreatsDecidesTheWholeSweep()
+    {
+        var found = DefenderBridge.Aggregate(
+            [DefenderState.Clean, DefenderState.ThreatsFound, DefenderState.CouldNotRun]);
+
+        Assert.Equal(DefenderState.ThreatsFound, found);
+
+        Assert.Equal(
+            DefenderState.Clean,
+            DefenderBridge.Aggregate([DefenderState.Clean, DefenderState.Clean]));
+    }
+
+    [Fact]
+    public void ASweepOfNothingIsNotCleanEither()
+    {
+        Assert.Equal(DefenderState.CouldNotRun, DefenderBridge.Aggregate([]));
+    }
+
+    [Fact]
+    public void RemovalNeverTouchesDefendersDefinitions()
+    {
+        // -RemoveDefinitions deletes Defender's signatures. It reads like the removal
+        // switch and is the opposite of one, and MpCmdRun has no removal switch at all.
+        var command = DefenderBridge.BuildRemoveCommand();
+
+        Assert.DoesNotContain("RemoveDefinitions", command, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("MpCmdRun", command, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Remove-MpThreat", command, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void RemovalProvesItselfRatherThanTrustingAnExitCode()
+    {
+        // PowerShell exits 0 even when a cmdlet writes an error, so an access denied -
+        // what a refused prompt produces - would report as a successful removal. And a
+        // command that returned is not the same as a machine with nothing left active.
+        var command = DefenderBridge.BuildRemoveCommand();
+
+        Assert.Contains("$ErrorActionPreference='Stop'", command, StringComparison.Ordinal);
+        Assert.Contains("Get-MpThreat", command, StringComparison.Ordinal);
+        Assert.Contains("IsActive", command, StringComparison.Ordinal);
+        Assert.Contains("exit 2", command, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void AStoppedSweepDoesNotClaimTheMachineIsClean()
+    {
+        var partial = MalwareRemovalViewModel.Describe(
+            [@"C:\", @"D:\", @"E:\"], scanned: 1, unscanned: [], DefenderState.Clean);
+
+        Assert.Contains("1 of 3", partial, StringComparison.Ordinal);
+        Assert.DoesNotContain("found nothing", partial, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void ASweepNamesTheDrivesItCouldNotScan()
+    {
+        // Counting them leaves the operator to work out which, and the one they need
+        // is the one they were worried about.
+        var described = MalwareRemovalViewModel.Describe(
+            [@"C:\", @"D:\"], scanned: 2, unscanned: [@"D:\"], DefenderState.CouldNotRun);
+
+        Assert.Contains(@"D:\", described, StringComparison.Ordinal);
+        Assert.Contains("not the same as clean", described, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public void FindingsStayAttributableToTheirSource()
     {
         // Merged into one list, but each row still says which half produced it -

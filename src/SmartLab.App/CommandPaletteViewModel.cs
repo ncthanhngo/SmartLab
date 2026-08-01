@@ -195,6 +195,10 @@ public sealed partial class CommandPaletteViewModel(MainViewModel shell) : Obser
         yield return Action("Apply the ticked repairs", "Repair", "repair", shell.ApplyCommand, destructive: true);
 
         yield return Action("Ask Defender about this path", "Malware", "malware", shell.Malware.ScanCommand);
+        yield return Action("Scan every drive with Defender", "Malware", "malware",
+            shell.Malware.ScanEveryDriveCommand);
+        yield return Action("Remove the threats Defender found", "Malware", "malware",
+            shell.Malware.RemoveCommand, destructive: true);
 
         yield return Action("Measure reclaimable space", "Temp & Cache", "cleanup", shell.Cleanup.AnalyseCommand);
         yield return Action("Clean the ticked categories", "Temp & Cache", "cleanup", shell.Cleanup.CleanCommand, destructive: true);

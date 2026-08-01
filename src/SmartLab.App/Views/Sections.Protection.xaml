@@ -303,6 +303,8 @@
                             Command="{Binding CancelCommand}" Margin="0,0,8,0" />
                     <Button Content="Remove what it found" Style="{StaticResource GhostButton}"
                             Command="{Binding RemoveCommand}" Margin="0,0,8,0" />
+                    <Button Content="Scan every drive" Style="{StaticResource GhostButton}"
+                            Command="{Binding ScanEveryDriveCommand}" Margin="0,0,8,0" />
                     <Button Content="Ask Defender" Style="{StaticResource PrimaryButton}"
                             Command="{Binding ScanCommand}" />
                 </StackPanel>

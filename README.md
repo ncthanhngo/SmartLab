@@ -395,6 +395,35 @@ file is Trojan:Win32/Something" are different claims. A scan that could not run 
 reported as its own state — a security screen that says "clean" because it could not
 look is worse than one that says nothing.
 
+*Scan every drive* sweeps the whole machine: every fixed and removable drive that is
+ready, one at a time, each with its own verdict. Drive by drive rather than Defender's
+own full scan, because a stick that could not be read must not be able to hide inside a
+single machine-wide "clean", and a threat named on `D:` is worth knowing was on `D:`.
+Network drives are excluded — one is not in this machine, and scanning it reads
+somebody else's server and remediates on their disk — and so is optical media, where a
+detection could be reported but never removed. `Aggregate` folds the per-drive states
+into one under the rule the single-path case already followed: threats decide the
+sweep, and one unreadable drive among clean ones is *could not run*, never clean. A
+sweep stopped part-way says so rather than reporting a verdict over a machine it did
+not finish looking at.
+
+Defender acts on what a scan finds — nothing here passes `-DisableRemediation`, since
+the point of handing a drive to an antivirus is that the antivirus deals with what is
+on it. *Remove what it found* is for what quarantine left active, and it is
+`Remove-MpThreat`, not `MpCmdRun`: MpCmdRun has no removal switch at all, and the one
+whose name reads like it, `-RemoveDefinitions`, deletes Defender's own signatures.
+A test asserts that name never appears in the command this builds. Removal needs
+Administrator and names no path, so it runs as its own elevated process behind a prompt
+the operator sees and can refuse — the same shape as the boot repairs, sharing one
+`ElevatedProcess` runner with them.
+
+Removal reports what actually happened rather than that it ran. PowerShell exits 0 even
+when a cmdlet writes an error, so an access denied — which is precisely what a refused
+prompt produces — would otherwise be indistinguishable from a clean removal; the script
+raises errors to terminating, then reads the threat list back and exits non-zero naming
+anything still active. "The command returned" and "nothing is left" are as different as
+"could not run" and "clean", and for the same reason.
+
 **Wipe says what it cannot do.** On a solid-state drive, wear levelling writes the
 overwrite to a different physical block, so the original survives until the controller
 reuses it. The section detects the drive type and states this in its heading rather
