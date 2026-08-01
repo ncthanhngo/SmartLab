@@ -90,6 +90,15 @@ public sealed partial class AboutViewModel(MainViewModel shell) : ObservableObje
     /// </remarks>
     public static IReadOnlyList<ReleaseNote> ReleaseNotes { get; } =
     [
+        new("1.0.7", "2026-08-01",
+            Added:
+            [
+                "Updater has a Drivers tab. It asks Windows Update what drivers it has for this machine and installs the ticked ones through it. A driver is kernel code, and the only publisher worth trusting with it is the one that signs it - so nothing here fetches from a vendor page, and the app still downloads nothing itself. Checking writes nothing and needs no Administrator; installing does, and raises one prompt for the whole batch.",
+                "Devices Windows is failing to drive are listed underneath, from Device Manager's own error codes, and cannot be ticked. What is still there after installing is what this app cannot fix, and saying so beats a list that quietly leaves it out. Codes that mean a device is merely unplugged or switched off are not reported: a phone disconnected last month is not a driver fault, and calling it one is how a maintenance tool talks somebody into breaking working hardware.",
+                "Driver rows compare dates rather than versions, because a date is the one figure both sides publish. Windows Update gives a driver's date and never its version, so the version currently installed sits beside the publisher instead of opposite an arrow - a version facing a date reads as a comparison and is not one. A device whose hardware cannot be matched to an installed driver reads as unknown rather than as having none.",
+            ],
+            Fixed: []),
+
         new("1.0.6", "2026-08-01",
             Added:
             [
