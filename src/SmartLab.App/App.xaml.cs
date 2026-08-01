@@ -35,17 +35,24 @@ public partial class App : Application
     {
         _singleton = new Mutex(initiallyOwned: true, SingletonMutexName, out var first);
 
+        var unattended =
+            e.Args.Contains("--screenshot", StringComparer.OrdinalIgnoreCase) ||
+            e.Args.Contains("--selftest", StringComparer.OrdinalIgnoreCase);
+
         if (!first)
         {
-            // No dialog on a capture run, which starts, renders and exits on its own.
-            if (!e.Args.Contains("--screenshot", StringComparer.OrdinalIgnoreCase))
+            // No dialog on an unattended run, which starts, renders and exits on its own.
+            if (!unattended)
             {
                 MessageBox.Show(
                     "Smart Lab is already running. Look for it in the notification area.",
                     "Smart Lab", MessageBoxButton.OK, MessageBoxImage.Information);
             }
 
-            Shutdown();
+            // A self-test that could not run must never look like one that passed.
+            // Silence here is how a copy of the app left open turned the check into
+            // nothing at all, for the three commits that shipped a crash.
+            Shutdown(e.Args.Contains("--selftest", StringComparer.OrdinalIgnoreCase) ? 2 : 0);
             return;
         }
 
@@ -107,8 +114,20 @@ public partial class App : Application
     /// </remarks>
     private static bool _reporting;
 
+    /// <summary>
+    /// How many faults have been reported this run.
+    /// </summary>
+    /// <remarks>
+    /// Read by the self-test, which has to fail the build over a window that came up
+    /// but threw on the way. Counting rather than flagging, because a fault that
+    /// repeats is worth telling apart from one that happened once.
+    /// </remarks>
+    public static int Faults { get; private set; }
+
     private static void Report(Exception exception, string origin)
     {
+        Faults++;
+
         var text =
             $"[{DateTimeOffset.Now:yyyy-MM-dd HH:mm:ss}] {origin}{Environment.NewLine}" +
             $"{exception}{Environment.NewLine}{Environment.NewLine}";

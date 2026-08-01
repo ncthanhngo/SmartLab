@@ -298,6 +298,17 @@ public partial class MainWindow : Window
         var screenshotIndex = Array.FindIndex(
             args, a => a.Equals("--screenshot", StringComparison.OrdinalIgnoreCase));
 
+        // The same walk, plus the states no capture reaches, plus an exit code. The
+        // release script refuses to package a build whose self-test came back non-zero.
+        var selfTestIndex = Array.FindIndex(
+            args, a => a.Equals("--selftest", StringComparison.OrdinalIgnoreCase));
+
+        if (selfTestIndex >= 0 && selfTestIndex + 1 < args.Length)
+        {
+            _ = CaptureSectionsAsync(args[selfTestIndex + 1], selfTest: true);
+            return;
+        }
+
         if (screenshotIndex >= 0 && screenshotIndex + 1 < args.Length)
         {
             _ = CaptureSectionsAsync(args[screenshotIndex + 1]);
@@ -327,12 +338,13 @@ public partial class MainWindow : Window
     /// text is as crisp as it is on screen.
     /// </para>
     /// </remarks>
-    private async Task CaptureSectionsAsync(string directory)
+    private async Task CaptureSectionsAsync(string directory, bool selfTest = false)
     {
         // Listening before the first section is selected, so the traversal below is
         // also a binding check. A binding to a property that does not exist renders
         // as an empty string and says nothing; this is what makes it say something.
         var bindings = BindingErrorLog.Attach();
+        var failed = false;
 
         try
         {
@@ -413,10 +425,13 @@ public partial class MainWindow : Window
 
             await CapturePaletteAsync(directory).ConfigureAwait(true);
             await CaptureHomeFlowAsync(directory).ConfigureAwait(true);
+
+            if (selfTest) await CaptureStatesAsync(directory).ConfigureAwait(true);
         }
         catch (Exception ex)
         {
             File.WriteAllText(Path.Combine(directory, "capture-error.txt"), ex.ToString());
+            failed = true;
         }
         finally
         {
@@ -430,9 +445,97 @@ public partial class MainWindow : Window
                     ? ["No binding errors."]
                     : bindings.Errors);
 
+            failed |= bindings.Errors.Count > 0 || App.Faults > 0;
+
+            if (selfTest)
+            {
+                File.WriteAllLines(Path.Combine(directory, "selftest.txt"),
+                [
+                    failed ? "FAILED" : "PASSED",
+                    $"binding errors: {bindings.Errors.Count}",
+                    $"faults: {App.Faults}",
+                ]);
+            }
+
             _reallyExiting = true;
-            Application.Current.Shutdown();
+
+            // Non-zero on the way out, so a script can refuse to package this build.
+            // A self-test whose only output is a file nobody reads is a self-test
+            // that never stopped anything.
+            Application.Current.Shutdown(selfTest && failed ? 1 : 0);
         }
+    }
+
+
+    /// <summary>
+    /// Renders the states a section walk never reaches.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// A capture opens every section and finds each at rest. Everything that exists
+    /// only after somebody presses something - a band mid-run, a verdict in each tone,
+    /// a window full of log lines - is drawn by templates no automated run had ever
+    /// instantiated, and three releases in one day shipped faults of exactly that kind.
+    /// </para>
+    /// <para>
+    /// The window for a removal is opened non-modally here. <c>ShowDialog</c> would
+    /// not return until somebody closed it, and there is nobody.
+    /// </para>
+    /// </remarks>
+    private async Task CaptureStatesAsync(string directory)
+    {
+        if (ViewModel is not { } viewModel) return;
+
+        var window = new Views.UninstallWindow
+        {
+            Owner = this,
+            DataContext = viewModel.Uninstall,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner,
+        };
+
+        window.Show();
+
+        try
+        {
+            foreach (var state in SelfTest.States(viewModel))
+            {
+                state.Arrange();
+
+                // The uninstall states belong to the window; the rest belong to a
+                // section, so the stage has to be showing the right one.
+                if (!state.Name.StartsWith("uninstall", StringComparison.Ordinal))
+                    viewModel.SelectedSection = SectionFor(viewModel, state.Name);
+
+                await Dispatcher.Yield(DispatcherPriority.ContextIdle);
+                UpdateLayout();
+                window.UpdateLayout();
+                await Dispatcher.Yield(DispatcherPriority.ContextIdle);
+                await Task.Delay(250).ConfigureAwait(true);
+
+                Save(state.Name, directory, state.Name.StartsWith("uninstall", StringComparison.Ordinal)
+                    ? window
+                    : null);
+            }
+        }
+        finally
+        {
+            window.Close();
+        }
+    }
+
+    /// <summary>Which section a state wants on the stage behind it.</summary>
+    private static NavSection? SectionFor(MainViewModel viewModel, string state)
+    {
+        var key = state switch
+        {
+            "band-good" => "cleanup",
+            "band-alert" => "malware",
+            "band-indeterminate" => "spacelens",
+            "history-populated" => "history",
+            _ => null,
+        };
+
+        return key is null ? null : viewModel.Sections.FirstOrDefault(s => s.Key == key);
     }
 
     /// <summary>
@@ -504,16 +607,21 @@ public partial class MainWindow : Window
             $"rows: {viewModel.SmartScan.Results.Count}");
     }
 
-    private void Save(string key, string directory)
+    /// <param name="of">
+    /// The window to render, or null for this one. A removal opens a window of its
+    /// own, and rendering the shell behind it would capture the thing it covers.
+    /// </param>
+    private void Save(string key, string directory, Window? of = null)
     {
-        var dpi = VisualTreeHelper.GetDpi(this);
+        var source = of ?? this;
+        var dpi = VisualTreeHelper.GetDpi(source);
 
         var target = new RenderTargetBitmap(
-            (int)Math.Ceiling(ActualWidth * dpi.DpiScaleX),
-            (int)Math.Ceiling(ActualHeight * dpi.DpiScaleY),
+            (int)Math.Ceiling(source.ActualWidth * dpi.DpiScaleX),
+            (int)Math.Ceiling(source.ActualHeight * dpi.DpiScaleY),
             dpi.PixelsPerInchX, dpi.PixelsPerInchY, PixelFormats.Pbgra32);
 
-        target.Render(this);
+        target.Render(source);
 
         var encoder = new PngBitmapEncoder();
         encoder.Frames.Add(BitmapFrame.Create(target));

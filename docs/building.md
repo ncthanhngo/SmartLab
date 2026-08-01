@@ -39,6 +39,29 @@ it twice. Wait for each run: `SmartLab.App.exe` is a GUI subsystem binary, so
 PowerShell's `&` returns immediately and two runs will overlap and capture the same
 theme twice. Use `Start-Process -Wait`.
 
+### The self-test
+
+```powershell
+SmartLab.App.exe --selftest <dir>
+```
+
+The same walk, plus the states a capture never reaches, plus an exit code. A capture
+opens every section and finds each at rest; everything that exists only after somebody
+presses something — a progress band mid-run, a verdict in each tone, the window a
+removal opens, a list of leftovers — is drawn by templates no automated run had ever
+instantiated. Three releases in one day shipped faults of exactly that kind, and both
+of the ones that took the window down would have been caught by drawing the state once.
+
+The states are *arranged*, never acted: view models are filled with plausible values and
+handed to the real templates. Nothing is uninstalled, no file is removed, no volume is
+read. What it proves is that the interface can draw what the application will ask it to.
+
+`tools/build-release.ps1` runs it against the published binaries and refuses to package
+a build that fails. **Exit code 2 means it could not run at all** — the app is a
+singleton and a copy was already open — which is a refusal rather than a pass, because
+treating it as a pass is exactly how the checks went quiet while three commits shipped a
+crash.
+
 **Close any copy of Smart Lab first.** The app is a singleton, and a capture run that
 finds one already open exits immediately — deliberately without a dialog, since a
 capture is meant to be unattended. It writes no PNGs and no `binding-errors.txt`, which

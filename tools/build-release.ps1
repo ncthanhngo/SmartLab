@@ -131,6 +131,36 @@ Invoke-Sign @(
     (Join-Path $stage 'SmartLab.Worker.exe')
 )
 
+# The gate. Two of the last three releases shipped a fault that took the window down
+# on sight - a resource key the frame could not resolve, and two lists bound to one
+# collection - and both would have been caught by drawing the state once. This runs
+# the published binaries, not a debug build, because that is what people install.
+#
+# Exit code 2 means it could not run at all: the app is a singleton and a copy was
+# already open. That is not a pass, and treating it as one is exactly how the checks
+# went quiet while three commits shipped a crash.
+Write-Host "Self-test..."
+
+$selfTestOut = Join-Path ([System.IO.Path]::GetTempPath()) "smartlab-selftest-$(Get-Random)"
+New-Item -ItemType Directory -Force $selfTestOut | Out-Null
+
+$selfTest = Start-Process -Wait -PassThru `
+    -FilePath (Join-Path $stage 'SmartLab.App.exe') `
+    -ArgumentList '--selftest', $selfTestOut
+
+if ($selfTest.ExitCode -eq 2) {
+    throw "The self-test could not run: another copy of Smart Lab is open. Close it, including its tray icon, and build again."
+}
+
+if ($selfTest.ExitCode -ne 0) {
+    $report = Join-Path $selfTestOut 'selftest.txt'
+    $detail = if (Test-Path $report) { (Get-Content $report) -join '; ' } else { 'no report written' }
+
+    throw "The self-test failed ($detail). Its captures are in $selfTestOut."
+}
+
+Remove-Item $selfTestOut -Recurse -Force -ErrorAction SilentlyContinue
+
 Write-Host "Compressing..."
 Compress-Archive -Path $stage -DestinationPath $zip -CompressionLevel Optimal
 
