@@ -320,71 +320,7 @@ public static class BootRepairRunner
         }
     }
 
-    /// <summary>
-    /// Runs one command elevated and returns what it printed.
-    /// </summary>
-    /// <remarks>
-    /// Output goes through a transcript file rather than a redirected pipe: redirection
-    /// does not cross an elevation boundary, so an elevated process started this way
-    /// has nowhere to write that this one can read. The alternative is a repair whose
-    /// only report is an exit code.
-    /// </remarks>
-    private static async Task<(bool Ok, string Output)> RunElevatedAsync(
-        string commandLine, CancellationToken ct)
-    {
-        var transcript = Path.Combine(Path.GetTempPath(), $"smartlab-boot-{Guid.NewGuid():N}.log");
-
-        try
-        {
-            var start = new ProcessStartInfo("cmd.exe",
-                $"/c \"{commandLine} > \"{transcript}\" 2>&1\"")
-            {
-                // Verb and UseShellExecute together are what raise the UAC prompt.
-                UseShellExecute = true,
-                Verb = "runas",
-                CreateNoWindow = true,
-                WindowStyle = ProcessWindowStyle.Hidden,
-            };
-
-            using var process = Process.Start(start);
-
-            if (process is null) return (false, "The repair would not start.");
-
-            using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
-            timeout.CancelAfter(Timeout);
-
-            await process.WaitForExitAsync(timeout.Token).ConfigureAwait(false);
-
-            var output = ReadTranscript(transcript);
-
-            return (process.ExitCode == 0, output.Length > 0 ? output : $"Exit code {process.ExitCode}.");
-        }
-        catch (OperationCanceledException)
-        {
-            return (false, "The repair did not finish in time.");
-        }
-        catch (Exception ex)
-        {
-            // A refused UAC prompt lands here, and is a decision rather than a fault.
-            return (false, ex.Message);
-        }
-        finally
-        {
-            try { if (File.Exists(transcript)) File.Delete(transcript); } catch { }
-        }
-    }
-
-    private static string ReadTranscript(string path)
-    {
-        try
-        {
-            return File.Exists(path)
-                ? File.ReadAllText(path).Replace("\0", string.Empty).Trim()
-                : string.Empty;
-        }
-        catch
-        {
-            return string.Empty;
-        }
-    }
+    private static Task<(bool Ok, string Output)> RunElevatedAsync(
+        string commandLine, CancellationToken ct) =>
+        ElevatedProcess.RunAsync(commandLine, Timeout, ct);
 }
