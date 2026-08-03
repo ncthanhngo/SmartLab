@@ -193,7 +193,11 @@ public sealed partial class BootViewModel(MainViewModel shell) : ObservableObjec
     }
 
     /// <summary>What the button will do, and to how many findings.</summary>
-    public string ActionLabel => ActionWording.For("Fix", TickedCount, "item");
+    /// <remarks>
+    /// The same words Repair uses next door, because it is the same promise about a
+    /// different half of the drive.
+    /// </remarks>
+    public string ActionLabel => ActionWording.For("Fix", TickedCount, "problem");
 
     /// <summary>Whether it has anything to act on, which is what lights it up.</summary>
     public bool HasTicked => TickedCount > 0;

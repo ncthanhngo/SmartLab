@@ -116,7 +116,12 @@ public sealed partial class UninstallViewModel : ObservableObject
     }
 
     /// <summary>What the leftovers button will do, and to how many of them.</summary>
-    public string CleanLabel => ActionWording.For("Remove", TickedLeftovers, "item");
+    /// <remarks>
+    /// "Leftovers" is the word the heading above the list already uses, and the word
+    /// for what these are: a folder or a registry key an uninstaller did not take with
+    /// it. Calling them items would make the button vaguer than the list it sits over.
+    /// </remarks>
+    public string CleanLabel => ActionWording.For("Remove", TickedLeftovers, "leftover");
 
     /// <summary>Whether it has anything to act on, which is what lights it up.</summary>
     public bool HasTickedLeftovers => TickedLeftovers > 0;

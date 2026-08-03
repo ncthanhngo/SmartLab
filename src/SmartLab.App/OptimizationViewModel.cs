@@ -200,7 +200,12 @@ public sealed partial class OptimizationViewModel : ObservableObject
     }
 
     /// <summary>What the button will do, and to how many startup entries.</summary>
-    public string ActionLabel => ActionWording.For("Disable", TickedCount, "item");
+    /// <remarks>
+    /// "Turn off" rather than "Disable", to pair with the "Put back all" beside it:
+    /// the two together say the change is a switch and not a deletion, which is what
+    /// this section actually does - the entry is moved aside, not removed.
+    /// </remarks>
+    public string ActionLabel => ActionWording.For("Turn off", TickedCount, "program");
 
     /// <summary>Whether it has anything to act on, which is what lights it up.</summary>
     public bool HasTicked => TickedCount > 0;

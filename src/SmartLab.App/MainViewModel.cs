@@ -798,7 +798,11 @@ public sealed partial class MainViewModel : ObservableObject
     private bool CanApply() => _plan is not null && !IsBusy && Actions.Any(a => a.IsSelected);
 
     /// <summary>What Repair's button will do, and to how many findings.</summary>
-    public string ApplyLabel => ActionWording.For("Fix", TickedActions, "item");
+    /// <remarks>
+    /// "Problems" rather than "items", because each row is one thing wrong with the
+    /// drive. A row is an item only in the sense that everything on a screen is one.
+    /// </remarks>
+    public string ApplyLabel => ActionWording.For("Fix", TickedActions, "problem");
 
     /// <summary>Whether it has anything to act on, which is what lights it up.</summary>
     public bool HasTickedActions => TickedActions > 0;

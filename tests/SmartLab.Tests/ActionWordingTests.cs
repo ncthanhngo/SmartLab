@@ -25,9 +25,13 @@ public sealed class ActionWordingTests
     public void TheCountAndTheNounSayHowMuchTheVerbCovers() =>
         Assert.Equal("Recycle 12 files", ActionWording.For("Recycle", 12, "file"));
 
+    /// <remarks>
+    /// No button uses such a noun today. The rule is here for the one that does next,
+    /// because the way it fails without it is a button reading "categorys".
+    /// </remarks>
     [Fact]
     public void ANounEndingInYPluralisesProperly() =>
-        Assert.Equal("Recover 3 entries", ActionWording.For("Recover", 3, "entry"));
+        Assert.Equal("Clean 3 categories", ActionWording.For("Clean", 3, "category"));
 
     /// <remarks>
     /// The word "ticked" describes the list. These labels describe the act, which is
@@ -78,15 +82,24 @@ public sealed class ActionWordingTests
         return directory!.FullName;
     }
 
+    /// <summary>
+    /// Every pair a button in this application actually shows.
+    /// </summary>
+    /// <remarks>
+    /// Each noun names the thing the verb happens to - problems, programs, leftovers -
+    /// rather than "items", which is true of anything on a screen and therefore tells
+    /// somebody deciding whether to press nothing at all.
+    /// </remarks>
     [Theory]
     [InlineData("Clean", "place")]
     [InlineData("Empty", "bin")]
-    [InlineData("Disable", "item")]
     [InlineData("Recycle", "file")]
+    [InlineData("Recover", "file")]
+    [InlineData("Fix", "problem")]
+    [InlineData("Turn off", "program")]
+    [InlineData("Remove", "leftover")]
     [InlineData("Upgrade", "app")]
     [InlineData("Install", "driver")]
-    [InlineData("Remove", "item")]
-    [InlineData("Fix", "item")]
     public void NoLabelSaysTicked(string verb, string noun)
     {
         Assert.DoesNotContain("ticked", ActionWording.For(verb, 0, noun), StringComparison.OrdinalIgnoreCase);

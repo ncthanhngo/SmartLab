@@ -25,9 +25,12 @@ public static class ActionWording
         count == 0 ? verb : $"{verb} {count} {Plural(noun, count)}";
 
     /// <remarks>
-    /// Enough English for the nouns this application actually uses - file, entry, bin,
-    /// place, item, app, driver, program. Not a general pluraliser: one that guesses at
-    /// every English noun is a large thing to maintain for eight words.
+    /// Enough English for the nouns this application actually uses - place, bin, file,
+    /// problem, program, leftover, app, driver. Not a general pluraliser: one that
+    /// guesses at every English noun is a large thing to maintain for eight words. The
+    /// -y rule has no user among those eight and is kept anyway, because the next noun
+    /// somebody reaches for is as likely to be "category" as anything else, and the way
+    /// that fails without it is a button reading "categorys".
     /// </remarks>
     private static string Plural(string noun, int count) =>
         count == 1 ? noun
