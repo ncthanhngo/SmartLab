@@ -588,12 +588,18 @@
         </Setter>
     </Style>
 
+    <!--
+        A heading costs its line plus the air around it, six times over. Tightened
+        rather than dropped: the words are what make the rail a set of places instead
+        of sixteen buttons, and the space they were taking is what pushed the list
+        past the bottom of the card.
+    -->
     <Style x:Key="RailGroupLabel" TargetType="TextBlock">
         <Setter Property="FontSize" Value="10.5" />
         <Setter Property="FontWeight" Value="Bold" />
         <Setter Property="Foreground" Value="{DynamicResource SidebarMutedBrush}" />
         <Setter Property="Opacity" Value="0.85" />
-        <Setter Property="Margin" Value="12,8,0,3" />
+        <Setter Property="Margin" Value="12,6,0,2" />
         <Style.Triggers>
             <!-- Home stands outside a group; an empty heading collapses rather than
                  leaving a gap where a word should be. -->
@@ -602,6 +608,35 @@
                 <Setter Property="Margin" Value="0,2,0,0" />
             </DataTrigger>
         </Style.Triggers>
+    </Style>
+
+    <!--
+        The three sections along the foot of the rail. Square rather than a row, so
+        the strip reads as a set of tools for the app itself and not as three more
+        entries in the list it sits under.
+    -->
+    <Style x:Key="RailFooterButton" TargetType="Button">
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Height" Value="30" />
+        <Setter Property="Margin" Value="3,0" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Plate" CornerRadius="9"
+                            Background="{TemplateBinding Background}">
+                        <ContentPresenter HorizontalAlignment="Center"
+                                          VerticalAlignment="Center" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Plate" Property="Background"
+                                    Value="{DynamicResource SidebarHoverBrush}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
     </Style>
 
     <GroupStyle x:Key="RailGroups">

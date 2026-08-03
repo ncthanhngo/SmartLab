@@ -57,17 +57,38 @@ key: that needs Administrator and would launch for every account on a shared lab
 PC, which is not something a checkbox should decide. Unticking removes the value
 and leaves nothing behind.
 
-## The fifteen sections
+## The sixteen sections
 
 | Group | Sections |
 | --- | --- |
-| — | Smart Scan |
+| — | Home |
 | Reclaim | Temp & Cache, Recycle Bins |
 | Security | Repair, Malware |
 | Performance | Startup, Repair OS |
 | Programs | Uninstall, Updater |
 | Files | Disk Map, Big & Stale, Deleted, Wipe |
-| App | Settings, About |
+| App | History, Settings, About |
+
+**The App group is drawn along the foot of the rail as three icons**, not as rows in
+the list. In the list it cost three rows and a heading — a fifth of the rail — spent
+on the three screens nobody navigates to while working, and the rail had grown taller
+than the window it lives in: sixteen rows and six headings came to more than the card
+could hold, so the list scrolled at the size the app opens at. A rail is a fixed set
+of places rather than something to scroll looking for more, and a scrollbar there is
+not a feature but the list having outgrown its card.
+
+The list therefore binds to `RailSection` rather than to `SelectedSection`. It no
+longer holds every section, and a `Selector` handed an item it does not contain keeps
+the row it had — so choosing Settings left the last job's row still lit, with two
+places on screen each claiming to be where you are. `RailSection` reads as null while
+a footer section is current, and ignores the null the list writes back when it clears
+itself. The footer icons are buttons rather than a second `ListBox` for the same
+reason: two selectors bound to one property clear each other's choice on the way past.
+
+The fit is not left to be noticed on a screenshot. `--selftest` shrinks the window to
+its minimum height, measures whether the rail scrolls, and fails the build if it does
+— which is what adding a seventeenth section will trip. The minimum height is 700 for
+the same reason: it is the size at which the claim is still true.
 
 Four of these carry rules worth stating outright, because in each case the obvious
 implementation would have been the wrong one.

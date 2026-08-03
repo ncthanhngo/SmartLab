@@ -138,6 +138,17 @@ public sealed partial class NavSection(
     /// <summary>Empty, "warn" or "alert" - what the badge deserves.</summary>
     [ObservableProperty] private string _badgeTone = string.Empty;
 
+    /// <summary>
+    /// True while this is the section on the stage.
+    /// </summary>
+    /// <remarks>
+    /// The rail gets this from its <c>ListBoxItem</c> and needs nothing here. The
+    /// footer buttons are not list items and have no selected state of their own, and
+    /// binding a second selector to <c>SelectedSection</c> is the arrangement where
+    /// each one clears the other's choice on the way past.
+    /// </remarks>
+    [ObservableProperty] private bool _isCurrent;
+
     public bool HasBadge => Badge.Length > 0;
 
     partial void OnBadgeChanged(string value) => OnPropertyChanged(nameof(HasBadge));
@@ -342,8 +353,28 @@ public sealed partial class MainViewModel : ObservableObject
     /// on a press, because opening a screen is not consent to spend a minute of the
     /// machine's time.
     /// </remarks>
+    /// <summary>
+    /// Puts a section on the stage, for the parts of the rail that are not list rows.
+    /// </summary>
+    /// <remarks>
+    /// The footer icons go through this. A second <c>ListBox</c> bound to the same
+    /// <see cref="SelectedSection"/> would look simpler and would clear the selection
+    /// every time the choice landed in the other one.
+    /// </remarks>
+    [RelayCommand]
+    private void SelectSection(NavSection? section)
+    {
+        if (section is not null) SelectedSection = section;
+    }
+
     partial void OnSelectedSectionChanged(NavSection? value)
     {
+        // Written on every section rather than only the two that change, so a stale
+        // highlight cannot survive a route this does not know about.
+        foreach (var section in Sections) section.IsCurrent = ReferenceEquals(section, value);
+
+        OnPropertyChanged(nameof(RailSection));
+
         if (value?.Key == "uninstall") _ = Uninstall.EnsureLoadedAsync();
 
         // Reading files this app wrote changes nothing, and the screen would otherwise
@@ -452,15 +483,58 @@ public sealed partial class MainViewModel : ObservableObject
     }
 
     /// <summary>
-    /// <see cref="Sections"/> under their group headings.
+    /// The sections that do a job, under their group headings.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// Grouped but deliberately not sorted. A collection view places groups in the
     /// order their first member appears, so declaration order in <see cref="Sections"/>
     /// is the whole layout - adding a sort description here would reorder the rail
     /// alphabetically and put Applications above Cleanup.
+    /// </para>
+    /// <para>
+    /// The App group is filtered out and drawn along the foot of the rail instead. It
+    /// is three rows and a heading, which is a fifth of the rail's height spent on the
+    /// three screens nobody navigates to while working - and the rail was taller than
+    /// the window it lives in, so the list scrolled at the size the app opens at.
+    /// </para>
     /// </remarks>
     public CollectionViewSource GroupedSections { get; } = new();
+
+    /// <summary>
+    /// History, Settings and About, which the rail draws as icons along its foot.
+    /// </summary>
+    /// <remarks>
+    /// Read from <see cref="Sections"/> rather than declared again, so the two can
+    /// never disagree about which sections these are - and so the palette, the capture
+    /// walk and the theme rebuild keep seeing one list of everything.
+    /// </remarks>
+    public IReadOnlyList<NavSection> FooterSections { get; }
+
+    /// <summary>
+    /// What the rail's list has selected, which is nothing while a footer section is on.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The list cannot bind straight to <see cref="SelectedSection"/> any more. It no
+    /// longer holds every section, and a <c>Selector</c> handed an item it does not
+    /// contain keeps the row it had - so choosing Settings left the last job's row
+    /// still lit, with two places on screen each claiming to be where you are.
+    /// </para>
+    /// <para>
+    /// The setter ignores null on purpose. Null arrives from the list clearing itself,
+    /// which is the answer to a question nobody asked; a section is deselected by
+    /// another one being chosen, never by the rail changing its mind.
+    /// </para>
+    /// </remarks>
+    public NavSection? RailSection
+    {
+        get => SelectedSection is { } section && section.Group != GroupApp ? section : null;
+        set
+        {
+            if (value is not null) SelectedSection = value;
+        }
+    }
 
     public MainViewModel()
     {
@@ -471,7 +545,10 @@ public sealed partial class MainViewModel : ObservableObject
 
         SelectedSection = Sections[0];
 
+        FooterSections = [.. Sections.Where(s => s.Group == GroupApp)];
+
         GroupedSections.Source = Sections;
+        GroupedSections.Filter += (_, e) => e.Accepted = e.Item is NavSection s && s.Group != GroupApp;
         GroupedSections.GroupDescriptions.Add(new PropertyGroupDescription(nameof(NavSection.Group)));
 
         GroupedDeletedEntries.Source = DeletedEntries;

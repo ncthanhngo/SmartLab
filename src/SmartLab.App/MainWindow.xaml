@@ -5,7 +5,7 @@
         xmlns:local="clr-namespace:SmartLab.App"
         xmlns:views="clr-namespace:SmartLab.App.Views"
         Title="Smart Lab" Height="760" Width="1180"
-        MinHeight="600" MinWidth="960"
+        MinHeight="700" MinWidth="960"
         Icon="Assets/app.ico"
         WindowStyle="None" ResizeMode="CanResize"
         AllowsTransparency="True" Background="Transparent"
@@ -162,7 +162,54 @@
 
             <Border CornerRadius="{StaticResource CardRadius}"
                     SizeChanged="OnCardSizeChanged">
-                    <ScrollViewer VerticalScrollBarVisibility="Auto"
+                <DockPanel>
+                    <!-- History, Settings and About along the foot.
+                         In the list they cost three rows and a heading - a fifth of
+                         the rail - and they are the three screens nobody navigates to
+                         while working. Moving them here is what stops the rail being
+                         taller than the window it lives in. -->
+                    <Border DockPanel.Dock="Bottom" Margin="8,0,8,8" Padding="0,7,0,0"
+                            BorderThickness="0,1,0,0"
+                            BorderBrush="{DynamicResource SidebarHoverBrush}">
+                        <ItemsControl ItemsSource="{Binding FooterSections}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <UniformGrid Rows="1" />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <!-- The name is in the tooltip, not beside the glyph:
+                                         three labels across 188px would each be trimmed
+                                         to a syllable, which names nothing. -->
+                                    <Button x:Name="Pip" Style="{StaticResource RailFooterButton}"
+                                            ToolTip="{Binding Title}"
+                                            Command="{Binding DataContext.SelectSectionCommand,
+                                                RelativeSource={RelativeSource AncestorType=Window}}"
+                                            CommandParameter="{Binding}">
+                                        <TextBlock x:Name="Icon" Text="{Binding Glyph}"
+                                                   FontFamily="Segoe MDL2 Assets" FontSize="14"
+                                                   Foreground="{DynamicResource SidebarMutedBrush}" />
+                                    </Button>
+
+                                    <DataTemplate.Triggers>
+                                        <DataTrigger Binding="{Binding IsCurrent}" Value="True">
+                                            <Setter TargetName="Pip" Property="Background"
+                                                    Value="{Binding SelectedFill}" />
+                                            <Setter TargetName="Icon" Property="Foreground"
+                                                    Value="{DynamicResource SidebarTextBrush}" />
+                                        </DataTrigger>
+                                    </DataTemplate.Triggers>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </Border>
+
+                    <!-- Kept, though nothing should reach it: the rail is sized to fit
+                         the smallest window this app allows, and the self-test fails
+                         the build if it stops fitting. A machine whose text is scaled
+                         past what that assumes still gets a way down the list. -->
+                    <ScrollViewer x:Name="RailScroll" VerticalScrollBarVisibility="Auto"
                                   HorizontalScrollBarVisibility="Disabled">
                         <ScrollViewer.Resources>
                             <Style TargetType="ScrollBar" BasedOn="{StaticResource SlimScrollBar}" />
@@ -170,7 +217,7 @@
 
                         <ListBox x:Name="Rail" Style="{StaticResource RailList}"
                                  ItemsSource="{Binding GroupedSections.View}"
-                                 SelectedItem="{Binding SelectedSection}"
+                                 SelectedItem="{Binding RailSection}"
                                  SelectionChanged="OnSectionSelected"
                                  VerticalAlignment="Top">
                             <ListBox.GroupStyle>
@@ -178,7 +225,7 @@
                             </ListBox.GroupStyle>
                             <ListBox.ItemTemplate>
                                 <DataTemplate>
-                                    <Border x:Name="Cell" Height="30" CornerRadius="9"
+                                    <Border x:Name="Cell" Height="28" CornerRadius="9"
                                             Background="Transparent" Padding="9,0"
                                             ToolTip="{Binding Subtitle}">
                                         <Grid>
@@ -248,6 +295,7 @@
                             </ListBox.ItemTemplate>
                         </ListBox>
                     </ScrollViewer>
+                </DockPanel>
             </Border>
         </Border>
 

@@ -451,7 +451,9 @@ public partial class MainWindow : Window
                     ? ["No binding errors."]
                     : bindings.Errors);
 
-            failed |= bindings.Errors.Count > 0 || App.Faults > 0;
+            var overflow = selfTest ? RailOverflow() : null;
+
+            failed |= bindings.Errors.Count > 0 || App.Faults > 0 || overflow is not null;
 
             if (selfTest)
             {
@@ -460,6 +462,7 @@ public partial class MainWindow : Window
                     failed ? "FAILED" : "PASSED",
                     $"binding errors: {bindings.Errors.Count}",
                     $"faults: {App.Faults}",
+                    $"rail: {overflow ?? "fits the smallest window"}",
                 ]);
             }
 
@@ -472,6 +475,44 @@ public partial class MainWindow : Window
         }
     }
 
+
+    /// <summary>
+    /// How far the rail overflows at the smallest window this app allows, or null.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The rail carries a fixed set of sections and is not something the operator can
+    /// scroll past looking for more - so a scrollbar there is not a feature, it is the
+    /// list having outgrown its card. It had: sixteen rows and six headings came to
+    /// more than the height the window opens at, and the bottom of the list was
+    /// reachable only by dragging.
+    /// </para>
+    /// <para>
+    /// Measured at <see cref="FrameworkElement.MinHeight"/> rather than at whatever
+    /// size the capture happens to run, because the claim being made is that it fits
+    /// at every size this app allows. Adding a section is what will break this, and
+    /// this is where that gets said out loud rather than discovered on a screenshot.
+    /// </para>
+    /// </remarks>
+    private string? RailOverflow()
+    {
+        var height = Height;
+
+        try
+        {
+            Height = MinHeight;
+            UpdateLayout();
+
+            return RailScroll.ScrollableHeight > 0.5
+                ? $"scrolls by {RailScroll.ScrollableHeight:F0}px at the minimum height of {MinHeight:F0}"
+                : null;
+        }
+        finally
+        {
+            Height = height;
+            UpdateLayout();
+        }
+    }
 
     /// <summary>
     /// Renders the states a section walk never reaches.

@@ -56,6 +56,12 @@ The states are *arranged*, never acted: view models are filled with plausible va
 handed to the real templates. Nothing is uninstalled, no file is removed, no volume is
 read. What it proves is that the interface can draw what the application will ask it to.
 
+It also shrinks the window to its minimum height and measures whether the navigation
+rail scrolls, failing the build if it does. The rail is a fixed set of sections rather
+than something to scroll through looking for more, and it had quietly outgrown its card
+— the check is what a seventeenth section will trip, at build time rather than on
+somebody's screen. The verdict is the `rail:` line in `selftest.txt`.
+
 `tools/build-release.ps1` runs it against the published binaries and refuses to package
 a build that fails. **Exit code 2 means it could not run at all** — the app is a
 singleton and a copy was already open — which is a refusal rather than a pass, because
