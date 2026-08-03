@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using SmartLab.Maintenance;
+using SmartLab.Core.Text;
 
 namespace SmartLab.App;
 
@@ -105,7 +106,7 @@ public sealed partial class BootViewModel(MainViewModel shell) : ObservableObjec
 
             Status = verdict.Fixes.Count == 0
                 ? "Nothing here can be repaired by flipping a flag or rewriting boot code."
-                : $"{verdict.Fixes.Count} fix(es) offered. Nothing is ticked.";
+                : $"{Plural.Of(verdict.Fixes.Count, "fix")} offered. Nothing is ticked.";
         }
         catch (Exception ex)
         {
@@ -157,7 +158,7 @@ public sealed partial class BootViewModel(MainViewModel shell) : ObservableObjec
                 if (result.Succeeded) done++;
             }
 
-            Status = $"{done} of {chosen.Length} fix(es) applied. Each result is on its row.";
+            Status = $"{done} of {Plural.Of(chosen.Length, "fix")} applied. Each result is on its row.";
 
             // What was true before an apply is not what is true after it.
             await CheckAsync().ConfigureAwait(true);

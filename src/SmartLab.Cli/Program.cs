@@ -5,6 +5,7 @@ using SmartLab.Engine.Journal;
 using SmartLab.Fat;
 using SmartLab.Maintenance;
 using SmartLab.Win32.Io;
+using SmartLab.Core.Text;
 
 namespace SmartLab.Cli;
 
@@ -129,7 +130,8 @@ internal static class Program
         var after = await ScanRunner.RunAsync(reader, options, quiet: false, ct).ConfigureAwait(false);
 
         Console.WriteLine(
-            $"After repair: {after.Threats.Count} threat(s), {after.Anomalies.Count} anomaly(ies).");
+            $"After repair: {Plural.Of(after.Threats.Count, "threat")}, " +
+            $"{Plural.Of(after.Anomalies.Count, "anomaly")}.");
 
         return report.AllSucceeded && !HasFindings(after) ? ExitClean : ExitFindings;
     }
@@ -140,7 +142,7 @@ internal static class Program
 
         Console.WriteLine();
         Console.Write(
-            $"Apply {plan.ProposedActions.Count} action(s) to {plan.Volume.Root}" +
+            $"Apply {Plural.Of(plan.ProposedActions.Count, "action")} to {plan.Volume.Root}" +
             (destructive > 0 ? $", {destructive} irreversible" : string.Empty) +
             "? [y/N] ");
 
@@ -232,17 +234,19 @@ internal static class Program
 
             if (TryRecover(fileSystem, item, destination, sanitizer, out var written))
             {
-                Console.WriteLine($"        -> recovered {written} byte(s)");
+                Console.WriteLine($"        -> recovered {Plural.Of(written, "byte")}");
                 recovered++;
             }
         }
 
         Console.WriteLine();
-        Console.WriteLine($"{listed} entr(ies) listed, {deletedEntries.Count} deleted entr(ies) found.");
+        Console.WriteLine(
+            $"{Plural.Of(listed, "entry")} listed, " +
+            $"{deletedEntries.Count} deleted {Plural.Word(deletedEntries.Count, "entry")} found.");
 
         if (options.RecoverTo is not null)
         {
-            Console.WriteLine($"{recovered} file(s) carved into {options.RecoverTo}");
+            Console.WriteLine($"{Plural.Of(recovered, "file")} carved into {options.RecoverTo}");
 
             if (skipped > 0)
                 Console.WriteLine($"{skipped} skipped because their clusters were fully reallocated.");
@@ -346,7 +350,7 @@ internal static class Program
 
         Console.WriteLine();
         Console.WriteLine(
-            $"{programs.Count} program(s); {orphans} registered no uninstaller. " +
+            $"{Plural.Of(programs.Count, "program")}; {orphans} registered no uninstaller. " +
             "Windows components and updates are excluded.");
 
         return ExitClean;
@@ -436,7 +440,8 @@ internal static class Program
         Console.WriteLine();
         Console.WriteLine("OUTLOOK ATTACHMENT CACHE  (copies made when an attachment was opened)");
         Console.WriteLine();
-        Console.WriteLine($"  {cached.Count,8:N0} file(s)  {bytes / 1024.0 / 1024,10:N1} MB");
+        Console.WriteLine(
+            $"  {cached.Count,8:N0} {Plural.Word(cached.Count, "file"),-5}  {bytes / 1024.0 / 1024,10:N1} MB");
         Console.WriteLine("  Mailbox files (.ost, .pst) are never counted or listed.");
     }
 

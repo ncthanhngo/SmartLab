@@ -205,11 +205,16 @@ public class ClusterAssessmentTests
     [Fact]
     public void Confidence_summaries_describe_what_was_measured()
     {
-        Assert.Equal("all 4 cluster(s) still free",
+        Assert.Equal("4 clusters still free",
             new ClusterRangeAssessment(4, 4, 0, 0).Summary);
 
-        Assert.Equal("all 4 cluster(s) reallocated",
+        Assert.Equal("4 clusters reallocated",
             new ClusterRangeAssessment(4, 0, 4, 0).Summary);
+
+        // One is one, and a summary reading "1 cluster(s)" is a tool showing its seams
+        // at the moment somebody is deciding whether their file is recoverable.
+        Assert.Equal("1 cluster still free",
+            new ClusterRangeAssessment(1, 1, 0, 0).Summary);
 
         Assert.Equal("allocation state unavailable",
             new ClusterRangeAssessment(4, 0, 0, 4).Summary);

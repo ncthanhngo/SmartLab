@@ -4,6 +4,7 @@ using System.Windows.Data;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using SmartLab.Maintenance;
+using SmartLab.Core.Text;
 
 namespace SmartLab.App;
 
@@ -111,10 +112,11 @@ public sealed partial class OptimizationViewModel : ObservableObject
 
         UpdateSummary();
 
-        Status = $"{Items.Count} startup entr(ies) found, {Disabled.Count} previously turned off by " +
-                 "this app. Nothing is ticked.";
+        Status = $"{Items.Count} startup {Plural.Word(Items.Count, "entry")} found, " +
+                 $"{Disabled.Count} previously turned off by this app. Nothing is ticked.";
 
-        Progress.Finish("good", $"{Items.Count} entr(ies) run at logon",
+        Progress.Finish("good",
+            $"{Plural.Of(Items.Count, "entry")} {Plural.Verb(Items.Count, "runs", "run")} at logon",
             $"{Disabled.Count} were previously turned off by this app and can be put back. " +
             "Nothing is ticked: disabling the wrong one breaks a login.");
     }
@@ -130,8 +132,8 @@ public sealed partial class OptimizationViewModel : ObservableObject
         if (chosen.Length == 0)
         {
             Status = refused > 0
-                ? $"{refused} ticked entr(ies) cannot be changed from here - they need Administrator " +
-                  "or belong to Windows."
+                ? $"{refused} ticked {Plural.Word(refused, "entry")} cannot be changed from here - " +
+                  "they need Administrator or belong to Windows."
                 : "Nothing ticked.";
             return;
         }
@@ -139,7 +141,7 @@ public sealed partial class OptimizationViewModel : ObservableObject
         // Scan was the dry run: it read the Run keys and both Startup folders and
         // changed none of them. Turning an entry off from the list it produced moves
         // the value aside rather than deleting it, and the list below puts it back.
-        Progress.Begin($"Turning off {chosen.Length} entr(ies)");
+        Progress.Begin($"Turning off {Plural.Of(chosen.Length, "entry")}");
 
         var done = 0;
         var failed = 0;
@@ -155,7 +157,7 @@ public sealed partial class OptimizationViewModel : ObservableObject
         Scan();
 
         Status = failed == 0
-            ? $"{done} entr(ies) turned off. Each one is listed below and can be put back."
+            ? $"{Plural.Of(done, "entry")} turned off. Each one is listed below and can be put back."
             : $"{done} turned off, {failed} failed.";
 
         Progress.Finish(failed == 0 ? "good" : "warning",
@@ -177,7 +179,7 @@ public sealed partial class OptimizationViewModel : ObservableObject
 
         Scan();
 
-        Status = $"{done} entr(ies) put back exactly as they were.";
+        Status = $"{Plural.Of(done, "entry")} put back exactly as they were.";
     }
 
     private void UpdateSummary()
@@ -223,7 +225,8 @@ public sealed partial class OptimizationViewModel : ObservableObject
                 "aside rather than deleting it, so it can be put back exactly.");
         }
 
-        var detail = $"{found} entr(ies) run at logon, {changeable} of which you can turn off " +
+        var detail = $"{Plural.Of(found, "entry")} {Plural.Verb(found, "runs", "run")} at logon, " +
+                     $"{changeable} of which you can turn off " +
                      "without Administrator. Disabling moves the entry aside, so it can be put back.";
 
         if (disabled > 0) detail += $" {disabled} are currently turned off by this app.";

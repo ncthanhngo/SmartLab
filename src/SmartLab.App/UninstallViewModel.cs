@@ -5,6 +5,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using SmartLab.App.Converters;
 using SmartLab.Maintenance;
+using SmartLab.Core.Text;
 
 namespace SmartLab.App;
 
@@ -287,7 +288,7 @@ public sealed partial class UninstallViewModel : ObservableObject
 
         var withoutUninstaller = found.Count(p => !p.HasUninstaller);
 
-        Status = $"{found.Count} program(s) listed." +
+        Status = $"{Plural.Of(found.Count, "program")} listed." +
                  (withoutUninstaller > 0
                      ? $" {withoutUninstaller} registered no uninstaller and cannot be removed from here."
                      : string.Empty);
@@ -422,7 +423,7 @@ public sealed partial class UninstallViewModel : ObservableObject
             Say(Leftovers.Count == 0 ? UninstallStepKind.Ok : UninstallStepKind.Warning,
                 Leftovers.Count == 0
                     ? "Nothing left behind."
-                    : $"{Leftovers.Count} leftover(s) found" +
+                    : $"{Plural.Of(Leftovers.Count, "leftover")} found" +
                       (guesses > 0
                           ? $", {guesses} of them on a matching name alone - those are not ticked."
                           : "."));
@@ -513,10 +514,11 @@ public sealed partial class UninstallViewModel : ObservableObject
             return;
         }
 
-        Status = $"'{program.DisplayName}' uninstalled, {Leftovers.Count} leftover(s) found below.";
+        Status = $"'{program.DisplayName}' uninstalled, {Plural.Of(Leftovers.Count, "leftover")} found below.";
         Progress.Finish("warning", "Uninstalled, with leftovers",
-            $"{program.DisplayName} is gone. {Leftovers.Count} thing(s) it registered are still on " +
-            "disk - tick what should go and remove them below.");
+            $"{program.DisplayName} is gone. {Plural.Of(Leftovers.Count, "thing")} it registered " +
+            $"{Plural.Verb(Leftovers.Count, "is", "are")} still on disk - tick what should go and " +
+            "remove them below.");
     }
 
     /// <remarks>
@@ -535,7 +537,7 @@ public sealed partial class UninstallViewModel : ObservableObject
         }
 
         IsBusy = true;
-        Progress.Begin($"Removing {chosen.Length} leftover(s)");
+        Progress.Begin($"Removing {Plural.Of(chosen.Length, "leftover")}");
 
         try
         {
@@ -579,7 +581,7 @@ public sealed partial class UninstallViewModel : ObservableObject
 
             Progress.Step("Done", 100);
 
-            Status = $"{removed} leftover(s) removed" +
+            Status = $"{Plural.Of(removed, "leftover")} removed" +
                      (failed.Length > 0 ? $", {failed.Length} failed: {failed[0].Detail}" : ".");
 
             Say(failed.Length == 0 ? UninstallStepKind.Ok : UninstallStepKind.Failed,

@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using SmartLab.Maintenance;
+using SmartLab.Core.Text;
 
 namespace SmartLab.App;
 
@@ -18,7 +19,7 @@ public sealed partial class TrashBinViewModel(RecycleBinInfo bin) : ObservableOb
 
     public string Detail => Bin.Items == 0
         ? "Nothing in it."
-        : $"{Bin.Items:N0} item(s) that can still be restored from Explorer.";
+        : $"{Plural.Of(Bin.Items, "item")} that can still be restored from Explorer.";
 
     /// <summary>
     /// Never ticked, on any drive, ever.
@@ -75,13 +76,14 @@ public sealed partial class TrashBinsViewModel : ObservableObject
 
         Status = Bins.Count == 0
             ? "No drive reported a Recycle Bin."
-            : $"{Bins.Count} bin(s) measured, holding {ItemCount:N0} item(s). Nothing has been emptied.";
+            : $"{Plural.Of(Bins.Count, "bin")} measured, holding {Plural.Of(ItemCount, "item")}. " +
+              "Nothing has been emptied.";
 
         Progress.Finish(Bins.Count == 0 ? "warning" : "good",
-            Bins.Count == 0 ? "No bins found" : $"{Bins.Count} bin(s) measured",
+            Bins.Count == 0 ? "No bins found" : $"{Plural.Of(Bins.Count, "bin")} measured",
             Bins.Count == 0
                 ? "No drive reported a Recycle Bin."
-                : $"They hold {ItemCount:N0} item(s), and every bin starts unticked: this is where " +
+                : $"They hold {Plural.Of(ItemCount, "item")}, and every bin starts unticked: this is where " +
                   "the Deleted files section recovers from.");
     }
 
@@ -101,7 +103,7 @@ public sealed partial class TrashBinsViewModel : ObservableObject
         // button does not exist until it has run. Every bin also starts unticked, so
         // what is about to go was picked one drive at a time.
         IsBusy = true;
-        Progress.Begin($"Emptying {chosen.Length} bin(s)");
+        Progress.Begin($"Emptying {Plural.Of(chosen.Length, "bin")}");
 
         try
         {
@@ -123,13 +125,13 @@ public sealed partial class TrashBinsViewModel : ObservableObject
             Measure();
 
             Status = failures.Count == 0
-                ? $"{chosen.Length} bin(s) emptied."
+                ? $"{Plural.Of(chosen.Length, "bin")} emptied."
                 : $"{chosen.Length - failures.Count} emptied, {failures.Count} failed: {failures[0]}";
 
             Progress.Finish(failures.Count == 0 ? "good" : "alert",
-                failures.Count == 0 ? "Emptied" : $"{failures.Count} bin(s) refused",
+                failures.Count == 0 ? "Emptied" : $"{Plural.Of(failures.Count, "bin")} refused",
                 failures.Count == 0
-                    ? $"{chosen.Length} bin(s) emptied. What was in them is not recoverable from here."
+                    ? $"{Plural.Of(chosen.Length, "bin")} emptied. What was in them is not recoverable from here."
                     : $"{chosen.Length - failures.Count} emptied. First failure: {failures[0]}");
         }
         finally
@@ -189,9 +191,10 @@ public sealed partial class TrashBinsViewModel : ObservableObject
         }
 
         if (items == 0)
-            return ("Every bin is empty", $"{bins} drive(s) checked. There is nothing here to discard.");
+            return ("Every bin is empty", $"{Plural.Of(bins, "drive")} checked. There is nothing here to discard.");
 
-        var detail = $"{items:N0} item(s) across {bins} drive(s), {ticked} bin(s) ticked. " +
+        var detail = $"{Plural.Of(items, "item")} across {Plural.Of(bins, "drive")}, " +
+                     $"{Plural.Of(ticked, "bin")} ticked. " +
                      "Emptying cannot be undone.";
 
         if (removable > 0)

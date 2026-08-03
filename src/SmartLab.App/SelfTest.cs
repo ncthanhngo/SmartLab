@@ -71,7 +71,7 @@ public static class SelfTest
                 "Registry key named after the publisher", TraceEvidence.NameMatch);
 
             uninstall.Progress.Finish("warning", "Uninstalled, with leftovers",
-                "Some Vendor Tool 4.2 is gone. 2 thing(s) it registered are still on disk.");
+                "Some Vendor Tool 4.2 is gone. 2 things it registered are still on disk.");
         }),
 
         new("updater-running", () =>
@@ -226,7 +226,7 @@ public static class SelfTest
             started,
             @"E:\",
             [
-                Record("plan-begin", @"E:\", true, "3 approved action(s), dryRun=False"),
+                Record("plan-begin", @"E:\", true, "3 approved actions, dryRun=False"),
                 Record("create-directory", @"C:\Users\x\SmartLab\quarantine", false,
                     "The system cannot find the path specified."),
                 Record("create-directory", @"C:\Users\x\SmartLab\quarantine", false,

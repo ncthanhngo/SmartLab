@@ -1,6 +1,7 @@
 using SmartLab.Core.Abstractions;
 using SmartLab.Core.Model;
 using SmartLab.Engine;
+using SmartLab.Core.Text;
 
 namespace SmartLab.Cli;
 
@@ -122,16 +123,16 @@ public static class PlanRenderer
     private static void WriteRescueDetail(RescueReport rescue)
     {
         Console.WriteLine(
-            $"         {rescue.FilesCopied} file(s), " +
+            $"         {Plural.Of(rescue.FilesCopied, "file")}, " +
             $"{rescue.BytesCopied / 1024.0 / 1024 / 1024:F3} GB, " +
-            $"{rescue.DirectoriesCreated} dir(s)");
+            $"{Plural.Of(rescue.DirectoriesCreated, "dir")}");
 
         if (rescue.Renames.Count > 0)
-            Console.WriteLine($"         {rescue.Renames.Count} name(s) sanitised for the destination");
+            Console.WriteLine($"         {Plural.Of(rescue.Renames.Count, "name")} sanitised for the destination");
 
         if (rescue.Failures.Count == 0) return;
 
-        Console.WriteLine($"         {rescue.Failures.Count} entr(ies) could not be copied:");
+        Console.WriteLine($"         {Plural.Of(rescue.Failures.Count, "entry")} could not be copied:");
         foreach (var failure in rescue.Failures.Take(10))
             Console.WriteLine($"           {failure.Source} (Win32 {failure.Win32Error}) {failure.Message}");
 

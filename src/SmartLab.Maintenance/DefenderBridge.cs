@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Text.RegularExpressions;
 using Microsoft.Win32;
+using SmartLab.Core.Text;
 
 namespace SmartLab.Maintenance;
 
@@ -307,7 +308,7 @@ public static class DefenderBridge
         {
             return new DefenderResult(
                 DefenderState.ThreatsFound,
-                $"Defender identified {threats.Length} threat(s).",
+                $"Defender identified {Plural.Of(threats.Length, "threat")}.",
                 text)
             { Threats = threats, ThreatCount = Math.Max(threats.Length, counted) };
         }
@@ -325,8 +326,8 @@ public static class DefenderBridge
             return new DefenderResult(
                 DefenderState.ThreatsFound,
                 cleaned
-                    ? $"Defender found {counted} threat(s) and cleaned what it could."
-                    : $"Defender found {counted} threat(s).",
+                    ? $"Defender found {Plural.Of(counted, "threat")} and cleaned what it could."
+                    : $"Defender found {Plural.Of(counted, "threat")}.",
                 text)
             { ThreatCount = counted };
         }

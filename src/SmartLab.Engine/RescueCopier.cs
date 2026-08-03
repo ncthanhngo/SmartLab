@@ -2,6 +2,7 @@ using SmartLab.Core.Abstractions;
 using SmartLab.Core.Model;
 using SmartLab.Core.Naming;
 using SmartLab.Core.Paths;
+using SmartLab.Core.Text;
 
 namespace SmartLab.Engine;
 
@@ -140,8 +141,8 @@ public sealed class RescueCopier(IVolumeReader reader, IWriteGate gate, IJournal
 
         await journal.AppendAsync(
             JournalRecord.For("rescue-complete", destination.ForDisplay(), failures.Count == 0,
-                $"{files} file(s), {bytes} byte(s), {directories} dir(s), " +
-                $"{failures.Count} failure(s), {renames.Count} rename(s)"),
+                $"{Plural.Of(files, "file")}, {Plural.Of(bytes, "byte")}, {Plural.Of(directories, "dir")}, " +
+                $"{Plural.Of(failures.Count, "failure")}, {Plural.Of(renames.Count, "rename")}"),
             ct).ConfigureAwait(false);
 
         return new RescueReport(files, bytes, directories, failures, renames);

@@ -7,6 +7,7 @@ using SmartLab.Core.Abstractions;
 using SmartLab.Core.Paths;
 using SmartLab.Engine.Journal;
 using SmartLab.Win32.Io;
+using SmartLab.Core.Text;
 
 namespace SmartLab.App;
 
@@ -60,7 +61,7 @@ public sealed class JournalRunViewModel(JournalRun run)
     public string Tone => Run.Failures > 0 ? "alert" : Run.Unfinished ? "warning" : "good";
 
     public string Detail =>
-        $"{Writes} write(s), {Failures} failed" + (Run.Unfinished ? ", unfinished" : string.Empty);
+        $"{Plural.Of(Writes, "write")}, {Failures} failed" + (Run.Unfinished ? ", unfinished" : string.Empty);
 
     public IReadOnlyList<JournalLineViewModel> Lines { get; } =
         run.Records.Select(r => new JournalLineViewModel(r)).ToArray();
@@ -173,7 +174,8 @@ public sealed partial class HistoryViewModel : ObservableObject
 
             Status = Runs.Count == 0
                 ? $"No journals in {Folder}."
-                : $"{Runs.Count} run(s) recorded, {FailureCount} failed write(s).";
+                : $"{Plural.Of(Runs.Count, "run")} recorded, " +
+                  $"{FailureCount} failed {Plural.Word(FailureCount, "write")}.";
         }
         catch (Exception ex)
         {
@@ -210,15 +212,15 @@ public sealed partial class HistoryViewModel : ObservableObject
 
         if (failures > 0)
         {
-            return ($"{failures} write(s) failed",
-                $"Across {runs} run(s). A failed write means the machine was not changed the way " +
+            return ($"{Plural.Of(failures, "write")} failed",
+                $"Across {Plural.Of(runs, "run")}. A failed write means the machine was not changed the way " +
                 "the run intended, whatever the screen said at the time - open the run to see " +
                 "which one and why.",
                 "warning");
         }
 
         return ("Every write succeeded",
-            $"{runs} run(s) recorded, and nothing in them failed.",
+            $"{Plural.Of(runs, "run")} recorded, and nothing in them failed.",
             "good");
     }
 
@@ -294,7 +296,7 @@ public sealed partial class HistoryViewModel : ObservableObject
             }
 
             Status = failed == 0
-                ? $"{back} file(s) put back where they were."
+                ? $"{Plural.Of(back, "file")} put back where they were."
                 : $"{back} put back, {failed} could not be - something is already at their old path, " +
                   "or the copy was refused.";
 

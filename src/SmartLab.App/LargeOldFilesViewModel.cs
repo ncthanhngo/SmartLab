@@ -6,6 +6,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using SmartLab.Maintenance;
 using SmartLab.Win32.Io;
+using SmartLab.Core.Text;
 
 namespace SmartLab.App;
 
@@ -146,12 +147,16 @@ public sealed partial class LargeOldFilesViewModel : ObservableObject
 
             UpdateSummary();
 
+            // Read back from the thresholds the walk actually used, not from what was
+            // typed: a box holding something unparseable falls back to the default, and
+            // the old line reported the typed value as though it had been honoured.
             Status = found.Count == 0
-                ? $"Nothing over {mb} MB and older than {MinimumMonths} month(s) under {RootFolder}."
-                : $"{found.Count} file(s) match. Nothing is ticked - these are your own files.";
+                ? $"Nothing over {minimumBytes / 1024 / 1024} MB and older than " +
+                  $"{Plural.Of((long)Math.Round(minimumAge.TotalDays / 30), "month")} under {RootFolder}."
+                : $"{Plural.Of(found.Count, "file")} matched. Nothing is ticked - these are your own files.";
 
             Progress.Finish(found.Count == 0 ? "good" : "warning",
-                found.Count == 0 ? "Nothing matched" : $"{found.Count} file(s) match",
+                found.Count == 0 ? "Nothing matched" : $"{Plural.Of(found.Count, "file")} matched",
                 found.Count == 0
                     ? $"Nothing under {RootFolder} is both that big and that old."
                     : "Nothing is ticked. These are your own files, so each one is picked by hand.");
@@ -211,7 +216,7 @@ public sealed partial class LargeOldFilesViewModel : ObservableObject
         UpdateSummary();
 
         Status = failed == 0
-            ? $"{moved} file(s) sent to the Recycle Bin, where they can still be restored."
+            ? $"{Plural.Of(moved, "file")} sent to the Recycle Bin, where they can still be restored."
             : $"{moved} sent to the Recycle Bin, {failed} could not be moved.";
     }
 
@@ -270,7 +275,7 @@ public sealed partial class LargeOldFilesViewModel : ObservableObject
         }
 
         return (ticked == 0 ? "Nothing ticked" : "Ready to move",
-            $"{found} file(s) totalling {totalText}, {ticked} ticked. Age is time since last " +
+            $"{Plural.Of(found, "file")} totalling {totalText}, {ticked} ticked. Age is time since last " +
             "written, not since last opened. Ticked files go to the Recycle Bin, not straight out.");
     }
 

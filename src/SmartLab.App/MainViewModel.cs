@@ -19,6 +19,7 @@ using SmartLab.App.Theming;
 using SmartLab.Signatures;
 using SmartLab.Win32.Devices;
 using SmartLab.Win32.Io;
+using SmartLab.Core.Text;
 
 namespace SmartLab.App;
 
@@ -611,7 +612,8 @@ public sealed partial class MainViewModel : ObservableObject
                 SystemSounds.Exclamation.Play();
                 NotifyRequested?.Invoke(
                     $"{arrived.Root} needs attention",
-                    $"{plan.Threats.Count} threat(s), {plan.Anomalies.Count} anomaly(ies) found.",
+                    $"{Plural.Of(plan.Threats.Count, "threat")}, " +
+                    $"{Plural.Of(plan.Anomalies.Count, "anomaly")} found.",
                     true);
             }
             else
@@ -659,7 +661,9 @@ public sealed partial class MainViewModel : ObservableObject
         }
 
         SelectedDrive = Drives.FirstOrDefault();
-        Status = Drives.Count == 0 ? "No removable drives found." : $"{Drives.Count} removable drive(s).";
+        Status = Drives.Count == 0
+            ? "No removable drives found."
+            : $"{Drives.Count} removable {Plural.Word(Drives.Count, "drive")}.";
     }
 
     private bool CanScan() => SelectedDrive is not null && !IsBusy;
@@ -768,7 +772,7 @@ public sealed partial class MainViewModel : ObservableObject
 
             Status = Findings.Count == 0
                 ? "Clean - nothing found."
-                : $"{_plan.Threats.Count} threat(s), {_plan.Anomalies.Count} anomaly(ies), " +
+                : $"{Plural.Of(_plan.Threats.Count, "threat")}, {Plural.Of(_plan.Anomalies.Count, "anomaly")}, " +
                   $"{_plan.Damaged.Count} unreadable. Nothing has been changed.";
 
             Progress.Finish(
@@ -852,7 +856,7 @@ public sealed partial class MainViewModel : ObservableObject
 
         // Every action is one step, and the executor says which it is on: the one
         // place in this section with a denominator worth stating.
-        Progress.Begin($"Applying {selected.Length} action(s)");
+        Progress.Begin($"Applying {Plural.Of(selected.Length, "action")}");
 
         try
         {
@@ -910,11 +914,11 @@ public sealed partial class MainViewModel : ObservableObject
                 ? "--- REPAIRED: rescan found nothing ---"
                 : "--- rescan results below ---");
 
-            Status = $"{report.Succeeded} action(s) applied. Journal: {journalPath}";
+            Status = $"{Plural.Of(report.Succeeded, "action")} applied. Journal: {journalPath}";
 
             Progress.Finish(report.Failed == 0 ? "good" : "warning",
                 report.Failed == 0 ? "Applied" : $"Applied, {report.Failed} failed",
-                $"{report.Succeeded} action(s) ran and the volume was rescanned. " +
+                $"{Plural.Of(report.Succeeded, "action")} ran and the volume was rescanned. " +
                 $"Every write is in the journal: {journalPath}");
         }
         catch (Exception ex)
@@ -946,20 +950,20 @@ public sealed partial class MainViewModel : ObservableObject
         {
             Headline = "Malware found";
             HeadlineDetail =
-                $"{ThreatCount} threat(s) on {drive.Root}. Rescue the data first, then apply the plan.";
+                $"{Plural.Of(ThreatCount, "threat")} on {drive.Root}. Rescue the data first, then apply the plan.";
             HeadlineTone = "danger";
         }
         else if (AnomalyCount > 0)
         {
             Headline = "Hidden data found";
             HeadlineDetail =
-                $"{AnomalyCount} anomaly(ies) on {drive.Root}. No malware signature matched.";
+                $"{Plural.Of(AnomalyCount, "anomaly")} on {drive.Root}. No malware signature matched.";
             HeadlineTone = "warning";
         }
         else if (DamagedCount > 0)
         {
             Headline = "Readable, with damage";
-            HeadlineDetail = $"{DamagedCount} entr(ies) on {drive.Root} could not be read.";
+            HeadlineDetail = $"{Plural.Of(DamagedCount, "entry")} on {drive.Root} could not be read.";
             HeadlineTone = "warning";
         }
         else
@@ -1060,7 +1064,7 @@ public sealed partial class MainViewModel : ObservableObject
 
             RawStatus = found.Count == 0
                 ? "No deleted entries found."
-                : $"{found.Count} deleted entr(ies). " +
+                : $"{found.Count} deleted {Plural.Word(found.Count, "entry")}. " +
                   $"{found.Count(e => e.CanRecover)} look recoverable.";
 
             DeletedProgress.Finish(RecoverableCount > 0 ? "good" : "warning",
@@ -1107,12 +1111,13 @@ public sealed partial class MainViewModel : ObservableObject
                 "the volume no longer lists."),
 
             (_, 0) => ("Found, but gone",
-                $"{total} deleted entr(ies) are still in the directory structures, but their " +
+                $"{total} deleted {Plural.Word(total, "entry")} " +
+                $"{Plural.Verb(total, "is", "are")} still in the directory structures, but their " +
                 "clusters have been reused. Nothing here can be carved back intact."),
 
             _ => ("Recoverable files found",
-                $"{recoverable} of {total} deleted entr(ies) can be carved back. Recovery assumes " +
-                "the data was not fragmented, so every file has to be verified."),
+                $"{recoverable} of {total} deleted {Plural.Word(total, "entry")} can be carved back. " +
+                "Recovery assumes the data was not fragmented, so every file has to be verified."),
         };
 
     /// <summary>
@@ -1179,7 +1184,7 @@ public sealed partial class MainViewModel : ObservableObject
         if (chosen.Length == 0) return;
 
         IsBusy = true;
-        DeletedProgress.Begin($"Carving {chosen.Length} file(s) to {RecoverTo}");
+        DeletedProgress.Begin($"Carving {Plural.Of(chosen.Length, "file")} to {RecoverTo}");
 
         try
         {
@@ -1187,14 +1192,14 @@ public sealed partial class MainViewModel : ObservableObject
                 .Run(() => Carve(drive.DriveLetter, chosen, RecoverTo)).ConfigureAwait(true);
 
             RawStatus =
-                $"{recovered} file(s) written to {RecoverTo}" +
+                $"{Plural.Of(recovered, "file")} written to {RecoverTo}" +
                 (failed > 0 ? $", {failed} failed." : ".") +
                 " Recovery assumes the data was not fragmented - verify every file.";
 
             // Never "recovered" without the caveat. Carving assumes the file was not
             // fragmented, and a file that came back the wrong size still came back.
             DeletedProgress.Finish(failed == 0 ? "good" : "warning",
-                failed == 0 ? $"{recovered} file(s) carved" : $"{recovered} carved, {failed} failed",
+                failed == 0 ? $"{Plural.Of(recovered, "file")} carved" : $"{recovered} carved, {failed} failed",
                 $"Written to {RecoverTo}. Recovery assumes the data was not fragmented, " +
                 "so every file has to be opened and checked.");
         }

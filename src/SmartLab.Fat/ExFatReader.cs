@@ -1,5 +1,6 @@
 using System.Buffers.Binary;
 using System.Text;
+using SmartLab.Core.Text;
 
 namespace SmartLab.Fat;
 
@@ -41,7 +42,7 @@ public sealed class ExFatReader : IRawFileSystem
     public int BytesPerCluster => _boot.BytesPerCluster;
 
     public string Describe() =>
-        $"exFAT  {_boot.BytesPerSector} B/sector  {_boot.SectorsPerCluster} sector(s)/cluster  " +
+        $"exFAT  {_boot.BytesPerSector} B/sector  {Plural.Of(_boot.SectorsPerCluster, "sector")}/cluster  " +
         $"{_boot.BytesPerCluster} B/cluster  root cluster {_boot.RootDirectoryCluster}";
 
     public static bool TryOpen(Stream stream, out ExFatReader? reader, out string? error)

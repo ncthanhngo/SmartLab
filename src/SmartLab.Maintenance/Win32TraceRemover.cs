@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.IO;
 using Microsoft.Win32;
+using SmartLab.Core.Text;
 
 namespace SmartLab.Maintenance;
 
@@ -190,7 +191,7 @@ public sealed class Win32TraceRemover(
     /// </remarks>
     public static RemovalResult Describe(AppTrace trace, int removed, int locked, int refused)
     {
-        var parts = new List<string> { $"{removed} file(s) removed" };
+        var parts = new List<string> { $"{Plural.Of(removed, "file")} removed" };
 
         if (refused > 0) parts.Add($"{refused} refused - needs Administrator");
         if (locked > 0) parts.Add($"{locked} still in use");

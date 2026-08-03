@@ -1,3 +1,5 @@
+using SmartLab.Core.Text;
+
 namespace SmartLab.App;
 
 /// <summary>
@@ -21,19 +23,11 @@ namespace SmartLab.App;
 public static class ActionWording
 {
     /// <summary>"Empty", or "Empty 1 bin", or "Empty 3 bins".</summary>
-    public static string For(string verb, int count, string noun) =>
-        count == 0 ? verb : $"{verb} {count} {Plural(noun, count)}";
-
     /// <remarks>
-    /// Enough English for the nouns this application actually uses - place, bin, file,
-    /// problem, program, leftover, app, driver. Not a general pluraliser: one that
-    /// guesses at every English noun is a large thing to maintain for eight words. The
-    /// -y rule has no user among those eight and is kept anyway, because the next noun
-    /// somebody reaches for is as likely to be "category" as anything else, and the way
-    /// that fails without it is a button reading "categorys".
+    /// The counting itself belongs to <see cref="Plural"/>, which every line of prose
+    /// in the application uses too. A button that pluralised by its own rules would
+    /// eventually disagree with the sentence underneath it.
     /// </remarks>
-    private static string Plural(string noun, int count) =>
-        count == 1 ? noun
-        : noun.EndsWith('y') ? $"{noun[..^1]}ies"
-        : $"{noun}s";
+    public static string For(string verb, int count, string noun) =>
+        count == 0 ? verb : $"{verb} {Plural.Of(count, noun)}";
 }

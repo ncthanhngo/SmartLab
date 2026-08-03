@@ -1,5 +1,6 @@
 using System.IO;
 using Microsoft.Win32;
+using SmartLab.Core.Text;
 
 namespace SmartLab.Maintenance;
 
@@ -121,7 +122,7 @@ public sealed class DeepTraceScanner(ITraceProbe probe)
         Say(progress, found.Count == 0 ? UninstallStepKind.Ok : UninstallStepKind.Warning,
             found.Count == 0
                 ? "Deep scan found nothing else."
-                : $"Deep scan found {found.Count} more thing(s).");
+                : $"Deep scan found {found.Count} more {Plural.Word(found.Count, "thing")}.");
 
         return found;
     }

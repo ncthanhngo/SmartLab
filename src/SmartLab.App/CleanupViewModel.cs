@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using SmartLab.Maintenance;
+using SmartLab.Core.Text;
 
 namespace SmartLab.App;
 
@@ -147,7 +148,7 @@ public sealed partial class CleanupViewModel : ObservableObject
         IsBusy = true;
         Log.Clear();
 
-        Progress.Begin($"Cleaning {chosen.Length} categor(ies)");
+        Progress.Begin($"Cleaning {Plural.Of(chosen.Length, "category")}");
 
         try
         {
@@ -203,11 +204,13 @@ public sealed partial class CleanupViewModel : ObservableObject
                 ? $"Nothing could be removed. {TotalText} is still there - see the log below."
                 : failed == 0
                     ? $"Cleaned. {TotalText} still held by the ticked categories - anything left was in use."
-                    : $"Cleaned with {failed} failure(s). See the log below.";
+                    : $"Cleaned with {Plural.Of(failed, "failure")}. See the log below.";
 
             Progress.Finish(
                 nothingWent ? "alert" : failed == 0 ? "good" : "warning",
-                nothingWent ? "Nothing removed" : failed == 0 ? "Cleaned" : $"Cleaned, with {failed} failure(s)",
+                nothingWent ? "Nothing removed"
+                    : failed == 0 ? "Cleaned"
+                    : $"Cleaned, with {Plural.Of(failed, "failure")}",
                 nothingWent
                     ? $"{TotalText} is still held by the ticked categories, and none of it could be " +
                       "removed. Anything refused needs Administrator; anything in use will free itself."
@@ -261,7 +264,7 @@ public sealed partial class CleanupViewModel : ObservableObject
 
         IsBusy = true;
 
-        Progress.Begin($"Emptying {Refused.Count} categor(ies) as Administrator");
+        Progress.Begin($"Emptying {Plural.Of(Refused.Count, "category")} as Administrator");
 
         try
         {

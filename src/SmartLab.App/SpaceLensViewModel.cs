@@ -4,6 +4,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using SmartLab.Maintenance;
 using SmartLab.Win32.Io;
+using SmartLab.Core.Text;
 
 namespace SmartLab.App;
 
@@ -89,10 +90,12 @@ public sealed partial class SpaceLensViewModel : ObservableObject
 
             Open(_root);
 
-            Status = $"{_root.SizeText} across {_root.Children.Count} top-level folder(s).";
+            Status = $"{_root.SizeText} across {_root.Children.Count} top-level " +
+                     $"{Plural.Word(_root.Children.Count, "folder")}.";
 
             Progress.Finish("good", "Measured",
-                $"{_root.SizeText} across {_root.Children.Count} top-level folder(s) under {RootFolder}.");
+                $"{_root.SizeText} across {_root.Children.Count} top-level " +
+                $"{Plural.Word(_root.Children.Count, "folder")} under {RootFolder}.");
         }
         catch (Exception ex)
         {

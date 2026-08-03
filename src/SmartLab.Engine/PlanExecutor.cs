@@ -2,6 +2,7 @@ using SmartLab.Core.Abstractions;
 using SmartLab.Core.Model;
 using SmartLab.Core.Naming;
 using SmartLab.Core.Paths;
+using SmartLab.Core.Text;
 
 namespace SmartLab.Engine;
 
@@ -55,7 +56,8 @@ public sealed class PlanExecutor(
 
         await journal.AppendAsync(
             JournalRecord.For("plan-begin", plan.Source.Volume.Root, true,
-                $"{ordered.Count} approved action(s), dryRun={gate.DryRun}"), ct).ConfigureAwait(false);
+                $"{ordered.Count} approved {Plural.Word(ordered.Count, "action")}, " +
+                $"dryRun={gate.DryRun}"), ct).ConfigureAwait(false);
 
         var completed = 0;
         foreach (var action in ordered)
@@ -214,7 +216,7 @@ public sealed class PlanExecutor(
 
         // Only remove the folder once it is genuinely empty. Anything left behind
         // is something that could not be moved, and deleting it would destroy it.
-        var note = $"{moved} item(s) moved to {root.ForDisplay()}";
+        var note = $"{Plural.Of(moved, "item")} moved to {root.ForDisplay()}";
 
         if (skipped > 0 || failures.Count > 0)
         {
@@ -256,8 +258,8 @@ public sealed class PlanExecutor(
             : WriteResult.Failed("rescue", action.Target, 0, "Nothing could be copied.");
 
         var note = report.AnyFailures
-            ? $"{report.FilesCopied} file(s) copied, {report.Failures.Count} unreadable"
-            : $"{report.FilesCopied} file(s) copied";
+            ? $"{Plural.Of(report.FilesCopied, "file")} copied, {report.Failures.Count} unreadable"
+            : $"{Plural.Of(report.FilesCopied, "file")} copied";
 
         return new ActionOutcome(action, result, note) { Rescue = report };
     }

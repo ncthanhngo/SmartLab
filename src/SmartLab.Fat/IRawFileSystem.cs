@@ -1,3 +1,5 @@
+using SmartLab.Core.Text;
+
 namespace SmartLab.Fat;
 
 /// <summary>An entry found by walking raw on-disk structures.</summary>
@@ -91,16 +93,19 @@ public sealed record ClusterRangeAssessment(
 
     public string Summary => Confidence switch
     {
-        RecoveryConfidence.Likely => $"all {TotalClusters} cluster(s) still free",
-        RecoveryConfidence.Partial => $"{InUseClusters} of {TotalClusters} cluster(s) reallocated",
-        RecoveryConfidence.Overwritten => $"all {TotalClusters} cluster(s) reallocated",
+        // "All 1 cluster" is the same seam the brackets were, so the totality is left
+        // to the verdict beside it: Likely and Overwritten already mean every cluster,
+        // and Partial says which of them in the line itself.
+        RecoveryConfidence.Likely => $"{Plural.Of(TotalClusters, "cluster")} still free",
+        RecoveryConfidence.Partial => $"{InUseClusters} of {Plural.Of(TotalClusters, "cluster")} reallocated",
+        RecoveryConfidence.Overwritten => $"{Plural.Of(TotalClusters, "cluster")} reallocated",
         _ => "allocation state unavailable",
     };
 
     /// <summary>Summary for a confidence refined by <see cref="DeletedEntryAssessor"/>.</summary>
     public string SummaryFor(RecoveryConfidence confidence) =>
         confidence == RecoveryConfidence.Superseded
-            ? $"{TotalClusters} cluster(s) in use by a live entry at the same start - data intact"
+            ? $"{Plural.Of(TotalClusters, "cluster")} in use by a live entry at the same start - data intact"
             : Summary;
 }
 

@@ -1,4 +1,5 @@
 using System.Buffers.Binary;
+using SmartLab.Core.Text;
 
 namespace SmartLab.Fat;
 
@@ -40,7 +41,7 @@ public sealed class Fat32Reader : IRawFileSystem
     public int BytesPerCluster => _boot.BytesPerCluster;
 
     public string Describe() =>
-        $"FAT32  {_boot.BytesPerSector} B/sector  {_boot.SectorsPerCluster} sector(s)/cluster  " +
+        $"FAT32  {_boot.BytesPerSector} B/sector  {Plural.Of(_boot.SectorsPerCluster, "sector")}/cluster  " +
         $"{_boot.BytesPerCluster} B/cluster  root cluster {_boot.RootCluster}";
 
     /// <summary>

@@ -4,6 +4,7 @@ using System.Management;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using SmartLab.Maintenance;
+using SmartLab.Core.Text;
 
 namespace SmartLab.App;
 
@@ -98,7 +99,7 @@ public sealed partial class ShredderViewModel : ObservableObject
 
             Status = Targets.Count == 0
                 ? "Nothing in that folder can be wiped."
-                : $"{Targets.Count} file(s) queued. Nothing has been written yet.";
+                : $"{Plural.Of(Targets.Count, "file")} queued. Nothing has been written yet.";
         }
         catch (Exception ex)
         {
@@ -123,13 +124,13 @@ public sealed partial class ShredderViewModel : ObservableObject
         {
             foreach (var target in Targets) target.Outcome = "would wipe";
 
-            Status = $"Dry run: {Targets.Count} file(s) would be overwritten {passes} time(s) " +
+            Status = $"Dry run: {Plural.Of(Targets.Count, "file")} would be overwritten {Plural.Of(passes, "time")} " +
                      "and deleted. Untick 'Dry run' to apply.";
             return;
         }
 
         IsBusy = true;
-        Progress.Begin($"Overwriting {Targets.Count} file(s), {passes} pass(es) each");
+        Progress.Begin($"Overwriting {Plural.Of(Targets.Count, "file")}, {Plural.Of(passes, "pass")} each");
 
         try
         {
@@ -145,7 +146,7 @@ public sealed partial class ShredderViewModel : ObservableObject
 
             var done = results.Count(r => r.Result.Deleted);
 
-            Status = $"{done} of {results.Length} file(s) wiped. {DriveCaveat(confidence)}";
+            Status = $"{done} of {Plural.Of(results.Length, "file")} wiped. {DriveCaveat(confidence)}";
 
             // The caveat travels with the verdict. A wipe that reports success on a
             // solid-state drive without saying what it could not guarantee is
@@ -188,7 +189,7 @@ public sealed partial class ShredderViewModel : ObservableObject
         Headline = FileCount == 0 ? "Nothing queued" : "Ready to wipe";
         HeadlineDetail = FileCount == 0
             ? DriveCaveat(ShredConfidence.Unknown)
-            : $"{FileCount} file(s), {TotalText}. {DriveCaveat(confidence)}";
+            : $"{Plural.Of(FileCount, "file")}, {TotalText}. {DriveCaveat(confidence)}";
 
         ShredCommand.NotifyCanExecuteChanged();
     }

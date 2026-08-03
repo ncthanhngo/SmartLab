@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using SmartLab.Maintenance;
+using SmartLab.Core.Text;
 
 namespace SmartLab.App;
 
@@ -221,7 +222,8 @@ public sealed partial class UpdaterViewModel : ObservableObject
                 ? error
                 : packages.Count == 0
                     ? "Nothing to upgrade - winget reports every package current."
-                    : $"{packages.Count} package(s) have a newer version.";
+                    : $"{Plural.Of(packages.Count, "package")} " +
+                      $"{Plural.Verb(packages.Count, "has", "have")} a newer version.";
 
             // A missing winget is its own verdict. "Nothing to upgrade" from a tool
             // that never ran is the one answer this section must never give.
@@ -265,7 +267,7 @@ public sealed partial class UpdaterViewModel : ObservableObject
         // ticked by hand - the ones winget did not install start unticked.
         IsBusy = true;
         Activity.Clear();
-        Progress.Begin($"Upgrading {chosen.Length} package(s)");
+        Progress.Begin($"Upgrading {Plural.Of(chosen.Length, "package")}");
 
         try
         {
@@ -298,7 +300,7 @@ public sealed partial class UpdaterViewModel : ObservableObject
             }
 
             Status = failed == 0
-                ? $"{done} package(s) upgraded."
+                ? $"{Plural.Of(done, "package")} upgraded."
                 : $"{done} upgraded, {failed} failed. Each result is on its row.";
 
             Progress.Finish(failed == 0 ? "good" : "warning",
@@ -411,7 +413,8 @@ public sealed partial class UpdaterViewModel : ObservableObject
                 ? error
                 : drivers.Count == 0
                     ? "No driver updates - Windows Update has nothing newer for this machine."
-                    : $"{drivers.Count} driver(s) have a newer version.";
+                    : $"{Plural.Of(drivers.Count, "driver")} " +
+                      $"{Plural.Verb(drivers.Count, "has", "have")} a newer version.";
 
             Progress.Finish(
                 error is { Length: > 0 } ? "alert" : drivers.Count == 0 ? "good" : "warning",
@@ -469,7 +472,7 @@ public sealed partial class UpdaterViewModel : ObservableObject
 
         IsBusy = true;
         Activity.Clear();
-        Progress.Begin($"Installing {chosen.Length} driver(s) as Administrator");
+        Progress.Begin($"Installing {Plural.Of(chosen.Length, "driver")} as Administrator");
 
         try
         {
@@ -496,7 +499,7 @@ public sealed partial class UpdaterViewModel : ObservableObject
             Status = !ok && done == 0
                 ? "Administrator was refused or the run failed. Nothing was installed."
                 : failed == 0
-                    ? $"{done} driver(s) installed." + (restart ? " A restart is needed." : string.Empty)
+                    ? $"{Plural.Of(done, "driver")} installed." + (restart ? " A restart is needed." : string.Empty)
                     : $"{done} installed, {failed} did not. Each result is on its row.";
 
             Progress.Finish(
@@ -643,8 +646,9 @@ public sealed partial class UpdaterViewModel : ObservableObject
 
             return ("Not checked yet",
                 undriven > 0
-                    ? $"{none} {undriven} device(s) are listed below with no working driver, and " +
-                      "Windows Update has nothing for them."
+                    ? $"{none} {Plural.Of(undriven, "device")} " +
+                      $"{Plural.Verb(undriven, "is", "are")} listed below with no working driver, " +
+                      "and Windows Update has nothing for them."
                     : none);
         }
 
@@ -652,7 +656,8 @@ public sealed partial class UpdaterViewModel : ObservableObject
                      "bound to the device now, and may need a restart before it takes effect.";
 
         if (undriven > 0)
-            detail += $" {undriven} device(s) below have no working driver at all.";
+            detail += $" {Plural.Of(undriven, "device")} below " +
+                      $"{Plural.Verb(undriven, "has", "have")} no working driver at all.";
 
         return (ticked == 0 ? "Nothing ticked" : "Ready to install", detail);
     }

@@ -258,7 +258,13 @@ public sealed class DriverUpdaterViewTests
     {
         var summary = UpdaterViewModel.SummariseDrivers(found: 1, ticked: 1, undriven: 3);
 
-        Assert.Contains("3 device(s)", summary.Detail, StringComparison.Ordinal);
+        Assert.Contains("3 devices", summary.Detail, StringComparison.Ordinal);
+
+        // One device reads as one device, verb included. The count and the sentence
+        // around it have to agree, or the heading looks machine-written.
+        Assert.Contains("1 device below has no working driver",
+            UpdaterViewModel.SummariseDrivers(found: 1, ticked: 1, undriven: 1).Detail,
+            StringComparison.Ordinal);
     }
 
     [Fact]

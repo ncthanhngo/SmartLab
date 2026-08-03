@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using SmartLab.Core.Text;
 
 namespace SmartLab.App;
 
@@ -211,10 +212,10 @@ public sealed partial class SmartScanViewModel(MainViewModel shell) : Observable
             var stopped = token.IsCancellationRequested;
 
             Status = stopped
-                ? $"Stopped after {done} of {passes.Length} section(s). Nothing has been changed."
+                ? $"Stopped after {done} of {Plural.Of(passes.Length, "section")}. Nothing has been changed."
                 : skipped == 0
                     ? "Nothing has been changed. Review what was found, then confirm."
-                    : $"{skipped} section(s) could not run and are not counted as clean. " +
+                    : $"{Plural.Of(skipped, "section")} could not run and are not counted as clean. " +
                       "Nothing has been changed.";
 
             // A run that was stopped is never reported as a clean sweep. What it did
@@ -224,12 +225,12 @@ public sealed partial class SmartScanViewModel(MainViewModel shell) : Observable
                 stopped || skipped > 0 ? "warning" : "good",
                 stopped ? "Stopped" : "Measured, and nothing changed",
                 stopped
-                    ? $"{done} of {passes.Length} section(s) ran. The rest were not measured, so they " +
+                    ? $"{done} of {Plural.Of(passes.Length, "section")} ran. The rest were not measured, so they " +
                       "have said nothing either way."
                     : skipped == 0
                         ? "Every section was measured. Review the rows below, untick anything that " +
                           "should stay, then confirm."
-                        : $"{skipped} section(s) could not run and are not counted as clean.");
+                        : $"{Plural.Of(skipped, "section")} could not run and are not counted as clean.");
         }
         catch (OperationCanceledException)
         {
@@ -237,9 +238,9 @@ public sealed partial class SmartScanViewModel(MainViewModel shell) : Observable
             Phase = Results.Count > 0 ? ScanPhase.Reviewing : ScanPhase.Ready;
             UpdateSummary();
 
-            Status = $"Stopped after {done} of {passes.Length} section(s). Nothing has been changed.";
+            Status = $"Stopped after {done} of {Plural.Of(passes.Length, "section")}. Nothing has been changed.";
             Progress.Finish("warning", "Stopped",
-                $"{done} of {passes.Length} section(s) ran. Nothing was changed.");
+                $"{done} of {Plural.Of(passes.Length, "section")} ran. Nothing was changed.");
         }
         catch (Exception ex)
         {
@@ -274,7 +275,7 @@ public sealed partial class SmartScanViewModel(MainViewModel shell) : Observable
         var chosen = Results.Where(r => r.IsSelected && r.IsActionable).ToArray();
         var done = 0;
 
-        Progress.Begin($"Applying {chosen.Length} section(s)");
+        Progress.Begin($"Applying {Plural.Of(chosen.Length, "section")}");
 
         try
         {
@@ -297,7 +298,7 @@ public sealed partial class SmartScanViewModel(MainViewModel shell) : Observable
             Status = "Done. Each section's own screen has the detail of what it did.";
             UpdateSummary();
 
-            Progress.Finish("good", $"{done} section(s) applied",
+            Progress.Finish("good", $"{Plural.Of(done, "section")} applied",
                 "Each section's own screen has the detail of what it did. Run again to see " +
                 "what is left.");
         }
@@ -470,7 +471,7 @@ public sealed partial class SmartScanViewModel(MainViewModel shell) : Observable
         // put the headline figure at odds with what an apply actually does - nothing,
         // because every bin arrives unticked.
         return Task.FromResult(new SectionOutcome("Recycle Bins", bins, "neutral",
-            $"{shell.TrashBins.ItemCount:N0} deleted item(s) still recoverable from Explorer.")
+            $"{Plural.Of(shell.TrashBins.ItemCount, "deleted item")} still recoverable from Explorer.")
         {
             IsActionable = shell.TrashBins.Bins.Any(b => b.IsSelected),
         });
@@ -481,7 +482,8 @@ public sealed partial class SmartScanViewModel(MainViewModel shell) : Observable
         shell.Optimization.ScanCommand.Execute(null);
 
         return Task.FromResult(new SectionOutcome("Startup", shell.Optimization.ItemCount, "neutral",
-            $"{shell.Optimization.ItemCount} entr(ies) run at logon.")
+            $"{Plural.Of(shell.Optimization.ItemCount, "entry")} " +
+            $"{Plural.Verb(shell.Optimization.ItemCount, "runs", "run")} at logon.")
         {
             IsActionable = shell.Optimization.Items.Any(i => i.IsSelected),
         });
@@ -502,7 +504,8 @@ public sealed partial class SmartScanViewModel(MainViewModel shell) : Observable
 
         return new SectionOutcome("Updater", shell.Updater.PackageCount,
             shell.Updater.PackageCount > 0 ? "warning" : "good",
-            $"{shell.Updater.PackageCount} package(s) have a newer version.")
+            $"{Plural.Of(shell.Updater.PackageCount, "package")} " +
+            $"{Plural.Verb(shell.Updater.PackageCount, "has", "have")} a newer version.")
         {
             IsActionable = shell.Updater.Packages.Any(p => p.IsSelected),
         };
@@ -572,12 +575,12 @@ public sealed partial class SmartScanViewModel(MainViewModel shell) : Observable
                 "neutral");
         }
 
-        var detail = $"{findings} finding(s) across {sections - skipped} section(s). " +
+        var detail = $"{Plural.Of(findings, "finding")} across {Plural.Of(sections - skipped, "section")}. " +
                      "Nothing has been changed - tick what you want done and confirm.";
 
         if (skipped > 0)
         {
-            detail += $" {skipped} section(s) could not run and are not counted as clean.";
+            detail += $" {Plural.Of(skipped, "section")} could not run and are not counted as clean.";
 
             return ("Partly measured", detail, "warning");
         }
