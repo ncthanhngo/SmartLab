@@ -90,6 +90,17 @@ public sealed partial class AboutViewModel(MainViewModel shell) : ObservableObje
     /// </remarks>
     public static IReadOnlyList<ReleaseNote> ReleaseNotes { get; } =
     [
+        new("1.0.8", "2026-08-03",
+            Added:
+            [
+                "History, Settings and About sit as three icons along the foot of the navigation rail. In the list they cost three rows and a heading - a fifth of the rail - spent on the three screens nobody navigates to while working, and the rail had grown taller than the window it lives in: the list scrolled at the size the app opens at. A rail is a fixed set of places rather than something to scroll through looking for more.",
+            ],
+            Fixed:
+            [
+                "A program that has just been uninstalled leaves the list. It always should have - the list re-reads itself as the last step of every removal - but the reading happened too early to see anything. Most installers copy themselves into a temporary folder, start the copy and exit within a second, so the process this app waited on was a launcher: the registry was read while the removal was still in its first second, the program was found still registered, and a removal that was working reported as one that had not. The uninstall entry is now watched for up to ninety seconds after that process exits, and leftovers are scanned afterwards too, so a folder the uninstaller is part way through deleting is no longer reported as something it left behind.",
+                "The navigation rail no longer scrolls. Closing the window a removal runs in also stops it waiting, since whoever shut it has stopped watching.",
+            ]),
+
         new("1.0.7", "2026-08-01",
             Added:
             [
