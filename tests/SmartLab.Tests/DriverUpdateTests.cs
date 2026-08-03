@@ -111,6 +111,38 @@ public sealed class ElevatedDriverInstallTests
         Assert.Equal([RealId, second], ids);
     }
 
+    /// <summary>
+    /// The step lines, read back by the half that draws the bar.
+    /// </summary>
+    /// <remarks>
+    /// The format is written on one side of an elevation boundary and parsed on the
+    /// other, which is exactly the arrangement that drifts. It is also why the position
+    /// travels as a number rather than inside a sentence: what reads these is a bar and
+    /// a list of rows, and neither can be driven from prose that changes with the
+    /// machine's display language.
+    /// </remarks>
+    [Fact]
+    public void AStepLineCarriesItsPositionPhaseAndTitle()
+    {
+        var step = ElevatedDriverInstall.ParseStep("[step] 2/3 downloading Intel - Display  (118.4 MB)");
+
+        Assert.NotNull(step);
+        Assert.Equal(2, step.Position);
+        Assert.Equal(3, step.Total);
+        Assert.Equal("downloading", step.Phase);
+        Assert.StartsWith("Intel - Display", step.Detail, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("[ok] Intel - Display")]
+    [InlineData("[FAIL] Realtek  Windows Update returned 4")]
+    [InlineData("A restart is needed before the new drivers take effect.")]
+    [InlineData("[step] not/a/position downloading Thing")]
+    [InlineData("[step] 1/2")]
+    [InlineData("")]
+    public void AnyOtherLineIsNotAStep(string line) =>
+        Assert.Null(ElevatedDriverInstall.ParseStep(line));
+
     [Fact]
     public void NamingNoDriverInstallsNothingAndSaysSo()
     {
@@ -134,6 +166,55 @@ public sealed class DriverUpdaterViewTests
         string title, string version = "31.0.101.5333", string date = "2024-06-12") =>
         new(new DriverUpdate(
             Guid.NewGuid().ToString(), title, title, "Intel", version, date, "2025-12-01", 15_000_000));
+
+    /// <summary>
+    /// A row says which phase it is in while it is in it.
+    /// </summary>
+    /// <remarks>
+    /// The whole point of streaming the transcript. Before this, three drivers and half
+    /// an hour produced one word - "installing" - on every row from the moment the
+    /// prompt was answered until the run was over.
+    /// </remarks>
+    [Fact]
+    public void ARowFollowsTheDriverThroughDownloadAndInstall()
+    {
+        var rows = new[] { Row("Intel - Display"), Row("Realtek - MEDIA") };
+
+        UpdaterViewModel.ApplyStep(rows,
+            ElevatedDriverInstall.ParseStep("[step] 1/2 downloading Intel - Display  (118.4 MB)")!);
+
+        Assert.Equal("downloading", rows[0].Outcome);
+        Assert.Equal(string.Empty, rows[1].Outcome);
+
+        UpdaterViewModel.ApplyStep(rows,
+            ElevatedDriverInstall.ParseStep("[step] 1/2 installing Intel - Display")!);
+
+        Assert.Equal("installing", rows[0].Outcome);
+
+        // And the transcript's own verdict lands on the same row afterwards.
+        UpdaterViewModel.ApplyOutcomes(rows, "[ok] Intel - Display\n", ran: true);
+
+        Assert.Equal("installed", rows[0].Outcome);
+    }
+
+    /// <remarks>
+    /// A row left mid-phase when the run ends has to say so. Silence after an install
+    /// is the one result nobody can act on, and a row still reading "downloading" long
+    /// after the bar has gone claims the run is still going.
+    /// </remarks>
+    [Fact]
+    public void ARowLeftMidPhaseIsAnsweredForRatherThanLeftRunning()
+    {
+        var rows = new[] { Row("Intel - Display"), Row("Realtek - MEDIA") };
+
+        rows[0].Outcome = "downloading";
+        rows[1].Outcome = "waiting";
+
+        UpdaterViewModel.ApplyOutcomes(rows, string.Empty, ran: true);
+
+        Assert.Equal("no result reported", rows[0].Outcome);
+        Assert.Equal("no result reported", rows[1].Outcome);
+    }
 
     [Fact]
     public void AnUnmatchedDeviceIsNotClaimedToHaveNoDriver()

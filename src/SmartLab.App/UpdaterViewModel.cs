@@ -87,6 +87,14 @@ public sealed partial class DriverViewModel(DriverUpdate driver) : ObservableObj
     [ObservableProperty] private string _outcome = string.Empty;
 }
 
+/// <summary>One line of a run's commentary, with the tone the panel paints it in.</summary>
+/// <remarks>
+/// The tone is a string for the same reason the uninstall log's is: a trigger's Value
+/// is written in XAML, where nothing checks an enum member's spelling and a mistyped
+/// one simply never fires.
+/// </remarks>
+public sealed record UpdaterStepViewModel(string Text, string Tone);
+
 public sealed partial class UpdaterViewModel : ObservableObject
 {
     public ObservableCollection<PackageViewModel> Packages { get; } = [];
@@ -143,6 +151,34 @@ public sealed partial class UpdaterViewModel : ObservableObject
 
     /// <summary>What this section is doing, and what it did. Drawn by the frame.</summary>
     public SectionProgress Progress { get; } = new();
+
+    /// <summary>
+    /// What an upgrade or a driver install is doing, line by line, as it does it.
+    /// </summary>
+    /// <remarks>
+    /// The status strip holds one sentence, which is the right size for a verdict and
+    /// the wrong size for a job with phases. A driver can be several hundred megabytes
+    /// and the whole batch can take half an hour, all of it inside somebody else's
+    /// process - and one line reading "installing..." for that long cannot be told apart
+    /// from a run that has hung.
+    /// </remarks>
+    public ObservableCollection<UpdaterStepViewModel> Activity { get; } = [];
+
+    /// <summary>Adds a line to the running commentary.</summary>
+    private void Say(string text, string tone = "neutral") =>
+        Activity.Add(new UpdaterStepViewModel(text, tone));
+
+    /// <summary>The tone a line the tools wrote deserves.</summary>
+    /// <remarks>
+    /// Read off the markers this app's own worker prints, never off wording winget or
+    /// Windows Update composed - that wording follows the machine's display language,
+    /// and a log that only colours English is a log that lies on half the machines it
+    /// runs on.
+    /// </remarks>
+    private static string ToneFor(string line) =>
+        line.StartsWith("[ok]", StringComparison.Ordinal) ? "good"
+        : line.StartsWith("[FAIL]", StringComparison.Ordinal) ? "alert"
+        : "neutral";
 
     [RelayCommand]
     private async Task CheckAsync()
@@ -223,12 +259,17 @@ public sealed partial class UpdaterViewModel : ObservableObject
         // nothing. This button does not exist until that list does, and each row is
         // ticked by hand - the ones winget did not install start unticked.
         IsBusy = true;
+        Activity.Clear();
         Progress.Begin($"Upgrading {chosen.Length} package(s)");
 
         try
         {
             var done = 0;
             var failed = 0;
+
+            // Progress<T> marshals each line back to this thread, which is what lets
+            // winget run off it and still write into a bound collection.
+            var lines = new Progress<string>(line => Say(line));
 
             // One at a time, with its own result. A batch that fails halfway would
             // leave the operator unable to tell which packages actually changed.
@@ -238,11 +279,15 @@ public sealed partial class UpdaterViewModel : ObservableObject
                 row.Outcome = "upgrading";
 
                 Progress.Step($"Upgrading {row.Name}", 100.0 * (done + failed) / chosen.Length);
+                Say($"Upgrading {row.Name} ({row.Id})");
 
-                var (succeeded, detail) = await Task.Run(() => WingetBridge.Upgrade(row.Id))
+                var (succeeded, detail) = await Task.Run(() => WingetBridge.Upgrade(row.Id, lines))
                     .ConfigureAwait(true);
 
                 row.Outcome = succeeded ? "upgraded" : detail;
+
+                Say(succeeded ? $"[ok] {row.Name}" : $"[FAIL] {row.Name}  {detail}",
+                    succeeded ? "good" : "alert");
 
                 if (succeeded) done++; else failed++;
             }
@@ -403,16 +448,24 @@ public sealed partial class UpdaterViewModel : ObservableObject
         }
 
         IsBusy = true;
+        Activity.Clear();
         Progress.Begin($"Installing {chosen.Length} driver(s) as Administrator");
 
         try
         {
             Status = "Asking for Administrator...";
+            Say("Asking for Administrator. Nothing is downloaded until it is granted.");
 
-            foreach (var row in chosen) row.Outcome = "installing";
+            foreach (var row in chosen) row.Outcome = "waiting";
+
+            // The worker's transcript, read while it is still being written. Progress<T>
+            // marshals each line back to this thread, so the collection this writes into
+            // is the one the panel is bound to.
+            var lines = new Progress<string>(line => OnWorkerLine(chosen, line));
 
             var (ok, output) = await ElevatedProcess
-                .RunAsync($"\"{ElevatedWorkerClient.WorkerPath}\" {arguments}", TimeSpan.FromMinutes(45))
+                .RunAsync($"\"{ElevatedWorkerClient.WorkerPath}\" {arguments}",
+                    TimeSpan.FromMinutes(45), lines)
                 .ConfigureAwait(true);
 
             var restart = ApplyOutcomes(chosen, output, ok);
@@ -441,6 +494,52 @@ public sealed partial class UpdaterViewModel : ObservableObject
             IsBusy = false;
         }
     }
+
+    /// <summary>
+    /// Puts one line of the worker's transcript on screen as it arrives.
+    /// </summary>
+    /// <remarks>
+    /// The row it names is moved to the phase the line announces, and the bar to the
+    /// position in the batch. Downloading counts as half of a driver: it is the long
+    /// half, and a bar that only moves when an install finishes stands still through
+    /// the part worth watching.
+    /// </remarks>
+    private void OnWorkerLine(IReadOnlyList<DriverViewModel> chosen, string line)
+    {
+        Say(line, ToneFor(line));
+
+        if (ElevatedDriverInstall.ParseStep(line) is not { } step) return;
+
+        var phase = step.Phase == "downloading" ? 0.0 : 0.5;
+
+        Progress.Step($"{Capitalise(step.Phase)} {step.Position} of {step.Total}",
+            100.0 * (step.Position - 1 + phase) / step.Total);
+
+        Status = $"{Capitalise(step.Phase)} driver {step.Position} of {step.Total}...";
+
+        ApplyStep(chosen, step);
+    }
+
+    /// <summary>
+    /// Moves the row a step line names to the phase it announces.
+    /// </summary>
+    /// <remarks>
+    /// Matched on the title, which is what the worker prints and the only thing both
+    /// halves share - the identifiers went one way and are not echoed back. A row with
+    /// no title would match every line, so it matches none.
+    /// </remarks>
+    public static void ApplyStep(
+        IReadOnlyList<DriverViewModel> chosen, ElevatedDriverInstall.DriverStep step)
+    {
+        foreach (var row in chosen.Where(r =>
+            r.Title.Length > 0 && step.Detail.StartsWith(r.Title, StringComparison.OrdinalIgnoreCase)))
+        {
+            row.Outcome = step.Phase;
+        }
+    }
+
+    private static string Capitalise(string word) =>
+        word.Length == 0 ? word : char.ToUpperInvariant(word[0]) + word[1..];
 
     /// <summary>
     /// Reads the worker's transcript back onto the rows it names.
@@ -479,7 +578,10 @@ public sealed partial class UpdaterViewModel : ObservableObject
                 row.Outcome = succeeded ? "installed" : detail[row.Title.Length..].Trim();
         }
 
-        foreach (var row in chosen.Where(r => r.Outcome == "installing"))
+        // Anything still showing a phase never reached a verdict. Silence after an
+        // install is the one result nobody can act on, so it is stated rather than left
+        // as a row that looks like it is still working after the run has ended.
+        foreach (var row in chosen.Where(r => r.Outcome is "waiting" or "downloading" or "installing"))
             row.Outcome = ran ? "no result reported" : "not run";
 
         return restart;

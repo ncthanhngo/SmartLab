@@ -74,6 +74,44 @@ public static class SelfTest
                 "Some Vendor Tool 4.2 is gone. 2 thing(s) it registered are still on disk.");
         }),
 
+        new("updater-running", () =>
+        {
+            // A driver install part way through: rows in each phase, and the log the
+            // worker's transcript feeds. None of it exists until somebody presses the
+            // button and answers a UAC prompt, which no automated run can do - so the
+            // panel and its tones had never been drawn.
+            var updater = shell.Updater;
+
+            updater.ShowingDrivers = true;
+            updater.Activity.Clear();
+            updater.Drivers.Clear();
+
+            Driver(updater, "Intel Corporation - Display", "installed");
+            Driver(updater, "Realtek Semiconductor Corp. - MEDIA", "downloading");
+            Driver(updater, "NVIDIA - Display", "waiting");
+
+            updater.Activity.Add(new UpdaterStepViewModel(
+                "Asking for Administrator. Nothing is downloaded until it is granted.", "neutral"));
+            updater.Activity.Add(new UpdaterStepViewModel(
+                "[step] 1/3 downloading Intel Corporation - Display  (118.4 MB)", "neutral"));
+            updater.Activity.Add(new UpdaterStepViewModel(
+                "[step] 1/3 installing Intel Corporation - Display", "neutral"));
+            updater.Activity.Add(new UpdaterStepViewModel(
+                "[ok] Intel Corporation - Display", "good"));
+            updater.Activity.Add(new UpdaterStepViewModel(
+                "[FAIL] Realtek Semiconductor Corp. - MEDIA  Windows Update returned 4, 0x80240022", "alert"));
+
+            // The dial reads from the count rather than from the list, so a capture that
+            // skipped it would show three rows under a heading saying nothing is due.
+            updater.DriverCount = updater.Drivers.Count;
+            updater.DriverGaugePercent = 1;
+
+            (updater.DriverHeadline, updater.DriverHeadlineDetail) =
+                UpdaterViewModel.SummariseDrivers(updater.Drivers.Count, updater.Drivers.Count, undriven: 0);
+
+            updater.Progress.Step("Downloading 2 of 3", 100.0 * 1 / 3);
+        }),
+
         // Each tone of the band, because the tone is carried by triggers that only
         // fire on the value they name.
         new("band-good", () => shell.Cleanup.Progress.Finish(
@@ -105,6 +143,15 @@ public static class SelfTest
                 HistoryViewModel.Summarise(1, 3);
         }),
     ];
+
+    /// <summary>One driver row, already in the phase this state wants to draw.</summary>
+    private static void Driver(UpdaterViewModel updater, string title, string outcome) =>
+        updater.Drivers.Add(new DriverViewModel(new DriverUpdate(
+            Guid.NewGuid().ToString(), title, title, "Intel",
+            "31.0.101.5333", "2024-06-12", "2026-07-14", 118_400_000))
+        {
+            Outcome = outcome,
+        });
 
     private static void Say(UninstallViewModel uninstall, UninstallStepKind kind, string text) =>
         uninstall.Activity.Add(new UninstallStepViewModel(new UninstallStep(kind, text)));

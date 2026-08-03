@@ -181,7 +181,11 @@ public static class WingetBridge
     /// One at a time on purpose. A batch that fails halfway reports as one failure,
     /// leaving the operator unable to tell which packages actually changed.
     /// </remarks>
-    public static (bool Succeeded, string Detail) Upgrade(string packageId)
+    /// <param name="lines">
+    /// Where winget's own output goes as it arrives, rather than at the end.
+    /// </param>
+    public static (bool Succeeded, string Detail) Upgrade(
+        string packageId, IProgress<string>? lines = null)
     {
         if (FindExecutable() is not { } winget) return (false, "winget is not installed.");
 
@@ -189,7 +193,8 @@ public static class WingetBridge
         {
             var result = Run(winget,
                 $"upgrade --id {packageId} --exact --silent --disable-interactivity " +
-                "--accept-package-agreements --accept-source-agreements");
+                "--accept-package-agreements --accept-source-agreements",
+                lines);
 
             return (result.ExitCode == 0, result.Error ?? LastMeaningfulLine(result.Output));
         }
@@ -199,7 +204,8 @@ public static class WingetBridge
         }
     }
 
-    private static (string Output, string? Error, int ExitCode) Run(string executable, string arguments)
+    private static (string Output, string? Error, int ExitCode) Run(
+        string executable, string arguments, IProgress<string>? lines = null)
     {
         using var process = Process.Start(new ProcessStartInfo(executable, arguments)
         {
@@ -212,7 +218,9 @@ public static class WingetBridge
 
         if (process is null) return (string.Empty, "winget would not start.", -1);
 
-        var output = process.StandardOutput.ReadToEnd();
+        var output = lines is null
+            ? process.StandardOutput.ReadToEnd()
+            : ReadReporting(process.StandardOutput, lines);
 
         if (!process.WaitForExit((int)Timeout.TotalMilliseconds))
         {
@@ -222,6 +230,56 @@ public static class WingetBridge
         }
 
         return (output, null, process.ExitCode);
+    }
+
+    /// <summary>
+    /// Drains winget's output, reporting each line as it lands.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Read a character at a time and broken on carriage returns as well as newlines.
+    /// winget draws its progress bar by returning to the start of the line and writing
+    /// over itself, so a reader that waits for a newline waits for the whole download -
+    /// which is the one stretch worth watching.
+    /// </para>
+    /// <para>
+    /// A line identical to the one before it is dropped. That same redrawing emits the
+    /// same text many times a second while a figure inside it stands still, and a log
+    /// that repeats one line four hundred times has buried everything else.
+    /// </para>
+    /// </remarks>
+    private static string ReadReporting(TextReader reader, IProgress<string> lines)
+    {
+        var everything = new System.Text.StringBuilder();
+        var current = new System.Text.StringBuilder();
+        var previous = string.Empty;
+
+        void Emit()
+        {
+            var line = current.ToString().Trim();
+            current.Clear();
+
+            if (line.Length == 0 || line == previous) return;
+
+            previous = line;
+            lines.Report(line);
+        }
+
+        int next;
+
+        while ((next = reader.Read()) >= 0)
+        {
+            var character = (char)next;
+
+            everything.Append(character);
+
+            if (character is '\r' or '\n') Emit();
+            else current.Append(character);
+        }
+
+        Emit();
+
+        return everything.ToString();
     }
 
     private static string LastMeaningfulLine(string output) =>

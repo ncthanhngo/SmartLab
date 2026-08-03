@@ -310,6 +310,30 @@ unknown, not as undriven: the two are indistinguishable from here. Devices Windo
 genuinely failing to drive come from Device Manager's error codes instead, listed
 separately and untickable, because what remains there is what this app cannot fix.
 
+**Both halves report while they work, not afterwards.** A driver can be several hundred
+megabytes and the batch can take half an hour, all of it inside somebody else's process —
+and one row reading *installing* for that long cannot be told apart from a run that has
+hung. Each tab therefore keeps an Activity log, fed line by line as the tools write
+them, and each row moves through *waiting → downloading → installing → installed* while
+it happens.
+
+Getting those lines out is the awkward part on the driver side, because a pipe is the
+one thing that cannot cross an elevation boundary: the elevated worker writes to a
+transcript file, and `TranscriptTail` reads whole lines out of it while it is still
+being written. A partial last line is held back — the writer is mid-sentence, not
+finished with a short one — and the read after the process exits takes the final line
+even when nothing terminated it, because that line is usually the verdict.
+
+The worker also installs **one driver at a time** rather than downloading the batch and
+then installing it. A batch is fewer round trips and says nothing for the length of it.
+Each phase is announced as `[step] 2/3 downloading <title>`, in a shape this application
+wrote: what reads it is a progress bar and a list of rows, and neither can be driven
+from prose Windows Update composed in whatever language the machine displays. winget's
+own output is streamed as it lands, broken on carriage returns as well as newlines —
+winget draws its progress bar by writing over itself, so a reader waiting for a newline
+waits out the whole download — and a line identical to the one before it is dropped, or
+the log buries everything else under one line repeated four hundred times.
+
 **About** asks GitHub for the latest published release when someone presses *Check for
 updates*. It sends the request and nothing else, and downloads nothing. A tag that
 cannot be read as a version — `nightly`, or a repository with no release at all —

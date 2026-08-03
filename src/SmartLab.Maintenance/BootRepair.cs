@@ -322,5 +322,5 @@ public static class BootRepairRunner
 
     private static Task<(bool Ok, string Output)> RunElevatedAsync(
         string commandLine, CancellationToken ct) =>
-        ElevatedProcess.RunAsync(commandLine, Timeout, ct);
+        ElevatedProcess.RunAsync(commandLine, Timeout, ct: ct);
 }

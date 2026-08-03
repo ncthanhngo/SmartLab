@@ -111,6 +111,44 @@ public static class ElevatedDriverInstall
         }
     }
 
+    /// <summary>One phase of one driver, read back off a step line.</summary>
+    /// <param name="Position">Which driver, counting from one.</param>
+    /// <param name="Phase">"downloading" or "installing".</param>
+    /// <param name="Detail">The title, with the size after it where there was one.</param>
+    public sealed record DriverStep(int Position, int Total, string Phase, string Detail);
+
+    /// <summary>
+    /// Reads a step line back, or null for any other line.
+    /// </summary>
+    /// <remarks>
+    /// Written beside the code that prints these, so the two cannot drift apart into a
+    /// format and a parser that no longer agree. Anything unrecognised is null rather
+    /// than an exception: this runs over every line an elevated process wrote, and one
+    /// unexpected sentence must cost a bar's position rather than the whole run.
+    /// </remarks>
+    public static DriverStep? ParseStep(string line)
+    {
+        const string prefix = "[step] ";
+
+        var text = line.Trim();
+        if (!text.StartsWith(prefix, StringComparison.Ordinal)) return null;
+
+        var parts = text[prefix.Length..].Split(' ', 3, StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length < 3) return null;
+
+        var slash = parts[0].IndexOf('/');
+        if (slash <= 0) return null;
+
+        if (!int.TryParse(parts[0][..slash], out var position) ||
+            !int.TryParse(parts[0][(slash + 1)..], out var total) ||
+            position < 1 || total < 1)
+        {
+            return null;
+        }
+
+        return new DriverStep(position, total, parts[1], parts[2].Trim());
+    }
+
     /// <summary>The offered updates whose ids were asked for, as a WUA collection.</summary>
     private static dynamic Select(dynamic offered, HashSet<string> wanted, TextWriter output)
     {
@@ -144,44 +182,123 @@ public static class ElevatedDriverInstall
         return chosen;
     }
 
+    /// <summary>
+    /// Downloads and installs each chosen driver, one at a time, saying so as it goes.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// One at a time rather than one batch download followed by one batch install. A
+    /// batch is fewer round trips and says nothing for the length of it: a driver can be
+    /// hundreds of megabytes, and the operator watching has no way to tell a download
+    /// from a hang. Per driver, each phase is announced before it is entered and
+    /// answered for after.
+    /// </para>
+    /// <para>
+    /// The step lines carry a position and a phase in a shape this application wrote,
+    /// not a sentence Windows Update composed. What is on the other side of this is a
+    /// list of rows to update and a bar to move, and neither can be driven from prose
+    /// that changes with the machine's display language.
+    /// </para>
+    /// </remarks>
     private static int InstallAll(dynamic session, dynamic chosen, TextWriter output)
     {
         dynamic downloader = session.CreateUpdateDownloader();
-        downloader.Updates = chosen;
-        downloader.Download();
-
         dynamic installer = session.CreateUpdateInstaller();
-        installer.Updates = chosen;
-
-        dynamic result = installer.Install();
 
         var failed = 0;
+        var restart = false;
+
         int count = chosen.Count;
 
-        // Reported per driver rather than as one verdict. A batch that half-worked and
-        // says "failed" leaves the operator unable to tell which drivers changed, which
-        // is the one thing they need to know before rebooting.
         for (var i = 0; i < count; i++)
         {
             dynamic update = chosen.Item(i);
-            dynamic outcome = result.GetUpdateResult(i);
+            string title = update.Title;
 
-            // orcSucceeded, then orcSucceededWithErrors. Anything else did not install.
-            int code = outcome.ResultCode;
-            var succeeded = code is 2 or 3;
+            dynamic one = Activator.CreateInstance(
+                Type.GetTypeFromProgID("Microsoft.Update.UpdateColl")!)!;
 
-            if (!succeeded) failed++;
+            one.Add(update);
 
-            output.WriteLine(succeeded
-                ? $"[ok] {update.Title}"
-                : $"[FAIL] {update.Title}  Windows Update returned {code}, 0x{(int)outcome.HResult:X8}");
+            try
+            {
+                Step(output, i + 1, count, "downloading", title, Bytes(() => update.MaxDownloadSize));
+
+                downloader.Updates = one;
+                downloader.Download();
+
+                Step(output, i + 1, count, "installing", title, 0);
+
+                installer.Updates = one;
+
+                dynamic result = installer.Install();
+                dynamic outcome = result.GetUpdateResult(0);
+
+                // orcSucceeded, then orcSucceededWithErrors. Anything else did not install.
+                int code = outcome.ResultCode;
+                var succeeded = code is 2 or 3;
+
+                if (!succeeded) failed++;
+                if ((bool)result.RebootRequired) restart = true;
+
+                // Reported per driver rather than as one verdict. A batch that half
+                // worked and says "failed" leaves the operator unable to tell which
+                // drivers changed, which is the one thing they need before rebooting.
+                Write(output, succeeded
+                    ? $"[ok] {title}"
+                    : $"[FAIL] {title}  Windows Update returned {code}, 0x{(int)outcome.HResult:X8}");
+            }
+            catch (Exception ex)
+            {
+                // One driver that refuses does not cancel the ones after it. They are
+                // separate installs and the operator ticked each of them.
+                failed++;
+                Write(output, $"[FAIL] {title}  {ex.Message}");
+            }
         }
 
         // Said once, at the end. A driver that has replaced its predecessor on disk but
         // not in memory is the state that makes someone think the install did nothing.
-        if ((bool)result.RebootRequired)
-            output.WriteLine("A restart is needed before the new drivers take effect.");
+        if (restart) Write(output, "A restart is needed before the new drivers take effect.");
 
         return failed;
+    }
+
+    /// <summary>Announces a phase, in a shape the caller can read positions out of.</summary>
+    private static void Step(TextWriter output, int position, int total, string phase, string title, long bytes) =>
+        Write(output, $"[step] {position}/{total} {phase} {title}" +
+                      (bytes > 0 ? $"  ({Size(bytes)})" : string.Empty));
+
+    /// <remarks>
+    /// Flushed on every line. This is being read by somebody watching it happen, and a
+    /// buffered transcript delivers the whole run at the moment it stops mattering.
+    /// </remarks>
+    private static void Write(TextWriter output, string line)
+    {
+        output.WriteLine(line);
+        output.Flush();
+    }
+
+    private static string Size(long bytes) => bytes switch
+    {
+        < 1024 * 1024 => $"{bytes / 1024.0:F0} KB",
+        < 1024L * 1024 * 1024 => $"{bytes / 1024.0 / 1024:F1} MB",
+        _ => $"{bytes / 1024.0 / 1024 / 1024:F2} GB",
+    };
+
+    /// <remarks>
+    /// Every read of a late-bound COM property is allowed to fail. A size that cannot be
+    /// read costs the figure in brackets, not the install.
+    /// </remarks>
+    private static long Bytes(Func<object?> read)
+    {
+        try
+        {
+            return Convert.ToInt64(read() ?? 0L, System.Globalization.CultureInfo.InvariantCulture);
+        }
+        catch
+        {
+            return 0;
+        }
     }
 }

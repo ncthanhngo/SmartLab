@@ -246,6 +246,69 @@
                     </StackPanel>
                 </Border>
 
+                <!-- What the run is doing, line by line, while it does it.
+                     Both tabs share this: the work they start is the same shape - a
+                     download inside somebody else's tool, then an install - and only
+                     one of them can be running. Present from the first press onwards,
+                     including after it finished, because "what did it say" is asked
+                     after the bar has gone as often as during. -->
+                <!-- Capped, and the list keeps the rest. The log is evidence for what
+                     the rows are saying, not the subject: the subject is which package
+                     is on which version. -->
+                <Border DockPanel.Dock="Bottom" Padding="15" Margin="0,14,0,0" MaxHeight="150">
+                    <Border.Style>
+                        <Style TargetType="Border" BasedOn="{StaticResource Card}">
+                            <Setter Property="Visibility" Value="Visible" />
+                            <Style.Triggers>
+                                <!-- Nothing has been run yet, so there is nothing to
+                                     report and no empty panel claiming otherwise. -->
+                                <DataTrigger Binding="{Binding Activity.Count}" Value="0">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Border.Style>
+
+                    <DockPanel>
+                        <TextBlock DockPanel.Dock="Top" Text="Activity"
+                                   Style="{StaticResource SectionTitle}" Margin="0,0,0,8" />
+
+                        <ListBox x:Name="UpdaterLog" Style="{StaticResource PlainList}"
+                                 ctl:AutoScroll.ToNewest="True"
+                                 ItemsSource="{Binding Activity}">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,3">
+                                        <TextBlock x:Name="Mark" Text="&#xE946;"
+                                                   FontFamily="Segoe MDL2 Assets" FontSize="11"
+                                                   Margin="0,2,8,0" VerticalAlignment="Top"
+                                                   Foreground="{DynamicResource TextMutedBrush}" />
+                                        <TextBlock x:Name="Line" Text="{Binding Text}" FontSize="11.5"
+                                                   FontFamily="{StaticResource MonoFont}"
+                                                   TextWrapping="Wrap" MaxWidth="720"
+                                                   Foreground="{DynamicResource TextSecondaryBrush}" />
+                                    </StackPanel>
+
+                                    <DataTemplate.Triggers>
+                                        <DataTrigger Binding="{Binding Tone}" Value="good">
+                                            <Setter TargetName="Mark" Property="Text" Value="&#xE930;" />
+                                            <Setter TargetName="Mark" Property="Foreground"
+                                                    Value="{DynamicResource AccentBrush}" />
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding Tone}" Value="alert">
+                                            <Setter TargetName="Mark" Property="Text" Value="&#xE814;" />
+                                            <Setter TargetName="Mark" Property="Foreground"
+                                                    Value="{DynamicResource DangerBrush}" />
+                                            <Setter TargetName="Line" Property="Foreground"
+                                                    Value="{DynamicResource TextPrimaryBrush}" />
+                                        </DataTrigger>
+                                    </DataTemplate.Triggers>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </DockPanel>
+                </Border>
+
                 <!-- Both bodies share one cell, so the hidden one costs no layout and
                      the visible one fills the frame rather than sitting at its own
                      natural width beside a gap. -->

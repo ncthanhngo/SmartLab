@@ -579,6 +579,7 @@ public partial class MainWindow : Window
             "band-alert" => "malware",
             "band-indeterminate" => "spacelens",
             "history-populated" => "history",
+            "updater-running" => "updater",
             _ => null,
         };
 

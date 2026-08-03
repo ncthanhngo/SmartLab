@@ -398,7 +398,7 @@ public static class DefenderBridge
         }
 
         var (ok, output) = await ElevatedProcess
-            .RunAsync(BuildRemoveCommand(), RemoveTimeout, ct)
+            .RunAsync(BuildRemoveCommand(), RemoveTimeout, ct: ct)
             .ConfigureAwait(false);
 
         return ok

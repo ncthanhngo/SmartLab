@@ -22,8 +22,21 @@ namespace SmartLab.Maintenance;
 /// </remarks>
 public static class ElevatedProcess
 {
+    /// <summary>How often a running command's transcript is re-read.</summary>
+    private static readonly TimeSpan PollInterval = TimeSpan.FromMilliseconds(400);
+
+    /// <param name="lines">
+    /// Where each line goes as the command writes it, rather than at the end.
+    /// </param>
+    /// <remarks>
+    /// The transcript is polled rather than piped, because a pipe is the one thing that
+    /// cannot cross an elevation boundary. Installing three drivers can take half an
+    /// hour, and a report that arrives only when it is over describes a job nobody could
+    /// watch - which is indistinguishable, from the outside, from one that has hung.
+    /// </remarks>
     public static async Task<(bool Ok, string Output)> RunAsync(
-        string commandLine, TimeSpan timeout, CancellationToken ct = default)
+        string commandLine, TimeSpan timeout,
+        IProgress<string>? lines = null, CancellationToken ct = default)
     {
         var transcript = Path.Combine(Path.GetTempPath(), $"smartlab-elevated-{Guid.NewGuid():N}.log");
 
@@ -46,7 +59,25 @@ public static class ElevatedProcess
             using var deadline = CancellationTokenSource.CreateLinkedTokenSource(ct);
             deadline.CancelAfter(timeout);
 
-            await process.WaitForExitAsync(deadline.Token).ConfigureAwait(false);
+            if (lines is null)
+            {
+                await process.WaitForExitAsync(deadline.Token).ConfigureAwait(false);
+            }
+            else
+            {
+                var tail = new TranscriptTail(transcript);
+
+                while (!process.HasExited)
+                {
+                    await Task.Delay(PollInterval, deadline.Token).ConfigureAwait(false);
+
+                    foreach (var line in tail.ReadNew()) lines.Report(line);
+                }
+
+                // The last write and the exit race each other, and the line after the
+                // final newline is usually the one that says how it went.
+                foreach (var line in tail.ReadRest()) lines.Report(line);
+            }
 
             var output = ReadTranscript(transcript);
 
