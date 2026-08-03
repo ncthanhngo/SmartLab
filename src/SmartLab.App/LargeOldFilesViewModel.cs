@@ -87,7 +87,12 @@ public sealed partial class LargeOldFilesViewModel : ObservableObject
         }
 
         IsBusy = true;
+
+        // Emptied and recounted together. A walk can take minutes and can end in the
+        // catch below, and either way the button would otherwise keep offering to
+        // recycle files off the list it just discarded.
         Files.Clear();
+        UpdateSummary();
 
         Progress.Begin($"Walking {RootFolder}");
 
@@ -229,7 +234,25 @@ public sealed partial class LargeOldFilesViewModel : ObservableObject
         (Headline, HeadlineDetail) = Summarise(FileCount, Files.Count(f => f.IsSelected), TotalText);
 
         RecycleTickedCommand.NotifyCanExecuteChanged();
+
+        OnPropertyChanged(nameof(ActionLabel));
+        OnPropertyChanged(nameof(HasTicked));
     }
+
+    /// <summary>
+    /// What the button will do, and to how many files.
+    /// </summary>
+    /// <remarks>
+    /// "Recycle" rather than "Delete", because the Recycle Bin is where these go and a
+    /// button that says delete over an action that can be undone has understated itself
+    /// in the direction that makes people hesitate over a safe thing.
+    /// </remarks>
+    public string ActionLabel => ActionWording.For("Recycle", TickedCount, "file");
+
+    /// <summary>Whether it has anything to act on, which is what lights it up.</summary>
+    public bool HasTicked => TickedCount > 0;
+
+    private int TickedCount => Files.Count(f => f.IsSelected);
 
     /// <summary>The heading above the dial.</summary>
     /// <remarks>

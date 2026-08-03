@@ -142,6 +142,54 @@ public static class SelfTest
             (history.Headline, history.HeadlineDetail, history.HeadlineTone) =
                 HistoryViewModel.Summarise(1, 3);
         }),
+
+        new("action-armed", () =>
+        {
+            // The button that acts on a selection, coloured and counted because
+            // something is ticked and the command will run. A walk finds every section
+            // at rest, where that button is quiet and unticked - so the one state it
+            // has that says "this is about to happen to your machine" is drawn by a
+            // trigger no capture had ever fired.
+            var cleanup = shell.Cleanup;
+
+            // Ticked off what the real measurement found, never off figures put in by
+            // hand: the dial, the file count and the line under the list are all sums
+            // of these same rows, and a size invented for the button would be a
+            // picture of this machine showing a number that is not on it.
+            var found = cleanup.Categories.Where(c => c.Measured && c.Bytes > 0).ToList();
+
+            // A machine with nothing to clean would leave the button unticked, which is
+            // the one state this capture exists so as not to draw.
+            var wanted = found.Count > 0 ? found : cleanup.Categories.Take(3).ToList();
+
+            foreach (var category in cleanup.Categories)
+                category.IsSelected = wanted.Contains(category);
+
+            // Clean is offered only after a measurement. Without this the button is
+            // armed and disabled, which is the other state - the one the section at
+            // rest already draws.
+            cleanup.Analysed = true;
+
+            // The line under the list is written by a measurement, and the ticks have
+            // just moved. Left alone it would caption the picture with the figure from
+            // before they did.
+            cleanup.Status =
+                $"{cleanup.TotalText} reclaimable from the ticked categories. Nothing has been deleted.";
+        }),
+
+        // Arranged on top of the state above, which has already done the ticking.
+        new("action-armed-busy", () =>
+        {
+            // The same button during the run it started: still ticked, so still armed,
+            // but shut for as long as the run lasts. Colour belongs to the one that can
+            // be pressed, and a style trigger outranks the template trigger that greys
+            // a disabled button - so this is the state where the two decide it.
+            var cleanup = shell.Cleanup;
+
+            cleanup.IsBusy = true;
+            cleanup.Status = "Clearing Temporary files...";
+            cleanup.Progress.Step("Clearing Temporary files", 40);
+        }),
     ];
 
     /// <summary>One driver row, already in the phase this state wants to draw.</summary>

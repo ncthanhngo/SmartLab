@@ -62,7 +62,8 @@
 
             <ctl:SectionFrame.Actions>
                 <StackPanel Orientation="Horizontal">
-                    <Button Content="Send ticked to Recycle Bin" Style="{StaticResource GhostButton}"
+                    <Button Content="{Binding ActionLabel}" Style="{StaticResource ActionButton}"
+                            ctl:ActionState.IsArmed="{Binding HasTicked}"
                             Command="{Binding RecycleTickedCommand}" Margin="0,0,8,0" />
                     <Button Content="Scan" Style="{StaticResource PrimaryButton}"
                             Command="{Binding ScanCommand}" />
@@ -159,7 +160,8 @@
 
             <ctl:SectionFrame.Actions>
                 <StackPanel Orientation="Horizontal">
-                    <Button Content="Recover ticked" Style="{StaticResource GhostButton}"
+                    <Button Content="{Binding RecoverLabel}" Style="{StaticResource ActionButton}"
+                            ctl:ActionState.IsArmed="{Binding HasTickedDeleted}"
                             Command="{Binding RecoverDeletedCommand}" Margin="0,0,8,0" />
                     <Button Content="Read deleted entries" Style="{StaticResource PrimaryButton}"
                             Command="{Binding ReadDeletedCommand}" />

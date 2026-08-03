@@ -158,7 +158,18 @@ public sealed partial class TrashBinsViewModel : ObservableObject
             Bins.Count, Bins.Count(b => b.IsSelected), Bins.Count(b => b.IsRemovable), ItemCount);
 
         EmptyTickedCommand.NotifyCanExecuteChanged();
+
+        OnPropertyChanged(nameof(ActionLabel));
+        OnPropertyChanged(nameof(HasTicked));
     }
+
+    /// <summary>What the button will do, and to how many bins.</summary>
+    public string ActionLabel => ActionWording.For("Empty", TickedCount, "bin");
+
+    /// <summary>Whether it has anything to act on, which is what lights it up.</summary>
+    public bool HasTicked => TickedCount > 0;
+
+    private int TickedCount => Bins.Count(b => b.IsSelected);
 
     /// <summary>
     /// The heading above the dial.

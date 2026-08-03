@@ -29,7 +29,8 @@
                             Command="{Binding CleanAsAdministratorCommand}" Margin="0,0,8,0"
                             Visibility="{Binding HasRefusals,
                                 Converter={StaticResource BoolToVisibility}}" />
-                    <Button Content="Clean ticked" Style="{StaticResource GhostButton}"
+                    <Button Content="{Binding ActionLabel}" Style="{StaticResource ActionButton}"
+                            ctl:ActionState.IsArmed="{Binding HasTicked}"
                             Command="{Binding CleanCommand}" Margin="0,0,8,0" />
                     <Button Content="Measure" Style="{StaticResource PrimaryButton}"
                             Command="{Binding AnalyseCommand}" />
@@ -133,7 +134,8 @@
             <ctl:SectionFrame.Actions>
                 <!-- Measure is the dry run, and every bin starts unticked besides. -->
                 <StackPanel Orientation="Horizontal">
-                    <Button Content="Empty ticked" Style="{StaticResource GhostButton}"
+                    <Button Content="{Binding ActionLabel}" Style="{StaticResource ActionButton}"
+                            ctl:ActionState.IsArmed="{Binding HasTicked}"
                             Command="{Binding EmptyTickedCommand}" Margin="0,0,8,0" />
                     <Button Content="Measure" Style="{StaticResource PrimaryButton}"
                             Command="{Binding MeasureCommand}" />

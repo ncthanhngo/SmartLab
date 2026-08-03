@@ -194,7 +194,18 @@ public sealed partial class OptimizationViewModel : ObservableObject
         (Headline, HeadlineDetail) = Summarise(ItemCount, ticked, changeable, Disabled.Count);
 
         DisableTickedCommand.NotifyCanExecuteChanged();
+
+        OnPropertyChanged(nameof(ActionLabel));
+        OnPropertyChanged(nameof(HasTicked));
     }
+
+    /// <summary>What the button will do, and to how many startup entries.</summary>
+    public string ActionLabel => ActionWording.For("Disable", TickedCount, "item");
+
+    /// <summary>Whether it has anything to act on, which is what lights it up.</summary>
+    public bool HasTicked => TickedCount > 0;
+
+    private int TickedCount => Items.Count(i => i.IsSelected);
 
     /// <summary>The heading above the dial.</summary>
     public static (string Headline, string Detail) Summarise(

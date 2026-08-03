@@ -61,10 +61,11 @@
                         <Grid DockPanel.Dock="Top" Margin="0,0,0,8">
                             <TextBlock Text="Left behind" Style="{StaticResource SectionTitle}"
                                        Margin="0" VerticalAlignment="Center" />
-                            <Button Content="Remove ticked" HorizontalAlignment="Right"
+                            <Button Content="{Binding CleanLabel}" HorizontalAlignment="Right"
+                                    ctl:ActionState.IsArmed="{Binding HasTickedLeftovers}"
                                     Command="{Binding CleanLeftoversCommand}">
                                 <Button.Style>
-                                    <Style TargetType="Button" BasedOn="{StaticResource GhostButton}">
+                                    <Style TargetType="Button" BasedOn="{StaticResource ActionButton}">
                                         <Setter Property="Visibility" Value="Visible" />
                                         <Style.Triggers>
                                             <DataTrigger Binding="{Binding Leftovers.Count}" Value="0">
@@ -215,7 +216,8 @@
                     <StackPanel Orientation="Horizontal"
                                 Visibility="{Binding ShowingApps,
                                     Converter={StaticResource BoolToVisibility}}">
-                        <Button Content="Upgrade ticked" Style="{StaticResource GhostButton}"
+                        <Button Content="{Binding UpgradeLabel}" Style="{StaticResource ActionButton}"
+                                ctl:ActionState.IsArmed="{Binding HasTickedPackages}"
                                 Command="{Binding UpgradeTickedCommand}" Margin="0,0,8,0" />
                         <Button Content="Check" Style="{StaticResource PrimaryButton}"
                                 Command="{Binding CheckCommand}" />
@@ -226,7 +228,8 @@
                     <StackPanel Orientation="Horizontal"
                                 Visibility="{Binding ShowingDrivers,
                                     Converter={StaticResource BoolToVisibility}}">
-                        <Button Content="Install ticked" Style="{StaticResource GhostButton}"
+                        <Button Content="{Binding InstallLabel}" Style="{StaticResource ActionButton}"
+                                ctl:ActionState.IsArmed="{Binding HasTickedDrivers}"
                                 Command="{Binding InstallDriversCommand}" Margin="0,0,8,0" />
                         <Button Content="Check drivers" Style="{StaticResource PrimaryButton}"
                                 Command="{Binding CheckDriversCommand}" />

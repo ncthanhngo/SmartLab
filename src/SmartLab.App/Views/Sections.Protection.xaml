@@ -23,7 +23,8 @@
                      preview, so a toggle in front of Apply would only ask a second
                      time for something the operator has already seen. -->
                 <StackPanel Orientation="Horizontal">
-                    <Button Content="Apply ticked" Style="{StaticResource GhostButton}"
+                    <Button Content="{Binding ApplyLabel}" Style="{StaticResource ActionButton}"
+                            ctl:ActionState.IsArmed="{Binding HasTickedActions}"
                             Command="{Binding ApplyCommand}" Margin="0,0,8,0" />
                     <Button Content="Scan" Style="{StaticResource PrimaryButton}"
                             Command="{Binding ScanCommand}" />
@@ -172,7 +173,8 @@
 
                         <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center"
                                     Margin="16,0,0,0">
-                            <Button Content="Apply ticked" Style="{StaticResource GhostButton}"
+                            <Button Content="{Binding ActionLabel}" Style="{StaticResource ActionButton}"
+                                    ctl:ActionState.IsArmed="{Binding HasTicked}"
                                     Command="{Binding ApplyCommand}" Margin="0,0,8,0" />
                             <Button Content="Check boot" Style="{StaticResource PrimaryButton}"
                                     Command="{Binding CheckCommand}" />

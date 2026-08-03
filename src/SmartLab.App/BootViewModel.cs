@@ -89,8 +89,7 @@ public sealed partial class BootViewModel(MainViewModel shell) : ObservableObjec
 
                 row.PropertyChanged += (_, e) =>
                 {
-                    if (e.PropertyName == nameof(BootFixViewModel.IsSelected))
-                        ApplyCommand.NotifyCanExecuteChanged();
+                    if (e.PropertyName == nameof(BootFixViewModel.IsSelected)) OnFixesTicked();
                 };
 
                 Fixes.Add(row);
@@ -98,6 +97,11 @@ public sealed partial class BootViewModel(MainViewModel shell) : ObservableObjec
 
             HasChecked = true;
             OnPropertyChanged(nameof(HasFixes));
+
+            // The list this button acts on has just been replaced, and the new rows
+            // arrive unticked. Without this the button keeps the count from the check
+            // before it - which after an apply is the count it just finished applying.
+            OnFixesTicked();
 
             Status = verdict.Fixes.Count == 0
                 ? "Nothing here can be repaired by flipping a flag or rewriting boot code."
@@ -185,7 +189,29 @@ public sealed partial class BootViewModel(MainViewModel shell) : ObservableObjec
         Status = string.Empty;
 
         OnPropertyChanged(nameof(HasFixes));
+        OnFixesTicked();
+    }
+
+    /// <summary>What the button will do, and to how many findings.</summary>
+    public string ActionLabel => ActionWording.For("Fix", TickedCount, "item");
+
+    /// <summary>Whether it has anything to act on, which is what lights it up.</summary>
+    public bool HasTicked => TickedCount > 0;
+
+    private int TickedCount => Fixes.Count(f => f.IsSelected);
+
+    /// <summary>Everything that follows the ticks, said in one place.</summary>
+    /// <remarks>
+    /// The list changes in three ways - a row ticked, a check that replaces it, a reset
+    /// that empties it - and all three have to reach the button. Kept together so a
+    /// fourth one cannot answer only half.
+    /// </remarks>
+    private void OnFixesTicked()
+    {
         ApplyCommand.NotifyCanExecuteChanged();
+
+        OnPropertyChanged(nameof(ActionLabel));
+        OnPropertyChanged(nameof(HasTicked));
     }
 
     partial void OnIsBusyChanged(bool value) => ApplyCommand.NotifyCanExecuteChanged();

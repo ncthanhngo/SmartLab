@@ -580,6 +580,8 @@ public partial class MainWindow : Window
             "band-indeterminate" => "spacelens",
             "history-populated" => "history",
             "updater-running" => "updater",
+            "action-armed" => "cleanup",
+            "action-armed-busy" => "cleanup",
             _ => null,
         };
 

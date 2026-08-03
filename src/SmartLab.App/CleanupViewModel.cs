@@ -348,7 +348,18 @@ public sealed partial class CleanupViewModel : ObservableObject
         MeasuredText = Size(measured);
         FileCount = Categories.Where(c => c.IsSelected && c.Measured).Sum(c => c.Files);
         NeedsAdminCount = Categories.Count(c => c.IsSelected && c.NeedsElevation);
+
+        OnPropertyChanged(nameof(ActionLabel));
+        OnPropertyChanged(nameof(HasTicked));
     }
+
+    /// <summary>What the button will do, and to how many places.</summary>
+    public string ActionLabel => ActionWording.For("Clean", TickedCount, "place");
+
+    /// <summary>Whether it has anything to act on, which is what lights it up.</summary>
+    public bool HasTicked => TickedCount > 0;
+
+    private int TickedCount => Categories.Count(c => c.IsSelected);
 
     private static string Size(long bytes) => bytes switch
     {

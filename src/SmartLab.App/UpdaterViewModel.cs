@@ -184,7 +184,12 @@ public sealed partial class UpdaterViewModel : ObservableObject
     private async Task CheckAsync()
     {
         IsBusy = true;
+
+        // Emptied and recounted together, because winget can take a while to answer and
+        // can fail to answer at all. Either way the button must not keep offering to
+        // upgrade packages off the list it just discarded.
         Packages.Clear();
+        UpdateSummary();
 
         // winget answers when it answers, and says nothing on the way. The bar moves
         // without a figure rather than pretending to know how far in it is.
@@ -322,7 +327,18 @@ public sealed partial class UpdaterViewModel : ObservableObject
             PackageCount, ticked, Packages.Count(p => p.NotFromWinget));
 
         UpgradeTickedCommand.NotifyCanExecuteChanged();
+
+        OnPropertyChanged(nameof(UpgradeLabel));
+        OnPropertyChanged(nameof(HasTickedPackages));
     }
+
+    /// <summary>What the Apps button will do, and to how many packages.</summary>
+    public string UpgradeLabel => ActionWording.For("Upgrade", TickedPackages, "app");
+
+    /// <summary>Whether it has anything to act on, which is what lights it up.</summary>
+    public bool HasTickedPackages => TickedPackages > 0;
+
+    private int TickedPackages => Packages.Count(p => p.IsSelected);
 
     /// <summary>The heading above the dial.</summary>
     public static (string Headline, string Detail) Summarise(int found, int ticked, int foreign)
@@ -357,8 +373,12 @@ public sealed partial class UpdaterViewModel : ObservableObject
     private async Task CheckDriversAsync()
     {
         IsBusy = true;
+
+        // Same reason as the winget check next door: the list is gone the moment it is
+        // cleared, so the count on the button has to go with it.
         Drivers.Clear();
         UndrivenDevices.Clear();
+        UpdateDriverSummary();
 
         Progress.Begin("Asking Windows Update what drivers it has");
 
@@ -599,7 +619,18 @@ public sealed partial class UpdaterViewModel : ObservableObject
             DriverCount, ticked, UndrivenDevices.Count);
 
         InstallDriversCommand.NotifyCanExecuteChanged();
+
+        OnPropertyChanged(nameof(InstallLabel));
+        OnPropertyChanged(nameof(HasTickedDrivers));
     }
+
+    /// <summary>What the Drivers button will do, and to how many of them.</summary>
+    public string InstallLabel => ActionWording.For("Install", TickedDrivers, "driver");
+
+    /// <summary>Whether it has anything to act on, which is what lights it up.</summary>
+    public bool HasTickedDrivers => TickedDrivers > 0;
+
+    private int TickedDrivers => Drivers.Count(d => d.IsSelected);
 
     /// <summary>The heading above the driver dial.</summary>
     /// <param name="undriven">Devices Windows is not driving at all.</param>

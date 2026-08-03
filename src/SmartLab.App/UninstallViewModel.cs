@@ -94,6 +94,39 @@ public sealed partial class UninstallViewModel : ObservableObject
 
         GroupedPrograms.GroupDescriptions.Add(new PropertyGroupDescription(
             nameof(InstalledProgram.IsPerUser), new InstallScopeConverter()));
+
+        // Subscribed through the collection rather than at each place a leftover is
+        // added, because there are several and one of them is the self-test. A row that
+        // arrived without being wired up would be one the button silently ignored.
+        Leftovers.CollectionChanged += (_, e) =>
+        {
+            foreach (var row in e.OldItems?.OfType<TraceItemViewModel>() ?? [])
+                row.PropertyChanged -= OnLeftoverChanged;
+
+            foreach (var row in e.NewItems?.OfType<TraceItemViewModel>() ?? [])
+                row.PropertyChanged += OnLeftoverChanged;
+
+            OnLeftoversTicked();
+        };
+    }
+
+    private void OnLeftoverChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(TraceItemViewModel.IsSelected)) OnLeftoversTicked();
+    }
+
+    /// <summary>What the leftovers button will do, and to how many of them.</summary>
+    public string CleanLabel => ActionWording.For("Remove", TickedLeftovers, "item");
+
+    /// <summary>Whether it has anything to act on, which is what lights it up.</summary>
+    public bool HasTickedLeftovers => TickedLeftovers > 0;
+
+    private int TickedLeftovers => Leftovers.Count(l => l.IsSelected);
+
+    private void OnLeftoversTicked()
+    {
+        OnPropertyChanged(nameof(CleanLabel));
+        OnPropertyChanged(nameof(HasTickedLeftovers));
     }
 
     public string InstallDirectory { get; }

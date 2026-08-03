@@ -743,7 +743,21 @@ public sealed partial class MainViewModel : ObservableObject
                 Findings.Add($"[UNREADABLE] {damaged.Path.ForDisplay()} (Win32 {damaged.Win32Error})");
 
             foreach (var action in _plan.ProposedActions)
-                Actions.Add(new ActionItemViewModel(action));
+            {
+                var row = new ActionItemViewModel(action);
+
+                // Ticking a row is what arms the button, so it is also what has to tell
+                // the button. Without this the verb never lit and Apply stayed dead
+                // until something else in the section happened to re-ask.
+                row.PropertyChanged += (_, e) =>
+                {
+                    if (e.PropertyName == nameof(ActionItemViewModel.IsSelected)) OnActionsTicked();
+                };
+
+                Actions.Add(row);
+            }
+
+            OnActionsTicked();
 
             UpdateHeadline(drive, _plan);
 
@@ -782,6 +796,38 @@ public sealed partial class MainViewModel : ObservableObject
     }
 
     private bool CanApply() => _plan is not null && !IsBusy && Actions.Any(a => a.IsSelected);
+
+    /// <summary>What Repair's button will do, and to how many findings.</summary>
+    public string ApplyLabel => ActionWording.For("Fix", TickedActions, "item");
+
+    /// <summary>Whether it has anything to act on, which is what lights it up.</summary>
+    public bool HasTickedActions => TickedActions > 0;
+
+    private int TickedActions => Actions.Count(a => a.IsSelected);
+
+    private void OnActionsTicked()
+    {
+        ApplyCommand.NotifyCanExecuteChanged();
+
+        OnPropertyChanged(nameof(ApplyLabel));
+        OnPropertyChanged(nameof(HasTickedActions));
+    }
+
+    /// <summary>What Deleted files' button will do, and to how many entries.</summary>
+    public string RecoverLabel => ActionWording.For("Recover", TickedDeleted, "file");
+
+    /// <summary>Whether it has anything to act on, which is what lights it up.</summary>
+    public bool HasTickedDeleted => TickedDeleted > 0;
+
+    private int TickedDeleted => DeletedEntries.Count(e => e.IsSelected);
+
+    private void OnDeletedTicked()
+    {
+        RecoverDeletedCommand.NotifyCanExecuteChanged();
+
+        OnPropertyChanged(nameof(RecoverLabel));
+        OnPropertyChanged(nameof(HasTickedDeleted));
+    }
 
     [RelayCommand(CanExecute = nameof(CanApply))]
     private async Task ApplyAsync()
@@ -995,8 +1041,17 @@ public sealed partial class MainViewModel : ObservableObject
             var found = await Task.Run(() => ReadDeletedEntries(drive.DriveLetter, progress))
                 .ConfigureAwait(true);
 
-            foreach (var item in found) DeletedEntries.Add(item);
-            RecoverDeletedCommand.NotifyCanExecuteChanged();
+            foreach (var item in found)
+            {
+                item.PropertyChanged += (_, e) =>
+                {
+                    if (e.PropertyName == nameof(DeletedEntryViewModel.IsSelected)) OnDeletedTicked();
+                };
+
+                DeletedEntries.Add(item);
+            }
+
+            OnDeletedTicked();
             UpdateDeletedHeadline();
 
             RawStatus = found.Count == 0
@@ -1202,9 +1257,11 @@ public sealed partial class MainViewModel : ObservableObject
         Boot.Reset();
 
         ScanCommand.NotifyCanExecuteChanged();
-        ApplyCommand.NotifyCanExecuteChanged();
         ReadDeletedCommand.NotifyCanExecuteChanged();
         DeletedEntries.Clear();
+
+        OnActionsTicked();
+        OnDeletedTicked();
         UpdateDeletedHeadline();
 
         // Counts belong to the drive that was scanned, so they cannot be carried
@@ -1231,8 +1288,9 @@ public sealed partial class MainViewModel : ObservableObject
     partial void OnIsBusyChanged(bool value)
     {
         ScanCommand.NotifyCanExecuteChanged();
-        ApplyCommand.NotifyCanExecuteChanged();
         ReadDeletedCommand.NotifyCanExecuteChanged();
-        RecoverDeletedCommand.NotifyCanExecuteChanged();
+
+        OnActionsTicked();
+        OnDeletedTicked();
     }
 }

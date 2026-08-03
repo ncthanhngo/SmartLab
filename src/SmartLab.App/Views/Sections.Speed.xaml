@@ -23,7 +23,8 @@
                 <StackPanel Orientation="Horizontal">
                     <Button Content="Put back all" Style="{StaticResource GhostButton}"
                             Command="{Binding RestoreAllCommand}" Margin="0,0,8,0" />
-                    <Button Content="Turn ticked off" Style="{StaticResource GhostButton}"
+                    <Button Content="{Binding ActionLabel}" Style="{StaticResource ActionButton}"
+                            ctl:ActionState.IsArmed="{Binding HasTicked}"
                             Command="{Binding DisableTickedCommand}" Margin="0,0,8,0" />
                     <Button Content="Scan" Style="{StaticResource PrimaryButton}"
                             Command="{Binding ScanCommand}" />
