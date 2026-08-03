@@ -90,6 +90,20 @@ public sealed partial class AboutViewModel(MainViewModel shell) : ObservableObje
     /// </remarks>
     public static IReadOnlyList<ReleaseNote> ReleaseNotes { get; } =
     [
+        new("1.0.9", "2026-08-03",
+            Added:
+            [
+                "Every button that acts on a selection says what it will do and to how much: Clean 3 places, Empty 1 bin, Recycle 12 files, Turn off 5 programs. They all read '<verb> ticked' before - Clean ticked, Apply ticked, Upgrade ticked - which names the checkbox rather than the machine. Somebody deciding whether to press one is asking what happens to their computer and how much of it, and 'ticked' answers neither. Each is named for its own work now: leftovers are removed, problems are fixed, and startup entries are turned off rather than 'disabled', to pair with the Put back all standing next to it - the two together say the change is a switch and not a deletion, which is what that section actually does.",
+                "Those buttons colour themselves the moment something is ticked, so the one that would do something no longer looks exactly like the one that would do nothing. They are tinted rather than filled: the solid accent belongs to the safe verb beside them - Measure, Scan, Check - and an armed Clean drawn at the same weight would put the button that deletes level with the button that only looks.",
+            ],
+            Fixed:
+            [
+                "The count on those buttons follows the list it counts. A scan empties its list before it starts, and a walk that then found nothing - or failed part way - left the previous scan's number sitting on the button, offering to recycle files off a list it had already discarded. Repair OS was the worst of them: it re-checks the drive as the last step of applying, so the button kept offering the count it had just finished applying.",
+                "A button that a running job is holding shut is drawn shut. Arming coloured it regardless of that, which is how a button nobody could press still asked to be pressed.",
+                "Nothing hedges its plural in brackets any more. Every line that reported a number used to bracket the s after the noun, which is the program admitting it did not know the count when the sentence was written - though it does know by the time anybody reads it - and for a count of one it was simply wrong, in the way that makes a tool look unfinished at the moment somebody is deciding whether to trust it with a disk. Every line counts in English now, verb included: one entry runs at logon, five entries run. Long counts are grouped as well, so 128,035 files is a figure that can be read at a glance rather than digit by digit.",
+                "Big & Stale reports the thresholds it actually walked with. A size or age box holding something unparseable falls back to the default, and the line underneath used to read back what had been typed as though it had been honoured.",
+            ]),
+
         new("1.0.8", "2026-08-03",
             Added:
             [

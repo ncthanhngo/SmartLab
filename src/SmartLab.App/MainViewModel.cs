@@ -209,7 +209,7 @@ public sealed partial class MainViewModel : ObservableObject
     /// notes at the head of <c>AboutViewModel.ReleaseNotes</c> must name this same
     /// version - a test holds the two together.
     /// </remarks>
-    public const string AppVersion = "1.0.8";
+    public const string AppVersion = "1.0.9";
     public const string AppAuthor = "nc.thanhngo@gmail.com";
 
     /// <remarks>
