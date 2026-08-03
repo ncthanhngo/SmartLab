@@ -282,6 +282,12 @@ public partial class MainWindow : Window
                 DataContext = viewModel.Uninstall,
             };
 
+            // A removal ends by waiting for the uninstaller to stop being registered,
+            // because most of them hand the job to another process and exit. Closing
+            // this window is how somebody says they have stopped watching, so the wait
+            // stops with it and the run reports what it can see.
+            _uninstallWindow.Closed += (_, _) => viewModel.Uninstall.StopWaiting();
+
             try { _uninstallWindow.ShowDialog(); }
             finally { _uninstallWindow = null; }
         });

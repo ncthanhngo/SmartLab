@@ -547,6 +547,18 @@ user cancelled, and non-zero for ones that removed everything. Re-reading is als
 stops a program that is gone from sitting on screen until somebody presses Refresh —
 which, until it was fixed, made every successful removal look like it had failed.
 
+**The re-read waits for the uninstaller to actually be finished.** The process this app
+launches is usually not the one doing the work: Inno Setup and NSIS both copy their
+uninstaller into a temporary folder, start the copy and exit within a second, and every
+bootstrapper hands off the same way. Waiting on that process and then reading the
+registry finds the program still listed a second into a removal that takes thirty, so
+the row stayed and the verdict read *Not removed* — the reported bug. After the process
+exits the uninstall key is therefore watched, once a second for up to ninety seconds,
+and only then are leftovers scanned and the list re-read. The wait is bounded because
+an uninstaller somebody cancelled leaves its key in place for good and nothing here can
+tell that apart from one still working; closing the removal window ends the wait early,
+since whoever shut it has stopped watching.
+
 The leftovers panel stays put once a removal has run, including when it found nothing.
 A panel that hides itself cannot say "nothing was left behind", and a clean uninstall is
 exactly the case where the operator most wants to be told rather than left to notice an

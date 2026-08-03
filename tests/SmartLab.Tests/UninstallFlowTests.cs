@@ -153,6 +153,10 @@ public sealed class UninstallFlowTests
 
             var pretend = real with { UninstallString = "cmd.exe /c exit 0", QuietUninstallString = null };
 
+            // Nothing was started that could still be finishing, so there is nothing
+            // to wait for. The wait itself is covered below, against the probe.
+            uninstall.HandoffWait = TimeSpan.Zero;
+
             uninstall.Programs.Add(pretend);
             uninstall.SelectedProgram = pretend;
 
@@ -251,6 +255,67 @@ public sealed class UninstallFlowTests
         Assert.Empty(leftovers);
         Assert.Contains(steps.Lines, s => s.Text.Contains(program.InstallLocation!, StringComparison.Ordinal));
         Assert.Contains(steps.Lines, s => s.Text.Contains(program.RegistryKeyPath, StringComparison.Ordinal));
+    }
+
+    /// <summary>
+    /// The hand-off: an uninstaller whose process exits before the removal starts.
+    /// </summary>
+    /// <remarks>
+    /// This is the shape of nearly every installer - Inno Setup and NSIS both copy
+    /// themselves into a temporary folder, start the copy and exit within a second.
+    /// Reading the registry at that moment is what used to report a removal that was
+    /// still happening as one that had failed, and leave the program on the list until
+    /// somebody pressed Refresh.
+    /// </remarks>
+    [Fact]
+    public async Task AnUninstallerThatHandsOffIsWaitedForRatherThanCalledAFailure()
+    {
+        var program = new InstalledProgram("Stub", @"HKCU\Software\Stub");
+
+        var steps = new StepLog();
+
+        var gone = await new ProgramUninstaller(new VanishingKeyProbe(reads: 2))
+            .WaitUntilUnregisteredAsync(program, TimeSpan.FromSeconds(30), steps);
+
+        Assert.True(gone);
+        Assert.Contains(steps.Lines, s => s.Text.Contains("handed the job", StringComparison.Ordinal));
+        Assert.Contains(steps.Lines, s => s.Text.Contains("went away", StringComparison.Ordinal));
+    }
+
+    /// <remarks>
+    /// An uninstaller the operator cancelled leaves its entry in place for good, and
+    /// nothing can tell that apart from one still working - so the wait has an end.
+    /// </remarks>
+    [Fact]
+    public async Task AnEntryThatOutlastsTheWaitIsReportedRatherThanWaitedForForever()
+    {
+        var program = new InstalledProgram("Stub", @"HKCU\Software\Stub");
+
+        var steps = new StepLog();
+
+        var gone = await new ProgramUninstaller(new VanishingKeyProbe(reads: int.MaxValue))
+            .WaitUntilUnregisteredAsync(program, TimeSpan.FromSeconds(1), steps);
+
+        Assert.False(gone);
+        Assert.Contains(steps.Lines, s => s.Kind == UninstallStepKind.Warning);
+    }
+
+    /// <summary>
+    /// A probe whose registry key exists for the first <c>reads</c> reads and then does not.
+    /// </summary>
+    private sealed class VanishingKeyProbe(int reads) : ITraceProbe
+    {
+        private int _read;
+
+        public bool RegistryKeyExists(string keyPath) => ++_read <= reads;
+
+        public bool FileExists(string path) => false;
+        public bool DirectoryExists(string path) => false;
+        public long DirectorySize(string path) => 0;
+        public (long Bytes, int Files) DirectoryStats(string path) => (0, 0);
+        public long FileSize(string path) => 0;
+        public long RecycleBinSize() => 0;
+        public bool RegistryValueExists(string keyPath, string valueName) => false;
     }
 
     /// <remarks>

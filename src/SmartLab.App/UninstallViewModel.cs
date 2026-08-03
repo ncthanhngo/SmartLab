@@ -159,6 +159,33 @@ public sealed partial class UninstallViewModel : ObservableObject
 
     private Task? _loading;
 
+    /// <summary>
+    /// How long to keep watching the registry after the vendor's process exits.
+    /// </summary>
+    /// <remarks>
+    /// Long enough for an installer that handed off to a temporary copy of itself to
+    /// finish, and short enough that an uninstaller somebody cancelled - which leaves
+    /// the entry in place for good - does not hold the screen indefinitely. Settable
+    /// so a test can drive the path either way without spending a minute and a half on
+    /// it.
+    /// </remarks>
+    public TimeSpan HandoffWait { get; set; } = TimeSpan.FromSeconds(90);
+
+    /// <summary>The wait in progress, so the window showing it can call it off.</summary>
+    private CancellationTokenSource? _waiting;
+
+    /// <summary>
+    /// Stops waiting for an uninstaller that handed off to another process.
+    /// </summary>
+    /// <remarks>
+    /// Wired to the removal window closing. Someone who shuts the window they opened
+    /// to watch this has stopped watching, and a wait whose whole purpose is to keep
+    /// the report honest has nobody left to report to; the run then answers with
+    /// whatever the registry says at that moment. The uninstaller itself is not
+    /// touched - it is somebody else's process and it keeps running.
+    /// </remarks>
+    public void StopWaiting() => _waiting?.Cancel();
+
     /// <summary>Adds a line to the running commentary.</summary>
     private void Say(UninstallStepKind kind, string text) =>
         Activity.Add(new UninstallStepViewModel(new UninstallStep(kind, text)));
@@ -240,6 +267,9 @@ public sealed partial class UninstallViewModel : ObservableObject
         IsBusy = true;
         Leftovers.Clear();
 
+        using var waiting = new CancellationTokenSource();
+        _waiting = waiting;
+
         // The log belongs to one removal. Keeping the previous program's lines above
         // this one's would put two uninstalls in a single scrollback with nothing
         // marking where one ended.
@@ -275,6 +305,21 @@ public sealed partial class UninstallViewModel : ObservableObject
             Progress.Unknown("Waiting for the vendor's uninstaller");
 
             var result = await _uninstaller.RunAsync(program, quiet: true, progress).ConfigureAwait(true);
+
+            // That process exiting is not the same as the removal being over. Most
+            // installers start a copy of themselves somewhere else and exit at once,
+            // so what was waited for above was a launcher - and everything below,
+            // including the re-read that drops the row, would otherwise run against a
+            // machine the real uninstaller has not finished with.
+            if (result.Outcome is UninstallOutcome.Completed && HandoffWait > TimeSpan.Zero)
+            {
+                Progress.Unknown("Waiting for the uninstaller to finish");
+                Status = $"Waiting for '{program.DisplayName}' to finish uninstalling...";
+
+                await _uninstaller
+                    .WaitUntilUnregisteredAsync(program, HandoffWait, progress, waiting.Token)
+                    .ConfigureAwait(true);
+            }
 
             Progress.Step("Looking for what it left behind", 40);
             Status = $"Looking for what '{program.DisplayName}' left behind...";
@@ -371,6 +416,7 @@ public sealed partial class UninstallViewModel : ObservableObject
         }
         finally
         {
+            _waiting = null;
             IsBusy = false;
             Progress.IsRunning = false;
         }
@@ -416,7 +462,8 @@ public sealed partial class UninstallViewModel : ObservableObject
             Status = $"'{program.DisplayName}' is still installed.";
             Progress.Finish("warning", "Not removed",
                 $"{program.DisplayName} is still in the uninstall registry. Its uninstaller may have " +
-                "been cancelled, or it may need Administrator.");
+                "been cancelled, may need Administrator, or may still be working - press Refresh " +
+                "to look again.");
             return;
         }
 

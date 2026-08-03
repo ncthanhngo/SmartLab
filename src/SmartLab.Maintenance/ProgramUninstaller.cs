@@ -119,6 +119,71 @@ public sealed class ProgramUninstaller(ITraceProbe probe)
         }
     }
 
+    /// <summary>How often <see cref="WaitUntilUnregisteredAsync"/> re-reads the registry.</summary>
+    private static readonly TimeSpan PollInterval = TimeSpan.FromSeconds(1);
+
+    /// <summary>
+    /// Waits for the program's uninstall entry to disappear.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The process this app waited on is usually not the one doing the work. Inno
+    /// Setup and NSIS both copy their uninstaller into a temporary folder, start the
+    /// copy and exit within a second, and every bootstrapper hands off the same way -
+    /// so the wait returns while the removal has not begun. Reading the registry at
+    /// that moment finds the program listed, calls a removal that is still happening
+    /// one that did not work, and leaves the row on screen for somebody to press
+    /// Refresh at.
+    /// </para>
+    /// <para>
+    /// The registry entry is what is watched because it is what decides the verdict.
+    /// The wait is bounded: an uninstaller the operator cancelled leaves the entry in
+    /// place for good, and nothing here can tell that apart from one still working.
+    /// </para>
+    /// </remarks>
+    /// <returns>True once the entry is gone, false if it outlasted the wait.</returns>
+    public async Task<bool> WaitUntilUnregisteredAsync(
+        InstalledProgram program, TimeSpan timeout,
+        IProgress<UninstallStep>? progress = null, CancellationToken ct = default)
+    {
+        if (!probe.RegistryKeyExists(program.RegistryKeyPath)) return true;
+
+        Say(progress, UninstallStepKind.Info,
+            "Still registered, so the uninstaller handed the job to another process. " +
+            $"Waiting up to {timeout.TotalSeconds:F0}s for it to finish.");
+
+        var waited = TimeSpan.Zero;
+
+        while (waited < timeout)
+        {
+            try
+            {
+                await Task.Delay(PollInterval, ct).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                Say(progress, UninstallStepKind.Warning,
+                    "Stopped waiting. The uninstaller may still be running.");
+
+                return false;
+            }
+
+            waited += PollInterval;
+
+            if (probe.RegistryKeyExists(program.RegistryKeyPath)) continue;
+
+            Say(progress, UninstallStepKind.Ok,
+                $"Its registry entry went away after {waited.TotalSeconds:F0}s.");
+
+            return true;
+        }
+
+        Say(progress, UninstallStepKind.Warning,
+            $"Still registered {timeout.TotalSeconds:F0}s after its uninstaller exited.");
+
+        return false;
+    }
+
     /// <summary>
     /// Reports what survived the uninstaller.
     /// </summary>
